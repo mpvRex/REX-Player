@@ -242,9 +242,8 @@ class PlayerActivity :
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
   private var inheritedNativeSession = false // MPV ownership came from HeadlessPlaybackController
 
-  @Volatile private var needsAspectReapply = false
-  @Volatile
-  private var isPlaybackStateLoaded = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
+  @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
+  @Volatile private var isPlaybackStateLoaded = false // Track if saved playback state has finished loading from database
 
   // ==================== Background Playback ====================
 
@@ -1904,7 +1903,11 @@ class PlayerActivity :
         if (needsAspectReapply) {
           needsAspectReapply = false
           runOnUiThread {
-            viewModel.resetVisualPreferences()
+            if (isPlaybackStateLoaded) {
+              viewModel.reapplyCurrentVisualPreferences()
+            } else {
+              viewModel.resetVisualPreferences()
+            }
           }
         }
       }
@@ -2517,8 +2520,6 @@ class PlayerActivity :
       MPVLib.setPropertyInt("time-pos", 0)
       return
     }
-
-    needsAspectReapply = false
 
     val subDelay = state.subDelay / DELAY_DIVISOR
     val audioDelay = state.audioDelay / DELAY_DIVISOR
