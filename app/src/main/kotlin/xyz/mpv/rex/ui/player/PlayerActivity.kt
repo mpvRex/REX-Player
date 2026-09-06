@@ -242,7 +242,9 @@ class PlayerActivity :
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
   private var inheritedNativeSession = false // MPV ownership came from HeadlessPlaybackController
 
-  @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
+  @Volatile private var needsAspectReapply = false
+  @Volatile
+  private var isPlaybackStateLoaded = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
 
   // ==================== Background Playback ====================
 
@@ -1664,7 +1666,7 @@ class PlayerActivity :
   private fun handleConfigurationChange() {
     if (!isInPictureInPictureMode) {
       if (viewModel.videoAspect.value == VideoAspect.Stretch && viewModel.currentAspectRatio.value <= 0) {
-        viewModel.changeVideoAspect(VideoAspect.Stretch, showUpdate = false, resetZoomAndPan = false)
+        viewModel.changeVideoAspect(VideoAspect.Stretch, showUpdate = false, resetZoomAndPan = false, persistToPreferences = false)
       }
     } else {
       viewModel.hideControls()
@@ -1970,6 +1972,7 @@ class PlayerActivity :
     viewModel.resetVisualPreferences()
     viewModel.clearResumePrompt()
     needsAspectReapply = true
+    isPlaybackStateLoaded = false
 
     lifecycleScope.launch(Dispatchers.IO) {
       val externalPosMs = jellyfinExternalInfo?.positionMs
@@ -2391,7 +2394,10 @@ class PlayerActivity :
     val currentPos = viewModel.pos ?: 0
     val currentDuration = viewModel.duration ?: 0
     val currentSpeed = MPVLib.getPropertyDouble("speed") ?: DEFAULT_PLAYBACK_SPEED
+    val isStateLoaded = isPlaybackStateLoaded
     val currentZoom = viewModel.videoZoom.value
+    val currentAspect = viewModel.videoAspect.value.name
+    val currentCustomRatio = viewModel.currentAspectRatio.value
     val currentSid = player.sid
     val currentSecondarySid = player.secondarySid
     val currentAid = player.aid
@@ -2410,6 +2416,18 @@ class PlayerActivity :
       runCatching {
         val oldState = playbackStateRepository.getVideoDataByTitle(identifier)
         Log.d(TAG, "Saving playback state for: $mediaTitle (identifier: $identifier) at position: $currentPos")
+
+        val currentZoomToSave = if (isStateLoaded) currentZoom else (oldState?.videoZoom ?: currentZoom)
+        val currentAspectToSave = if (isStateLoaded) {
+          currentAspect
+        } else {
+          oldState?.videoAspect ?: currentAspect
+        }
+        val currentCustomRatioToSave = if (isStateLoaded) {
+          currentCustomRatio
+        } else {
+          oldState?.customAspectRatio ?: currentCustomRatio
+        }
 
         val watchedThreshold = browserPreferences.watchedThreshold.get()
         val progress = if (currentDuration > 0) currentPos.toFloat() / currentDuration.toFloat() else 0f
@@ -2435,7 +2453,7 @@ class PlayerActivity :
             mediaTitle = identifier,
             lastPosition = savePos,
             playbackSpeed = currentSpeed,
-            videoZoom = currentZoom,
+            videoZoom = currentZoomToSave,
             sid = currentSid,
             secondarySid = currentSecondarySid,
             subDelay = (currentSubDelay * MILLISECONDS_TO_SECONDS).toInt(),
@@ -2446,6 +2464,8 @@ class PlayerActivity :
             savedOrientation = currentOrientation,
             externalSubtitles = currentExternalSubs.joinToString("|"),
             externalAudioTracks = currentExternalAudio.joinToString("|"),
+            videoAspect = currentAspectToSave,
+            customAspectRatio = currentCustomRatioToSave,
             hasBeenWatched = run {
               // Check if we are at the end (effectively watched) or reached watched threshold
               val isCurrentlyWatched = progress >= (watchedThreshold / 100f)
@@ -2497,6 +2517,8 @@ class PlayerActivity :
       MPVLib.setPropertyInt("time-pos", 0)
       return
     }
+
+    needsAspectReapply = false
 
     val subDelay = state.subDelay / DELAY_DIVISOR
     val audioDelay = state.audioDelay / DELAY_DIVISOR
@@ -2558,6 +2580,30 @@ class PlayerActivity :
     MPVLib.setPropertyDouble("video-zoom", state.videoZoom.toDouble())
     viewModel.setVideoZoom(state.videoZoom)
 
+    // Restore video aspect ratio from saved state
+    if (state.videoAspect != null) {
+      val aspect = runCatching { VideoAspect.valueOf(state.videoAspect) }.getOrDefault(VideoAspect.Fit)
+      withContext(Dispatchers.Main) {
+        if (state.customAspectRatio > 0.0) {
+          viewModel.setCustomAspectRatio(
+            state.customAspectRatio,
+            resetZoomAndPan = false,
+            showUpdate = false,
+            persistToPreferences = false,
+          )
+        } else {
+          viewModel.changeVideoAspect(
+            aspect,
+            showUpdate = false,
+            resetZoomAndPan = false,
+            persistToPreferences = false,
+          )
+        }
+      }
+    }
+
+    isPlaybackStateLoaded = true
+
     val resumeMode = playerPreferences.resumePlaybackMode.get()
     val hasValidSavedPosition = state.lastPosition > 3
 
@@ -2588,6 +2634,7 @@ class PlayerActivity :
    * @param state The saved playback state entity (null if no saved state)
    */
   private fun applyDefaultSettings(state: PlaybackStateEntity?) {
+    isPlaybackStateLoaded = true
     if (state == null) {
       val defaultSubSpeed = subtitlesPreferences.defaultSubSpeed.get().toDouble()
       MPVLib.setPropertyDouble("sub-speed", defaultSubSpeed)

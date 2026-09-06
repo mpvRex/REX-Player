@@ -20,4 +20,6 @@ data class PlaybackStateEntity(
   val externalSubtitles: String = "", // Pipe-separated list of external subtitle URIs
   val externalAudioTracks: String = "", // Pipe-separated list of external audio URIs
   val hasBeenWatched: Boolean = false, // Persistent flag: true if video has ever reached the watched threshold
+  val videoAspect: String? = null, // Persisted aspect ratio mode name (e.g. Fit, Crop, Stretch)
+  val customAspectRatio: Double = -1.0, // Persisted custom aspect ratio value
 )

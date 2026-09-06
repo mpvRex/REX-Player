@@ -33,7 +33,7 @@ import xyz.mpv.rex.domain.network.NetworkConnection
     HybridMediaEntity::class,
     HybridMediaRootEntity::class,
   ],
-  version = 15,
+  version = 16,
   exportSchema = true,
 )
 @TypeConverters(NetworkProtocolConverter::class)

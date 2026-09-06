@@ -229,6 +229,8 @@ class HistoryManager(
                         audioDelay = existing?.audioDelay ?: 0,
                         timeRemaining = -1,
                         hasBeenWatched = false,
+                        videoAspect = null,
+                        customAspectRatio = -1.0,
                     )
                 )
                 recentlyPlayedRepository.deleteByFilePath(filePath)
@@ -249,8 +251,13 @@ class HistoryManager(
                         subSpeed = existing?.subSpeed ?: 1.0,
                         aid = existing?.aid ?: -1,
                         audioDelay = existing?.audioDelay ?: 0,
-                        timeRemaining = durationSeconds,
+                        timeRemaining = existing?.timeRemaining ?: durationSeconds,
+                        savedOrientation = existing?.savedOrientation,
+                        externalSubtitles = existing?.externalSubtitles ?: "",
+                        externalAudioTracks = existing?.externalAudioTracks ?: "",
                         hasBeenWatched = false,
+                        videoAspect = existing?.videoAspect,
+                        customAspectRatio = existing?.customAspectRatio ?: -1.0,
                     )
                 )
                 // Upsert a RecentlyPlayed entry with timestamp = now so the file surfaces
@@ -278,7 +285,12 @@ class HistoryManager(
                         aid = existing?.aid ?: -1,
                         audioDelay = existing?.audioDelay ?: 0,
                         timeRemaining = 0,
+                        savedOrientation = existing?.savedOrientation,
+                        externalSubtitles = existing?.externalSubtitles ?: "",
+                        externalAudioTracks = existing?.externalAudioTracks ?: "",
                         hasBeenWatched = true,
+                        videoAspect = existing?.videoAspect,
+                        customAspectRatio = existing?.customAspectRatio ?: -1.0,
                     )
                 )
                 // Also add/bump in recently played history
@@ -306,7 +318,12 @@ class HistoryManager(
                         aid = existing?.aid ?: -1,
                         audioDelay = existing?.audioDelay ?: 0,
                         timeRemaining = durationSeconds,
+                        savedOrientation = existing?.savedOrientation,
+                        externalSubtitles = existing?.externalSubtitles ?: "",
+                        externalAudioTracks = existing?.externalAudioTracks ?: "",
                         hasBeenWatched = false,
+                        videoAspect = existing?.videoAspect,
+                        customAspectRatio = existing?.customAspectRatio ?: -1.0,
                     )
                 )
                 // Also clear from recently played history

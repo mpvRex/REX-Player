@@ -1200,9 +1200,9 @@ class PlayerViewModel(
     }
 
     if (savedCustomRatio > 0) {
-      setCustomAspectRatio(savedCustomRatio, resetZoomAndPan = false)
+      setCustomAspectRatio(savedCustomRatio, resetZoomAndPan = false, showUpdate = false, persistToPreferences = false)
     } else {
-      changeVideoAspect(savedAspect, showUpdate = false, resetZoomAndPan = false)
+      changeVideoAspect(savedAspect, showUpdate = false, resetZoomAndPan = false, persistToPreferences = false)
     }
 
     // 2. Load zoom and pan preferences or sync from mpv.conf/engine defaults
@@ -1251,6 +1251,7 @@ class PlayerViewModel(
     aspect: VideoAspect,
     showUpdate: Boolean = true,
     resetZoomAndPan: Boolean = true,
+    persistToPreferences: Boolean = true,
   ) {
     if (resetZoomAndPan) {
       setVideoZoom(0f)
@@ -1295,7 +1296,7 @@ class PlayerViewModel(
     // Update the state and persist to preferences
     _videoAspect.value = aspect
     _currentAspectRatio.value = -1.0 // Reset custom ratio when using standard modes
-    if (playerPreferences.rememberVideoAspect.get()) {
+    if (persistToPreferences && playerPreferences.rememberVideoAspect.get()) {
       playerPreferences.defaultVideoAspect.set(aspect)
       playerPreferences.defaultCustomAspectRatio.set(-1.0)
     }
@@ -1309,6 +1310,8 @@ class PlayerViewModel(
   fun setCustomAspectRatio(
     ratio: Double,
     resetZoomAndPan: Boolean = true,
+    showUpdate: Boolean = true,
+    persistToPreferences: Boolean = true,
   ) {
     if (resetZoomAndPan) {
       setVideoZoom(0f)
@@ -1317,10 +1320,12 @@ class PlayerViewModel(
     MPVLib.setPropertyDouble("panscan", 0.0)
     MPVLib.setPropertyDouble("video-aspect-override", ratio)
     _currentAspectRatio.value = ratio
-    if (playerPreferences.rememberVideoAspect.get()) {
+    if (persistToPreferences && playerPreferences.rememberVideoAspect.get()) {
       playerPreferences.defaultCustomAspectRatio.set(ratio)
     }
-    playerUpdate.value = PlayerUpdates.AspectRatio
+    if (showUpdate) {
+      playerUpdate.value = PlayerUpdates.AspectRatio
+    }
   }
 
   // ==================== Screen Rotation ====================
