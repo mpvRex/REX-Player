@@ -143,6 +143,9 @@ class MPVView(
 
     MPVLib.setPropertyBoolean("keep-open", true)
     MPVLib.setPropertyBoolean("input-default-bindings", true)
+    if (!playerPreferences.autoplayOnOpen.get()) {
+      MPVLib.setPropertyBoolean("pause", true)
+    }
 
     MPVLib.setOptionString("tls-verify", "yes")
     MPVLib.setOptionString("tls-ca-file", "${context.filesDir.path}/cacert.pem")

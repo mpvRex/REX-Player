@@ -121,6 +121,8 @@
     <string name="pref_autoplay_summary">Show next/previous buttons for all videos in folder</string>
     <string name="pref_autoplay_next_video_title">Autoplay next video</string>
     <string name="pref_autoplay_next_video_summary">Automatically play next video when current ends</string>
+    <string name="pref_autoplay_on_open_title">Autoplay on open</string>
+    <string name="pref_autoplay_on_open_summary">Automatically begin playback when media is opened</string>
     <string name="pref_auto_pip_title">Auto Picture-in-Picture</string>
     <string name="pref_auto_pip_summary">Automatically enter PIP mode when pressing home or back</string>
     <string name="pref_player_resume_on_unlock_title">Resume on unlock</string>
@@ -1228,6 +1230,10 @@
     <string name="pref_player_autoplay_next_video">Autoplay next video</string>
     <string name="pref_player_autoplay_next_video_summary_on">Automatically play next video when current ends</string>
     <string name="pref_player_autoplay_next_video_summary_off">Stay on current video when it ends</string>
+    <string name="pref_player_autoplay_on_open">Autoplay on open</string>
+    <string name="pref_player_autoplay_on_open_summary">Automatically begin playback when media is opened</string>
+    <string name="pref_player_autoplay_on_open_summary_on">Automatically begin playback when media is opened</string>
+    <string name="pref_player_autoplay_on_open_summary_off">Open media in a paused state</string>
     <string name="pref_player_playlist_mode_summary_on">Show next/previous buttons for all videos in folder</string>
     <string name="pref_player_playlist_mode_summary_off">Play videos individually (select multiple for playlist)</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_on">Screen stays awake while video is paused</string>

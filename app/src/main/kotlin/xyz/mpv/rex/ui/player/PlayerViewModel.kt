@@ -275,18 +275,23 @@ class PlayerViewModel(
 
   fun dismissResumePrompt() {
     _resumePrompt.value = null
-    runCatching { MPVLib.setPropertyBoolean("pause", false) }
+    if (playerPreferences.autoplayOnOpen.get()) {
+      host.requestAudioFocus()
+      runCatching { MPVLib.setPropertyBoolean("pause", false) }
+    }
   }
 
   fun confirmResume(position: Int) {
     _resumePrompt.value = null
     seekTo(position)
+    host.requestAudioFocus()
     runCatching { MPVLib.setPropertyBoolean("pause", false) }
   }
 
   fun restartFromBeginning() {
     _resumePrompt.value = null
     seekTo(0)
+    host.requestAudioFocus()
     runCatching { MPVLib.setPropertyBoolean("pause", false) }
   }
 

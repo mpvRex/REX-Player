@@ -244,6 +244,7 @@ class PlayerActivity :
 
   @Volatile private var needsAspectReapply = false // Track if aspect ratio needs to be reapplied after video is ready (for Video/Smart orientation modes)
   @Volatile private var isPlaybackStateLoaded = false // Track if saved playback state has finished loading from database
+  private var isAutoplayNextTriggered = false // Track if file load was initiated by autoplay next video
 
   // ==================== Background Playback ====================
 
@@ -517,7 +518,7 @@ class PlayerActivity :
       if (isUriM3U(playableUri)) {
         loadM3uPlaylistOrPlayDirectly(playableUri)
       } else {
-        if (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
+        if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         player.playFile(playableUri)
@@ -691,7 +692,9 @@ class PlayerActivity :
           .setAcceptsDelayedFocusGain(true)
           .setWillPauseWhenDucked(true)
           .build()
-      requestAudioFocus()
+      if (playerPreferences.autoplayOnOpen.get()) {
+        requestAudioFocus()
+      }
     }
   }
 
@@ -1781,6 +1784,7 @@ class PlayerActivity :
 
         if (hasNextItem && (autoplayEnabled || viewModel.shouldRepeatPlaylist())) {
           // Play next item in playlist
+          isAutoplayNextTriggered = true
           playNext()
         } else {
           miniPlayerStateManager.clearState()
@@ -1977,6 +1981,9 @@ class PlayerActivity :
     needsAspectReapply = true
     isPlaybackStateLoaded = false
 
+    val shouldAutoplay = playerPreferences.autoplayOnOpen.get() || isAutoplayNextTriggered
+    isAutoplayNextTriggered = false
+
     lifecycleScope.launch(Dispatchers.IO) {
       val externalPosMs = jellyfinExternalInfo?.positionMs
       val isJellyfinExternal = jellyfinExternalInfo != null && externalPosMs != null
@@ -2008,9 +2015,18 @@ class PlayerActivity :
       }
 
       // Unpause playback after position and state restoration complete (unless asking user to resume)
-      if (viewModel.resumePrompt.value == null) {
+      if (shouldAutoplay && viewModel.resumePrompt.value == null) {
+        withContext(Dispatchers.Main) { requestAudioFocus() }
         runCatching {
           MPVLib.setPropertyBoolean("pause", false)
+        }
+      } else {
+        runCatching {
+          MPVLib.setPropertyBoolean("pause", true)
+        }
+        withContext(Dispatchers.Main) {
+          abandonAudioFocus()
+          updateMediaSessionPlaybackState(isPlaying = false)
         }
       }
 
@@ -2101,9 +2117,7 @@ class PlayerActivity :
       viewModel.setMediaTitle(fileName)
     }
 
-    viewModel.unpause()
-
-    if (playerPreferences.showControlsOnPlay.get()) {
+    if (!shouldAutoplay || playerPreferences.showControlsOnPlay.get()) {
       viewModel.showControls()
     }
 
@@ -2137,7 +2151,8 @@ class PlayerActivity :
       title = fileName,
       durationMs = (MPVLib.getPropertyDouble("duration")?.times(1000))?.toLong() ?: 0L,
     )
-    updateMediaSessionPlaybackState(isPlaying = true)
+    val isPlaying = shouldAutoplay && viewModel.resumePrompt.value == null
+    updateMediaSessionPlaybackState(isPlaying = isPlaying)
 
     // Update MiniPlayer state and media notification thumbnail for newly loaded track
     val currentUri = viewModel.playlistManager.getCurrentUri() ?: extractUriFromIntent(intent)
@@ -2168,6 +2183,7 @@ class PlayerActivity :
         mediaPlaybackService?.setMediaInfo(title = currentTitle, artist = artist, thumbnail = activeThumb)
         miniPlayerStateManager.updateState(
           isPlaybackActive = true,
+          isPaused = !isPlaying,
           title = currentTitle,
           artist = artist,
           thumbnail = activeThumb,
@@ -2673,6 +2689,7 @@ class PlayerActivity :
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
 
+    isAutoplayNextTriggered = false
     pendingIntentExtras = true
     // Update the intent first so getFileName uses the new intent data
     setIntent(intent)
@@ -2816,7 +2833,7 @@ class PlayerActivity :
       if (parsedUri != null && isUriM3U(parsedUri)) {
         loadM3uPlaylistOrPlayDirectly(uriStr)
       } else {
-        if (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
+        if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
           runCatching { MPVLib.setPropertyBoolean("pause", true) }
         }
         // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
@@ -3738,6 +3755,7 @@ class PlayerActivity :
       Log.e(TAG, "Invalid playlist index: $index (playlist size: ${playlist.size})")
       return
     }
+    isAutoplayNextTriggered = true
     loadPlaylistItemInternal(index)
   }
 
@@ -3895,7 +3913,7 @@ class PlayerActivity :
     if (mpvInitialized) {
       safeSetPropertyString("vid", "no")
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
-    } else if (playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
+    } else if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
       runCatching { MPVLib.setPropertyBoolean("pause", true) }
     }
     // Load the new video
@@ -4087,7 +4105,7 @@ class PlayerActivity :
           if (mpvInitialized) {
             safeSetPropertyString("vid", "no")
             runCatching { MPVLib.setPropertyBoolean("pause", true) }
-          } else if (playerPreferences.savePositionOnQuit.get()) {
+          } else if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
             runCatching { MPVLib.setPropertyBoolean("pause", true) }
           }
           if (mpvInitialized) {
