@@ -79,7 +79,6 @@ fun BaseMediaCard(
     onThumbClick: (() -> Unit)? = null,
     isSelected: Boolean = false,
     isRecentlyPlayed: Boolean = false,
-    isNeverPlayed: Boolean = false,
     isWatched: Boolean = false,
     isGridMode: Boolean = false,
     gridColumns: Int = 1,
@@ -230,7 +229,7 @@ fun BaseMediaCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                val shouldHighlight = isRecentlyPlayed && !(isWatched && isNeverPlayed)
+                val shouldHighlight = isRecentlyPlayed && !isWatched
                 // Title
                 Text(
                     text = title,
@@ -370,7 +369,7 @@ fun BaseMediaCard(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    val shouldHighlight = isRecentlyPlayed && !(isWatched && isNeverPlayed)
+                    val shouldHighlight = isRecentlyPlayed && !isWatched
                     Text(
                         text = title,
                         style = listTitleStyle ?: MaterialTheme.typography.titleMedium,

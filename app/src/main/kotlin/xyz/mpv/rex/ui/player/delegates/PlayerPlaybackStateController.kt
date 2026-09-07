@@ -115,15 +115,7 @@ class PlayerPlaybackStateController(
             externalAudioTracks = currentExternalAudio.joinToString("|"),
             videoAspect = currentAspectToSave,
             customAspectRatio = currentCustomRatioToSave,
-            hasBeenWatched = run {
-              // Check if we are at the end (effectively watched) or reached watched threshold
-              val isCurrentlyWatched = progress >= (watchedThreshold / 100f)
-
-              val oldProgress = if (currentDuration > 0) (oldState?.lastPosition?.toFloat() ?: 0f) / currentDuration.toFloat() else 0f
-              val wasWatchedThisSession = oldProgress >= (watchedThreshold / 100f)
-
-              isCurrentlyWatched || isFinished || wasWatchedThisSession || (oldState?.hasBeenWatched == true)
-            },
+            hasBeenWatched = isFinished || progress >= (watchedThreshold / 100f),
           ),
         )
       }.onFailure { e ->

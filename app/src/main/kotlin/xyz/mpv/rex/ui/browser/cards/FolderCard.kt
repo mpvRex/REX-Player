@@ -104,7 +104,6 @@ fun FolderCard(
     onThumbClick = onThumbClick,
     isSelected = isSelected,
     isRecentlyPlayed = isRecentlyPlayed,
-    isNeverPlayed = isNeverPlayed,
     isWatched = isWatched,
     isGridMode = isGridMode,
     gridColumns = gridColumns,

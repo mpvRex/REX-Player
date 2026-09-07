@@ -69,6 +69,138 @@ class HybridMediaIndexRepositoryTest {
   }
 
   @Test
+  fun flatFolders_rewatchedVideoWithHasBeenWatchedFalse_countsAsUnwatched() = runTest {
+    val clip = media(
+      identity = "file:/storage/A/clip.mp4",
+      location = "/storage/A/clip.mp4",
+      parent = "/storage/A",
+    ).copy(duration = 100_000L)
+    coEvery { dao.getAvailableMedia(true) } returns listOf(clip)
+
+    val rewatchedPlaybackState = PlaybackStateEntity(
+      mediaTitle = clip.location,
+      lastPosition = 20,
+      timeRemaining = 80,
+      playbackSpeed = 1.0,
+      sid = -1,
+      subDelay = 0,
+      subSpeed = 1.0,
+      aid = -1,
+      audioDelay = 0,
+      hasBeenWatched = false,
+    )
+
+    val folders = repository.getFlatFolders(
+      playbackStates = listOf(rewatchedPlaybackState),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    assertEquals(1, folders.first().unwatchedVideoCount)
+  }
+
+  @Test
+  fun flatFolders_finishedVideoResetToZeroPosWithHasBeenWatchedTrue_countsAsWatched() = runTest {
+    val clip = media(
+      identity = "file:/storage/A/clip.mp4",
+      location = "/storage/A/clip.mp4",
+      parent = "/storage/A",
+    ).copy(duration = 100_000L)
+    coEvery { dao.getAvailableMedia(true) } returns listOf(clip)
+
+    val finishedPlaybackState = PlaybackStateEntity(
+      mediaTitle = clip.location,
+      lastPosition = 0,
+      timeRemaining = 0,
+      playbackSpeed = 1.0,
+      sid = -1,
+      subDelay = 0,
+      subSpeed = 1.0,
+      aid = -1,
+      audioDelay = 0,
+      hasBeenWatched = true,
+    )
+
+    val folders = repository.getFlatFolders(
+      playbackStates = listOf(finishedPlaybackState),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    assertEquals(0, folders.first().unwatchedVideoCount)
+  }
+
+  @Test
+  fun flatFolders_inProgressVideoBelowThreshold_countsAsUnwatched() = runTest {
+    val clip = media(
+      identity = "file:/storage/A/clip.mp4",
+      location = "/storage/A/clip.mp4",
+      parent = "/storage/A",
+    ).copy(duration = 100_000L)
+    coEvery { dao.getAvailableMedia(true) } returns listOf(clip)
+
+    val inProgressState = PlaybackStateEntity(
+      mediaTitle = clip.location,
+      lastPosition = 94,
+      timeRemaining = 6,
+      playbackSpeed = 1.0,
+      sid = -1,
+      subDelay = 0,
+      subSpeed = 1.0,
+      aid = -1,
+      audioDelay = 0,
+      hasBeenWatched = false,
+    )
+
+    val folders = repository.getFlatFolders(
+      playbackStates = listOf(inProgressState),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    assertEquals(1, folders.first().unwatchedVideoCount)
+  }
+
+  @Test
+  fun flatFolders_inProgressVideoAtThreshold_countsAsWatched() = runTest {
+    val clip = media(
+      identity = "file:/storage/A/clip.mp4",
+      location = "/storage/A/clip.mp4",
+      parent = "/storage/A",
+    ).copy(duration = 100_000L)
+    coEvery { dao.getAvailableMedia(true) } returns listOf(clip)
+
+    val inProgressState = PlaybackStateEntity(
+      mediaTitle = clip.location,
+      lastPosition = 95,
+      timeRemaining = 5,
+      playbackSpeed = 1.0,
+      sid = -1,
+      subDelay = 0,
+      subSpeed = 1.0,
+      aid = -1,
+      audioDelay = 0,
+      hasBeenWatched = false,
+    )
+
+    val folders = repository.getFlatFolders(
+      playbackStates = listOf(inProgressState),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    assertEquals(0, folders.first().unwatchedVideoCount)
+  }
+
+  @Test
   fun noMediaPolicyIsAppliedWhenReadingPersistentIndex() = runTest {
     coEvery { dao.getAvailableMedia(false) } returns emptyList()
 
