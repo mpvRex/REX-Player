@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -40,9 +40,11 @@ fun <T> GenericTracksSheet(
   header: @Composable () -> Unit = {},
   track: @Composable (T) -> Unit = {},
   footer: @Composable () -> Unit = {},
+  key: ((index: Int, item: T) -> Any)? = null,
+  trackIndexed: (@Composable (index: Int, item: T) -> Unit)? = null,
 ) {
   val listState = lazyListState ?: rememberLazyListState()
-  
+
   PlayerSheet(onDismissRequest, customMaxWidth = customMaxWidth) {
     Column(modifier) {
       header()
@@ -51,8 +53,8 @@ fun <T> GenericTracksSheet(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
       ) {
-        items(tracks) {
-          track(it)
+        itemsIndexed(items = tracks, key = key) { index, item ->
+          if (trackIndexed != null) trackIndexed(index, item) else track(item)
         }
         item {
           footer()

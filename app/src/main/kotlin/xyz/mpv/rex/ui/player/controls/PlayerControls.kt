@@ -1933,6 +1933,7 @@ fun PlayerControls(
       },
       chapter = chapters.getOrNull(currentChapter ?: 0),
       chapters = chapters.toImmutableList(),
+      currentChapterIndex = currentChapter ?: 0,
       onSeekToChapter = {
         MPVLib.setPropertyInt("chapter", it)
         viewModel.unpause()

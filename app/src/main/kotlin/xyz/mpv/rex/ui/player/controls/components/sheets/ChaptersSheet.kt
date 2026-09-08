@@ -32,36 +32,56 @@ import dev.vivvvek.seeker.Segment
 import `is`.xyz.mpv.Utils
 import kotlinx.collections.immutable.ImmutableList
 
+internal fun chapterKey(index: Int, chapter: Segment): Any = "${index}_${chapter.start}"
+
+internal fun resolveActiveChapterIndex(
+  chapters: List<Segment>,
+  currentChapter: Segment?,
+  currentChapterIndex: Int?,
+): Int = currentChapterIndex?.takeIf { it in chapters.indices }
+  ?: currentChapter?.let { chapters.indexOf(it) }
+  ?: -1
+
 @Composable
 fun ChaptersSheet(
   chapters: ImmutableList<Segment>,
   currentChapter: Segment?,
-  onClick: (Segment) -> Unit,
+  onClick: (Segment) -> Unit = {},
   onDismissRequest: () -> Unit,
   modifier: Modifier = Modifier,
+  currentChapterIndex: Int? = null,
+  onChapterClick: ((Int) -> Unit)? = null,
 ) {
   val listState = rememberLazyListState()
   val hasScrolled = remember { mutableStateOf(false) }
 
-  LaunchedEffect(currentChapter, chapters) {
-    if (!hasScrolled.value && chapters.isNotEmpty()) {
-      val index = if (currentChapter != null) chapters.indexOf(currentChapter) else -1
-      if (index >= 0) {
-        listState.scrollToItem(index)
-        hasScrolled.value = true
-      }
+  val activeChapterIndex = remember(currentChapterIndex, currentChapter, chapters) {
+    resolveActiveChapterIndex(chapters, currentChapter, currentChapterIndex)
+  }
+
+  LaunchedEffect(activeChapterIndex, chapters.size) {
+    if (!hasScrolled.value && activeChapterIndex in chapters.indices) {
+      listState.scrollToItem(activeChapterIndex)
+      hasScrolled.value = true
     }
   }
 
   GenericTracksSheet(
-    chapters,
+    tracks = chapters,
     lazyListState = listState,
-    track = {
+    key = ::chapterKey,
+    trackIndexed = { index, chapter ->
       ChapterTrack(
-        it,
-        index = chapters.indexOf(it),
-        selected = currentChapter == it,
-        onClick = { onClick(it) },
+        chapter = chapter,
+        index = index,
+        selected = index == activeChapterIndex,
+        onClick = {
+          if (onChapterClick != null) {
+            onChapterClick(index)
+          } else {
+            onClick(chapter)
+          }
+        },
       )
     },
     onDismissRequest = onDismissRequest,
