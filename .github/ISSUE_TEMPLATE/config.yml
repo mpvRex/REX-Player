@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Telegram Community Chat
+    url: https://t.me/mpvRex_chat
+    about: Ask questions, get help, and chat with the community
+  - name: 📢 Telegram Channel
+    url: https://t.me/mpvRex
+    about: News, development announcements, and release updates
+  - name: 🚀 Preview Builds
+    url: https://mpvrex.github.io/REX-Player
+    about: Download and test experimental preview releases

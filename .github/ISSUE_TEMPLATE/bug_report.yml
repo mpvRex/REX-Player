@@ -1,0 +1,108 @@
+name: 🐞 Bug report
+description: Report a bug or unexpected behavior in REX Player
+labels: ["bug"]
+body:
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue? Provide clear, step-by-step instructions.
+      placeholder: |
+        1. Open a video file (e.g. MKV)
+        2. Tap the subtitle icon and switch track
+        3. Video freezes while audio keeps playing
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: Explain what you expected to happen.
+      placeholder: |
+        Playback should continue seamlessly when switching tracks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: Explain what actually happened instead.
+      placeholder: |
+        The video freezes and the player UI becomes unresponsive.
+    validations:
+      required: true
+
+  - type: textarea
+    id: crash-logs
+    attributes:
+      label: Crash logs or Logcat
+      description: |
+        If the app crashed, you can share the logcat from the Crash Screen.
+        You can also export logs anytime from **Settings → Advanced → Dump logs**.
+      placeholder: |
+        Paste logs here, or drag and drop exported log files.
+
+  - type: textarea
+    id: media-info
+    attributes:
+      label: Media info & playback details (if applicable)
+      description: |
+        If the issue occurs during playback, provide file details: container, codecs (e.g. HEVC 10-bit), decoder mode (HW/SW), and source (Local, SMB, WebDAV, yt-dlp).
+      placeholder: |
+        Example: 1080p HEVC 10-bit MKV from local storage with HW decoding.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: REX Player version
+      description: Found in **Settings → About** (tapping the "Device info" card copies all version details).
+      placeholder: |
+        Example: "5.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Android version
+      description: Found in your device's Android settings.
+      placeholder: |
+        Example: "Android 14"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      description: Manufacturer and model of your device.
+      placeholder: |
+        Example: "Google Pixel 8 Pro"
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-details
+    attributes:
+      label: Additional context or screenshots
+      placeholder: |
+        Attach screenshots, screen recordings, sample media links, or extra details.
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      description: Please verify each item below before submitting.
+      options:
+        - label: I have searched existing issues and verified this is **NOT** a duplicate.
+          required: true
+        - label: I have written a clear and descriptive issue title.
+          required: true
+        - label: I have tested or updated to the latest release **[5.1.0](https://github.com/mpvRex/REX-Player/releases/latest)** or preview build.
+          required: true
+        - label: I have filled out all required fields in this form.
+          required: true
+        - label: I understand that issues caused by corrupted media files or dead stream links are outside the scope of REX Player.
+          required: true
