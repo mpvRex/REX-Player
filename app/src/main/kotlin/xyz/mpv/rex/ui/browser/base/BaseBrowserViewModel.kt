@@ -135,6 +135,16 @@ abstract class BaseBrowserViewModel<T>(
           loadData()
         }
     }
+
+    viewModelScope.launch(Dispatchers.Main) {
+      browserPreferences.showAudioFiles.changes()
+        .drop(1)
+        .collectLatest {
+          Log.d("BaseBrowserViewModel", "showAudioFiles changed to $it")
+          MediaFileRepository.clearCache()
+          loadData()
+        }
+    }
   }
 
   /**

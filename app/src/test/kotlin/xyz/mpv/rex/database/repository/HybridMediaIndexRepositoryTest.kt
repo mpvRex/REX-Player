@@ -6,6 +6,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import xyz.mpv.rex.database.dao.HybridMediaDao
 import xyz.mpv.rex.database.entities.HybridMediaEntity
@@ -22,10 +23,13 @@ import android.net.Uri
 class HybridMediaIndexRepositoryTest {
   private val dao = mockk<HybridMediaDao>(relaxed = true)
   private val metadataCacheRepository = mockk<VideoMetadataCacheRepository>()
+  private val browserPreferences = mockk<BrowserPreferences>(relaxed = true) {
+    every { showAudioFiles.get() } returns false
+  }
   private val repository = HybridMediaIndexRepository(
     context = mockk<Context>(relaxed = true),
     dao = dao,
-    browserPreferences = mockk<BrowserPreferences>(relaxed = true),
+    browserPreferences = browserPreferences,
     foldersPreferences = mockk<FoldersPreferences>(relaxed = true),
     metadataCacheRepository = metadataCacheRepository,
   )
@@ -362,10 +366,256 @@ class HybridMediaIndexRepositoryTest {
     assertEquals(2, rootFolders[0].videoCount)
   }
 
+  @Test
+  fun flatFolders_whenShowAudioFilesFalse_excludesAudioFromNewAndUnwatchedCounts() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+
+    val audioOnly = media(
+      identity = "file:/storage/Music/song.mp3",
+      location = "/storage/Music/song.mp3",
+      parent = "/storage/Music",
+      isAudio = true,
+    )
+    val mixedVideo = media(
+      identity = "file:/storage/Mixed/clip.mp4",
+      location = "/storage/Mixed/clip.mp4",
+      parent = "/storage/Mixed",
+      isAudio = false,
+    )
+    val mixedAudio = media(
+      identity = "file:/storage/Mixed/track.mp3",
+      location = "/storage/Mixed/track.mp3",
+      parent = "/storage/Mixed",
+      isAudio = true,
+    )
+    coEvery { dao.getAvailableMedia(true) } returns listOf(audioOnly, mixedVideo, mixedAudio)
+
+    val folders = repository.getFlatFolders(
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    val musicFolder = folders.first { it.path == "/storage/Music" }
+    assertEquals(1, musicFolder.audioCount)
+    assertEquals(0, musicFolder.videoCount)
+    assertEquals(0, musicFolder.newCount)
+    assertEquals(0, musicFolder.unwatchedVideoCount)
+
+    val mixedFolder = folders.first { it.path == "/storage/Mixed" }
+    assertEquals(1, mixedFolder.audioCount)
+    assertEquals(1, mixedFolder.videoCount)
+    assertEquals(1, mixedFolder.newCount)
+    assertEquals(1, mixedFolder.unwatchedVideoCount)
+  }
+
+  @Test
+  fun flatFolders_whenShowAudioFilesTrue_includesAudioInNewAndUnwatchedCounts() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns true
+
+    val audioOnly = media(
+      identity = "file:/storage/Music/song.mp3",
+      location = "/storage/Music/song.mp3",
+      parent = "/storage/Music",
+      isAudio = true,
+    )
+    val mixedVideo = media(
+      identity = "file:/storage/Mixed/clip.mp4",
+      location = "/storage/Mixed/clip.mp4",
+      parent = "/storage/Mixed",
+      isAudio = false,
+    )
+    val mixedAudio = media(
+      identity = "file:/storage/Mixed/track.mp3",
+      location = "/storage/Mixed/track.mp3",
+      parent = "/storage/Mixed",
+      isAudio = true,
+    )
+    coEvery { dao.getAvailableMedia(true) } returns listOf(audioOnly, mixedVideo, mixedAudio)
+
+    val folders = repository.getFlatFolders(
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    val musicFolder = folders.first { it.path == "/storage/Music" }
+    assertEquals(1, musicFolder.audioCount)
+    assertEquals(0, musicFolder.videoCount)
+    assertEquals(1, musicFolder.newCount)
+    assertEquals(1, musicFolder.unwatchedVideoCount)
+
+    val mixedFolder = folders.first { it.path == "/storage/Mixed" }
+    assertEquals(1, mixedFolder.audioCount)
+    assertEquals(1, mixedFolder.videoCount)
+    assertEquals(2, mixedFolder.newCount)
+    assertEquals(2, mixedFolder.unwatchedVideoCount)
+  }
+
+  @Test
+  fun foldersInDirectory_whenShowAudioFilesFalse_excludesAudioFromNewAndUnwatchedCounts() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+
+    val audioItem = media(
+      identity = "file:/storage/Music/song.mp3",
+      location = "/storage/Music/song.mp3",
+      parent = "/storage/Music",
+      isAudio = true,
+    )
+    val mixedVideo = media(
+      identity = "file:/storage/Mixed/clip.mp4",
+      location = "/storage/Mixed/clip.mp4",
+      parent = "/storage/Mixed",
+      isAudio = false,
+    )
+    val mixedAudio = media(
+      identity = "file:/storage/Mixed/track.mp3",
+      location = "/storage/Mixed/track.mp3",
+      parent = "/storage/Mixed",
+      isAudio = true,
+    )
+    coEvery { dao.getAvailableMedia(true) } returns listOf(audioItem, mixedVideo, mixedAudio)
+
+    val folders = repository.getFoldersInDirectory(
+      parentPath = "/storage",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    val musicFolder = folders.first { it.path == "/storage/Music" }
+    assertEquals(1, musicFolder.audioCount)
+    assertEquals(0, musicFolder.videoCount)
+    assertEquals(0, musicFolder.newCount)
+    assertEquals(0, musicFolder.unwatchedVideoCount)
+
+    val mixedFolder = folders.first { it.path == "/storage/Mixed" }
+    assertEquals(1, mixedFolder.audioCount)
+    assertEquals(1, mixedFolder.videoCount)
+    assertEquals(1, mixedFolder.newCount)
+    assertEquals(1, mixedFolder.unwatchedVideoCount)
+  }
+
+  @Test
+  fun foldersInDirectory_whenShowAudioFilesTrue_includesAudioInNewAndUnwatchedCounts() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns true
+
+    val audioItem = media(
+      identity = "file:/storage/Music/song.mp3",
+      location = "/storage/Music/song.mp3",
+      parent = "/storage/Music",
+      isAudio = true,
+    )
+    val mixedVideo = media(
+      identity = "file:/storage/Mixed/clip.mp4",
+      location = "/storage/Mixed/clip.mp4",
+      parent = "/storage/Mixed",
+      isAudio = false,
+    )
+    val mixedAudio = media(
+      identity = "file:/storage/Mixed/track.mp3",
+      location = "/storage/Mixed/track.mp3",
+      parent = "/storage/Mixed",
+      isAudio = true,
+    )
+    coEvery { dao.getAvailableMedia(true) } returns listOf(audioItem, mixedVideo, mixedAudio)
+
+    val folders = repository.getFoldersInDirectory(
+      parentPath = "/storage",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    val musicFolder = folders.first { it.path == "/storage/Music" }
+    assertEquals(1, musicFolder.audioCount)
+    assertEquals(0, musicFolder.videoCount)
+    assertEquals(1, musicFolder.newCount)
+    assertEquals(1, musicFolder.unwatchedVideoCount)
+
+    val mixedFolder = folders.first { it.path == "/storage/Mixed" }
+    assertEquals(1, mixedFolder.audioCount)
+    assertEquals(1, mixedFolder.videoCount)
+    assertEquals(2, mixedFolder.newCount)
+    assertEquals(2, mixedFolder.unwatchedVideoCount)
+  }
+
+  @Test
+  fun recursiveFolder_whenShowAudioFilesFalse_excludesAudioFromNewAndUnwatchedCounts() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+
+    val directVideo = media(
+      identity = "file:/storage/Music/clip.mp4",
+      location = "/storage/Music/clip.mp4",
+      parent = "/storage/Music",
+      isAudio = false,
+    )
+    val nestedAudio = media(
+      identity = "file:/storage/Music/Sub/song.mp3",
+      location = "/storage/Music/Sub/song.mp3",
+      parent = "/storage/Music/Sub",
+      isAudio = true,
+    )
+    coEvery { dao.getAvailableMedia(true) } returns listOf(directVideo, nestedAudio)
+
+    val musicFolder = repository.getRecursiveFolder(
+      path = "/storage/Music",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertNotNull(musicFolder)
+    assertEquals(1, musicFolder!!.audioCount)
+    assertEquals(1, musicFolder.videoCount)
+    assertEquals(1, musicFolder.newCount)
+    assertEquals(1, musicFolder.unwatchedVideoCount)
+  }
+
+  @Test
+  fun recursiveFolder_whenShowAudioFilesTrue_includesAudioInNewAndUnwatchedCounts() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns true
+
+    val directVideo = media(
+      identity = "file:/storage/Music/clip.mp4",
+      location = "/storage/Music/clip.mp4",
+      parent = "/storage/Music",
+      isAudio = false,
+    )
+    val nestedAudio = media(
+      identity = "file:/storage/Music/Sub/song.mp3",
+      location = "/storage/Music/Sub/song.mp3",
+      parent = "/storage/Music/Sub",
+      isAudio = true,
+    )
+    coEvery { dao.getAvailableMedia(true) } returns listOf(directVideo, nestedAudio)
+
+    val musicFolder = repository.getRecursiveFolder(
+      path = "/storage/Music",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertNotNull(musicFolder)
+    assertEquals(1, musicFolder!!.audioCount)
+    assertEquals(1, musicFolder.videoCount)
+    assertEquals(2, musicFolder.newCount)
+    assertEquals(2, musicFolder.unwatchedVideoCount)
+  }
+
   private fun media(
     identity: String,
     location: String,
     parent: String,
+    isAudio: Boolean = false,
+    displayName: String = if (isAudio) "song.mp3" else "clip.mp4",
   ) = HybridMediaEntity(
     identity = identity,
     sourceType = "DIRECT_FILE",
@@ -373,11 +623,11 @@ class HybridMediaIndexRepositoryTest {
     location = location,
     parentIdentity = parent,
     parentDisplayName = parent.substringAfterLast('/'),
-    displayName = "clip.mp4",
-    mimeType = "video/mp4",
+    displayName = displayName,
+    mimeType = if (isAudio) "audio/mp3" else "video/mp4",
     size = 100,
     dateModified = System.currentTimeMillis() / 1000,
-    isAudio = false,
+    isAudio = isAudio,
     isNoMedia = true,
     lastSeenGeneration = 1,
   )

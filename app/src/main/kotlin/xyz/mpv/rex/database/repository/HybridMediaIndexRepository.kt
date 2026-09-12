@@ -749,9 +749,11 @@ class HybridMediaIndexRepository(
     thresholdMillis: Long,
     now: Long,
   ): Pair<Int, Int> {
+    val showAudioFiles = browserPreferences.showAudioFiles.get()
     var newCount = 0
     var unwatchedCount = 0
     items.forEach { item ->
+      if (!showAudioFiles && item.isAudio) return@forEach
       val fileName = java.io.File(item.location).name
       val state = stateByIdentity[item.location] ?: stateByIdentity[item.displayName] ?: stateByIdentity[fileName]
       val watched = state?.hasBeenWatched == true ||

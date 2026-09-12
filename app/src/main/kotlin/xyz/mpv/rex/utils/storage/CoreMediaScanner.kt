@@ -5,6 +5,7 @@ import android.provider.MediaStore
 import android.util.Log
 import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.domain.media.model.MediaFolder
+import xyz.mpv.rex.preferences.BrowserPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -25,6 +26,7 @@ object CoreMediaScanner {
     // Smart cache with configurable TTL
     private var cachedMediaData: Map<String, FolderNode>? = null
     private var cacheTimestamp: Long = 0
+    private var cachedShowAudioFiles: Boolean? = null
     private const val CACHE_TTL_MS = 180_000L // 3 minutes for standard refreshes
     
     /**
@@ -34,6 +36,7 @@ object CoreMediaScanner {
         Log.d(TAG, "Clearing core media scanner cache")
         cachedMediaData = null
         cacheTimestamp = 0
+        cachedShowAudioFiles = null
     }
     
     /**
@@ -270,16 +273,19 @@ object CoreMediaScanner {
         thresholdDays: Int,
         blacklistedFolders: Set<String> = emptySet()
     ): Map<String, FolderNode> {
+        val browserPreferences = org.koin.core.context.GlobalContext.get().get<BrowserPreferences>()
+        val showAudioFiles = browserPreferences.showAudioFiles.get()
         val now = System.currentTimeMillis()
         cachedMediaData?.let { cached ->
-            if (now - cacheTimestamp < CACHE_TTL_MS) {
+            if (now - cacheTimestamp < CACHE_TTL_MS && cachedShowAudioFiles == showAudioFiles) {
                 return cached
             }
         }
         
-        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders)
+        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders, browserPreferences, showAudioFiles)
         cachedMediaData = tree
         cacheTimestamp = now
+        cachedShowAudioFiles = showAudioFiles
         return tree
     }
 
@@ -290,7 +296,9 @@ object CoreMediaScanner {
         context: Context,
         playbackStates: List<PlaybackStateEntity>,
         thresholdDays: Int,
-        blacklistedFolders: Set<String>
+        blacklistedFolders: Set<String>,
+        browserPreferences: BrowserPreferences,
+        showAudioFiles: Boolean,
     ): Map<String, FolderNode> {
         val allNodes = mutableMapOf<String, FolderNode>()
         val rawMediaByFolder = mutableMapOf<String, MutableList<ScannedItem>>()
@@ -305,7 +313,6 @@ object CoreMediaScanner {
         val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
         
         // Get watched threshold from preferences
-        val browserPreferences = org.koin.core.context.GlobalContext.get().get<xyz.mpv.rex.preferences.BrowserPreferences>()
         val watchedThreshold = browserPreferences.watchedThreshold.get()
 
         // Step 3: Build Nodes for folders with direct media
@@ -332,6 +339,8 @@ object CoreMediaScanner {
                     } else {
                         videoCount++
                     }
+
+                    if (!showAudioFiles && item.isAudio) continue
 
                     // Calculate unwatched status for all media (audio and video)
                     val playbackState = playbackStates.find {
@@ -388,10 +397,12 @@ object CoreMediaScanner {
         context: Context,
         rawMedia: MutableMap<String, MutableList<ScannedItem>>
     ) {
+        val videoUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI ?: return
+        val audioUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI ?: return
         // Step 1: Scan Videos
-        queryMediaStore(context, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, false, rawMedia)
+        queryMediaStore(context, videoUri, false, rawMedia)
         // Step 2: Scan Audio
-        queryMediaStore(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, true, rawMedia)
+        queryMediaStore(context, audioUri, true, rawMedia)
     }
 
     private fun queryMediaStore(
