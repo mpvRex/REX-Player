@@ -8,9 +8,10 @@ body:
       label: Steps to reproduce
       description: How can we reproduce the issue? Provide clear, step-by-step instructions.
       placeholder: |
-        1. Open a video file (e.g. MKV)
-        2. Tap the subtitle icon and switch track
-        3. Video freezes while audio keeps playing
+        Example:
+          1. First step
+          2. Second step
+          3. Issue here
     validations:
       required: true
 
@@ -20,7 +21,8 @@ body:
       label: Expected behavior
       description: Explain what you expected to happen.
       placeholder: |
-        Playback should continue seamlessly when switching tracks.
+        Example:
+          "This should happen..."
     validations:
       required: true
 
@@ -30,7 +32,8 @@ body:
       label: Actual behavior
       description: Explain what actually happened instead.
       placeholder: |
-        The video freezes and the player UI becomes unresponsive.
+        Example:
+          "This happened instead..."
     validations:
       required: true
 
@@ -42,7 +45,7 @@ body:
         If the app crashed, you can share the logcat from the Crash Screen.
         You can also export logs anytime from **Settings → Advanced → Dump logs**.
       placeholder: |
-        Paste logs here, or drag and drop exported log files.
+        You can upload the log file as an attachment, or paste the logs in plain text if needed.
 
   - type: textarea
     id: media-info
@@ -88,7 +91,7 @@ body:
     attributes:
       label: Additional context or screenshots
       placeholder: |
-        Attach screenshots, screen recordings, sample media links, or extra details.
+        Additional details and attachments.
 
   - type: checkboxes
     id: acknowledgements
