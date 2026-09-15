@@ -225,11 +225,6 @@ fun RenderPlayerButton(
 
     PlayerButton.BOOKMARKS_CHAPTERS -> {
       if (chapters.isNotEmpty()) {
-        val nextChapter = (currentChapter ?: 0) + 1
-        val onNextChapter: (() -> Unit)? = if (nextChapter < chapters.size) {
-          { `is`.xyz.mpv.MPVLib.setPropertyInt("chapter", nextChapter) }
-        } else null
-
         if (isMoreSheet) {
           val chapter = chapters.getOrNull(currentChapter ?: 0)
           Surface(
@@ -240,10 +235,10 @@ fun RenderPlayerButton(
             modifier = Modifier
               .height(buttonSize)
               .clip(CircleShape)
-              .combinedClickable(
-                onClick = { onOpenSheet(Sheets.Chapters) },
-                onDoubleClick = onNextChapter,
-              )
+              .clickable {
+                clickEvent()
+                onOpenSheet(Sheets.Chapters)
+              }
           ) {
             Row(
               verticalAlignment = Alignment.CenterVertically,
@@ -268,7 +263,6 @@ fun RenderPlayerButton(
           ControlsButton(
             Icons.Default.Bookmarks,
             onClick = { onOpenSheet(Sheets.Chapters) },
-            onDoubleClick = onNextChapter,
             modifier = Modifier.size(buttonSize),
           )
         }
@@ -776,15 +770,12 @@ fun RenderPlayerButton(
           exit = fadeOut(),
         ) {
           chapters.getOrNull(currentChapter ?: 0)?.let { chapter ->
-            val nextChapter = (currentChapter ?: 0) + 1
-            val onNextChapter: (() -> Unit)? = if (nextChapter < chapters.size) {
-              { `is`.xyz.mpv.MPVLib.setPropertyInt("chapter", nextChapter) }
-            } else null
-
             CurrentChapter(
               chapter = chapter,
-              onClick = { onOpenSheet(Sheets.Chapters) },
-              onDoubleClick = onNextChapter,
+              onClick = {
+                clickEvent()
+                onOpenSheet(Sheets.Chapters)
+              },
             )
           }
         }

@@ -52,12 +52,14 @@ fun ChaptersSheet(
   currentChapterIndex: Int? = null,
   onChapterClick: ((Int) -> Unit)? = null,
 ) {
-  val listState = rememberLazyListState()
-  val hasScrolled = remember { mutableStateOf(false) }
-
   val activeChapterIndex = remember(currentChapterIndex, currentChapter, chapters) {
     resolveActiveChapterIndex(chapters, currentChapter, currentChapterIndex)
   }
+
+  val listState = rememberLazyListState(
+    initialFirstVisibleItemIndex = activeChapterIndex.coerceAtLeast(0),
+  )
+  val hasScrolled = remember { mutableStateOf(activeChapterIndex in chapters.indices) }
 
   LaunchedEffect(activeChapterIndex, chapters.size) {
     if (!hasScrolled.value && activeChapterIndex in chapters.indices) {
