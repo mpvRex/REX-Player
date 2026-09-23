@@ -1072,131 +1072,181 @@ fun PlayerControls(
               if (showNextPreviousButtons && playlistItems.isNotEmpty() && playlistIndex >= 0 && viewModel.hasPlaylistSupport()) {
                 val canGoPrevious = viewModel.hasPrevious()
                 val canGoNext = viewModel.hasNext()
-                Row(
-                  horizontalArrangement = Arrangement.spacedBy(24.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                ) {
+                if (!hideBackground) {
+                  val centerDockShape = RoundedCornerShape(22.dp)
                   Surface(
-                    modifier =
-                      Modifier
-                        .size(48.dp)
+                    modifier = Modifier.height(60.dp),
+                    shape = centerDockShape,
+                    color = surfaceColor,
+                    contentColor = contentColor,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                    border = borderColor,
+                  ) {
+                    Row(
+                      modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                      horizontalArrangement = Arrangement.spacedBy(8.dp),
+                      verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                      Box(
+                        modifier = Modifier
+                          .size(44.dp)
+                          .clip(RoundedCornerShape(14.dp))
+                          .clickable(
+                            enabled = canGoPrevious,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true),
+                            onClick = {
+                              resetControlsTimestamp = System.currentTimeMillis()
+                              viewModel.handleMediaPrevious()
+                            },
+                          ),
+                        contentAlignment = Alignment.Center,
+                      ) {
+                        Icon(
+                          imageVector = Icons.Default.SkipPrevious,
+                          contentDescription = "Previous",
+                          tint = if (canGoPrevious) contentColor.copy(alpha = 0.85f) else contentColor.copy(alpha = 0.35f),
+                          modifier = Modifier.size(28.dp),
+                        )
+                      }
+
+                      Box(
+                        modifier = Modifier
+                          .size(52.dp)
+                          .clip(RoundedCornerShape(16.dp))
+                          .background(
+                            if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                          )
+                          .clickable(
+                            interactionSource = interaction,
+                            indication = ripple(bounded = true),
+                            onClick = {
+                              resetControlsTimestamp = System.currentTimeMillis()
+                              viewModel.handleMediaPlayPause()
+                            },
+                          ),
+                        contentAlignment = Alignment.Center,
+                      ) {
+                        Image(
+                          painter = rememberAnimatedVectorPainter(icon, paused == false),
+                          modifier = Modifier
+                            .fillMaxSize()
+                            .padding(MaterialTheme.spacing.small),
+                          contentDescription = null,
+                          colorFilter = ColorFilter.tint(contentColor),
+                        )
+                      }
+
+                      Box(
+                        modifier = Modifier
+                          .size(44.dp)
+                          .clip(RoundedCornerShape(14.dp))
+                          .clickable(
+                            enabled = canGoNext,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(bounded = true),
+                            onClick = {
+                              resetControlsTimestamp = System.currentTimeMillis()
+                              viewModel.handleMediaNext()
+                            },
+                          ),
+                        contentAlignment = Alignment.Center,
+                      ) {
+                        Icon(
+                          imageVector = Icons.Default.SkipNext,
+                          contentDescription = "Next",
+                          tint = if (canGoNext) contentColor.copy(alpha = 0.85f) else contentColor.copy(alpha = 0.35f),
+                          modifier = Modifier.size(28.dp),
+                        )
+                      }
+                    }
+                  }
+                } else {
+                  Row(
+                    horizontalArrangement = Arrangement.spacedBy(28.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                  ) {
+                    Box(
+                      modifier = Modifier
+                        .size(44.dp)
                         .clip(CircleShape)
                         .clickable(
                           enabled = canGoPrevious,
+                          interactionSource = remember { MutableInteractionSource() },
+                          indication = ripple(bounded = false),
                           onClick = {
                             resetControlsTimestamp = System.currentTimeMillis()
                             viewModel.handleMediaPrevious()
                           },
-                        )
-                        .then(
-                          if (hideBackground) {
-                            Modifier.background(brush = buttonShadow, shape = CircleShape)
-                          } else {
-                            Modifier
-                          },
                         ),
-                    shape = CircleShape,
-                    color = surfaceColor,
-                    contentColor = contentColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    border = borderColor,
-                  ) {
-                    Icon(
-                      imageVector = Icons.Default.SkipPrevious,
-                      contentDescription = "Previous",
-                      tint =
-                        if (canGoPrevious) {
-                          contentColor
-                        } else {
-                          contentColor.copy(alpha = 0.38f)
-                        },
-                      modifier = Modifier
-                        .fillMaxSize()
-                        .padding(MaterialTheme.spacing.smaller),
-                    )
-                  }
+                      contentAlignment = Alignment.Center,
+                    ) {
+                      Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = if (canGoPrevious) contentColor.copy(alpha = 0.85f) else contentColor.copy(alpha = 0.35f),
+                        modifier = Modifier.size(32.dp),
+                      )
+                    }
 
-                  Surface(
-                    modifier =
-                      Modifier
-                        .size(56.dp)
+                    Box(
+                      modifier = Modifier
+                        .size(60.dp)
                         .clip(CircleShape)
-                        .clickable(interaction, ripple(), onClick = {
-                          resetControlsTimestamp = System.currentTimeMillis()
-                          viewModel.handleMediaPlayPause()
-                        })
-                        .then(
-                          if (hideBackground) {
-                            Modifier.background(brush = buttonShadow, shape = CircleShape)
-                          } else {
-                            Modifier
+                        .background(brush = buttonShadow, shape = CircleShape)
+                        .clickable(
+                          interactionSource = interaction,
+                          indication = ripple(bounded = true),
+                          onClick = {
+                            resetControlsTimestamp = System.currentTimeMillis()
+                            viewModel.handleMediaPlayPause()
                           },
                         ),
-                    shape = CircleShape,
-                    color = surfaceColor,
-                    contentColor = contentColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    border = borderColor,
-                  ) {
-                    Image(
-                      painter = rememberAnimatedVectorPainter(icon, paused == false),
-                      modifier = Modifier
-                        .fillMaxSize()
-                        .padding(MaterialTheme.spacing.small),
-                      contentDescription = null,
-                      colorFilter = ColorFilter.tint(contentColor),
-                    )
-                  }
+                      contentAlignment = Alignment.Center,
+                    ) {
+                      Image(
+                        painter = rememberAnimatedVectorPainter(icon, paused == false),
+                        modifier = Modifier
+                          .fillMaxSize()
+                          .padding(MaterialTheme.spacing.small),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(contentColor),
+                      )
+                    }
 
-                  Surface(
-                    modifier =
-                      Modifier
-                        .size(48.dp)
+                    Box(
+                      modifier = Modifier
+                        .size(44.dp)
                         .clip(CircleShape)
                         .clickable(
                           enabled = canGoNext,
+                          interactionSource = remember { MutableInteractionSource() },
+                          indication = ripple(bounded = false),
                           onClick = {
                             resetControlsTimestamp = System.currentTimeMillis()
                             viewModel.handleMediaNext()
                           },
-                        )
-                        .then(
-                          if (hideBackground) {
-                            Modifier.background(brush = buttonShadow, shape = CircleShape)
-                          } else {
-                            Modifier
-                          },
                         ),
-                    shape = CircleShape,
-                    color = surfaceColor,
-                    contentColor = contentColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    border = borderColor,
-                  ) {
-                    Icon(
-                      imageVector = Icons.Default.SkipNext,
-                      contentDescription = "Next",
-                      tint =
-                        if (canGoNext) {
-                          contentColor
-                        } else {
-                          contentColor.copy(alpha = 0.38f)
-                        },
-                      modifier = Modifier
-                        .fillMaxSize()
-                        .padding(MaterialTheme.spacing.smaller),
-                    )
+                      contentAlignment = Alignment.Center,
+                    ) {
+                      Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        tint = if (canGoNext) contentColor.copy(alpha = 0.85f) else contentColor.copy(alpha = 0.35f),
+                        modifier = Modifier.size(32.dp),
+                      )
+                    }
                   }
                 }
               } else {
+                val heroShape = if (hideBackground) CircleShape else RoundedCornerShape(18.dp)
                 Surface(
                   modifier =
                     Modifier
-                      .size(56.dp)
-                      .clip(CircleShape)
+                      .size(58.dp)
+                      .clip(heroShape)
                       .clickable(interaction, ripple(), onClick = {
                         resetControlsTimestamp = System.currentTimeMillis()
                         viewModel.pauseUnpause()
@@ -1208,7 +1258,7 @@ fun PlayerControls(
                           Modifier
                         },
                       ),
-                  shape = CircleShape,
+                  shape = heroShape,
                   color = surfaceColor,
                   contentColor = contentColor,
                   tonalElevation = 0.dp,

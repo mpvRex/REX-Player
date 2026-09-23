@@ -118,6 +118,8 @@ fun RenderPlayerButton(
 ) {
   val appearancePreferences = org.koin.compose.koinInject<xyz.mpv.rex.preferences.AppearancePreferences>()
   val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+  val inDock = xyz.mpv.rex.ui.player.controls.components.LocalInControlsDock.current
+  val itemShape = if (inDock) RoundedCornerShape(10.dp) else RoundedCornerShape(12.dp)
   
   val surfaceColor = when {
     hideBackground -> Color.Transparent
@@ -174,51 +176,95 @@ fun RenderPlayerButton(
 
       val titleInteractionSource = remember { MutableInteractionSource() }
 
-      Surface(
-        shape = CircleShape,
-        color = surfaceColor,
-        contentColor = contentColor,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = borderColor,
-        modifier =
-          Modifier
-            .height(buttonSize)
-            .clip(CircleShape)
-            .clickable(
-              interactionSource = titleInteractionSource,
-              indication = ripple(
-                bounded = true,
-              ),
-              enabled = playlistModeEnabled,
-              onClick = {
-                clickEvent()
-                onOpenSheet(Sheets.Playlist)
-              },
-            ),
-      ) {
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
+      if (inDock) {
+        Box(
           modifier =
             Modifier
-              .padding(
-                horizontal = MaterialTheme.spacing.smaller,
-                vertical = MaterialTheme.spacing.smaller,
-              ),        ) {
-          Text(
-            mediaTitle ?: "",
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f, fill = false),
-          )
-          viewModel.getPlaylistInfo()?.let { playlistInfo ->
+              .height(buttonSize)
+              .clip(itemShape)
+              .clickable(
+                interactionSource = titleInteractionSource,
+                indication = ripple(
+                  bounded = true,
+                ),
+                enabled = playlistModeEnabled,
+                onClick = {
+                  clickEvent()
+                  onOpenSheet(Sheets.Playlist)
+                },
+              )
+              .padding(horizontal = 8.dp),
+          contentAlignment = Alignment.CenterStart,
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
             Text(
-              stringResource(R.string.playlist_separator, playlistInfo),
+              mediaTitle ?: "",
               maxLines = 1,
-              overflow = TextOverflow.Visible,
-              style = MaterialTheme.typography.bodySmall,
+              overflow = TextOverflow.Ellipsis,
+              style = MaterialTheme.typography.bodyMedium,
+              modifier = Modifier.weight(1f, fill = false),
             )
+            viewModel.getPlaylistInfo()?.let { playlistInfo ->
+              Text(
+                stringResource(R.string.playlist_separator, playlistInfo),
+                maxLines = 1,
+                overflow = TextOverflow.Visible,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor.copy(alpha = 0.75f),
+              )
+            }
+          }
+        }
+      } else {
+        Surface(
+          shape = itemShape,
+          color = surfaceColor,
+          contentColor = contentColor,
+          tonalElevation = 0.dp,
+          shadowElevation = 0.dp,
+          border = borderColor,
+          modifier =
+            Modifier
+              .height(buttonSize)
+              .clip(itemShape)
+              .clickable(
+                interactionSource = titleInteractionSource,
+                indication = ripple(
+                  bounded = true,
+                ),
+                enabled = playlistModeEnabled,
+                onClick = {
+                  clickEvent()
+                  onOpenSheet(Sheets.Playlist)
+                },
+              ),
+        ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier =
+              Modifier
+                .padding(
+                  horizontal = MaterialTheme.spacing.smaller,
+                  vertical = MaterialTheme.spacing.smaller,
+                ),
+          ) {
+            Text(
+              mediaTitle ?: "",
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              style = MaterialTheme.typography.bodyMedium,
+              modifier = Modifier.weight(1f, fill = false),
+            )
+            viewModel.getPlaylistInfo()?.let { playlistInfo ->
+              Text(
+                stringResource(R.string.playlist_separator, playlistInfo),
+                maxLines = 1,
+                overflow = TextOverflow.Visible,
+                style = MaterialTheme.typography.bodySmall,
+              )
+            }
           }
         }
       }
@@ -229,13 +275,13 @@ fun RenderPlayerButton(
         if (isMoreSheet) {
           val chapter = chapters.getOrNull(currentChapter ?: 0)
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable {
                 clickEvent()
                 onOpenSheet(Sheets.Chapters)
@@ -291,7 +337,7 @@ fun RenderPlayerButton(
 
       @OptIn(ExperimentalFoundationApi::class)
       Surface(
-        shape = CircleShape,
+        shape = itemShape,
         color = if (isSpeedNonOne) activeSurfaceColor else surfaceColor,
         contentColor = if (isSpeedNonOne) activeContentColor else contentColor,
         tonalElevation = 0.dp,
@@ -300,7 +346,7 @@ fun RenderPlayerButton(
         modifier = Modifier
           .height(buttonSize)
           .animateContentSize()
-          .clip(CircleShape)
+          .clip(itemShape)
           .combinedClickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = ripple(bounded = true),
@@ -346,7 +392,7 @@ fun RenderPlayerButton(
 
     PlayerButton.DECODER -> {
       Surface(
-        shape = CircleShape,
+        shape = itemShape,
         color = surfaceColor,
         contentColor = contentColor,
         tonalElevation = 0.dp,
@@ -354,7 +400,7 @@ fun RenderPlayerButton(
         border = borderColor,
         modifier = Modifier
           .height(buttonSize)
-          .clip(CircleShape)
+          .clip(itemShape)
           .clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = ripple(bounded = true),
@@ -393,13 +439,13 @@ fun RenderPlayerButton(
     PlayerButton.SCREEN_ROTATION -> {
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { viewModel.cycleScreenRotations() }
           ) {
             Row(
@@ -434,13 +480,13 @@ fun RenderPlayerButton(
 
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isActive) activeSurfaceColor else surfaceColor,
             contentColor = if (isActive) activeContentColor else contentColor,
             border = if (isActive) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable {
                 viewModel.toggleFrameNavigationExpanded()
                 onOpenSheet(Sheets.None)
@@ -464,37 +510,25 @@ fun RenderPlayerButton(
             }
           }
       } else {
-        Surface(
-          shape = CircleShape,
-          color = if (isActive) activeSurfaceColor else surfaceColor,
-          border = if (isActive) activeBorderColor else borderColor,
-          modifier = Modifier
-            .size(buttonSize)
-            .clip(CircleShape)
-            .clickable(onClick = viewModel::toggleFrameNavigationExpanded),
-        ) {
-          Box(contentAlignment = Alignment.Center) {
-            Icon(
-              imageVector = Icons.Default.Camera,
-              contentDescription = stringResource(R.string.frame_navigation),
-              tint = if (isActive) activeContentColor else contentColor,
-              modifier = Modifier.size(24.dp),
-            )
-          }
-        }
+        ControlsButton(
+          icon = Icons.Default.Camera,
+          onClick = viewModel::toggleFrameNavigationExpanded,
+          isActive = isActive,
+          modifier = Modifier.size(buttonSize),
+        )
       }
     }
 
     PlayerButton.PICTURE_IN_PICTURE -> {
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { activity.enterPipModeHidingOverlay() }
           ) {
             Row(
@@ -526,13 +560,13 @@ fun RenderPlayerButton(
     PlayerButton.ASPECT_RATIO -> {
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable {
                   when (aspect) {
                     VideoAspect.Fit -> viewModel.changeVideoAspect(VideoAspect.Stretch)
@@ -588,7 +622,7 @@ fun RenderPlayerButton(
       if (isZoomed || isMoreSheet) {
         @OptIn(ExperimentalFoundationApi::class)
         Surface(
-          shape = CircleShape,
+          shape = itemShape,
           color = if (isZoomed) activeSurfaceColor else surfaceColor,
           contentColor = if (isZoomed) activeContentColor else contentColor,
           tonalElevation = 0.dp,
@@ -596,7 +630,7 @@ fun RenderPlayerButton(
           border = if (isZoomed) activeBorderColor else borderColor,
           modifier = Modifier
             .height(buttonSize)
-            .clip(CircleShape)
+            .clip(itemShape)
             .combinedClickable(
               interactionSource = remember { MutableInteractionSource() },
               indication = ripple(bounded = true),
@@ -647,13 +681,13 @@ fun RenderPlayerButton(
     PlayerButton.LOCK_CONTROLS -> {
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { viewModel.lockControls() }
           ) {
             Row(
@@ -805,13 +839,13 @@ fun RenderPlayerButton(
       
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isActive) activeSurfaceColor else surfaceColor,
             contentColor = if (isActive) activeContentColor else contentColor,
             border = if (isActive) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { viewModel.cycleRepeatMode() }
           ) {
             Row(
@@ -839,6 +873,7 @@ fun RenderPlayerButton(
           ControlsButton(
             icon = icon,
             onClick = viewModel::cycleRepeatMode,
+            isActive = isActive,
             modifier = Modifier.size(buttonSize),
           )
       }
@@ -850,13 +885,13 @@ fun RenderPlayerButton(
       if (isMoreSheet) {
           @OptIn(ExperimentalFoundationApi::class)
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .combinedClickable(
                 onClick = {
                   clickEvent()
@@ -905,13 +940,13 @@ fun RenderPlayerButton(
         
         if (isMoreSheet) {
             Surface(
-              shape = CircleShape,
+              shape = itemShape,
               color = if (shuffleEnabled) activeSurfaceColor else surfaceColor,
               contentColor = if (shuffleEnabled) activeContentColor else contentColor,
               border = if (shuffleEnabled) activeBorderColor else borderColor,
               modifier = Modifier
                 .height(buttonSize)
-                .clip(CircleShape)
+                .clip(itemShape)
                 .clickable { viewModel.toggleShuffle() }
             ) {
               Row(
@@ -935,6 +970,7 @@ fun RenderPlayerButton(
             ControlsButton(
               icon = if (shuffleEnabled) Icons.Default.ShuffleOn else Icons.Default.Shuffle,
               onClick = viewModel::toggleShuffle,
+              isActive = shuffleEnabled,
               modifier = Modifier.size(buttonSize),
             )
         }
@@ -946,13 +982,13 @@ fun RenderPlayerButton(
       
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isMirrored) activeSurfaceColor else surfaceColor,
             contentColor = if (isMirrored) activeContentColor else contentColor,
             border = if (isMirrored) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { viewModel.toggleMirroring() }
           ) {
             Row(
@@ -976,6 +1012,7 @@ fun RenderPlayerButton(
           ControlsButton(
             icon = Icons.Default.Flip,
             onClick = viewModel::toggleMirroring,
+            isActive = isMirrored,
             modifier = Modifier.size(buttonSize),
           )
       }
@@ -986,13 +1023,13 @@ fun RenderPlayerButton(
       
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isVerticalFlipped) activeSurfaceColor else surfaceColor,
             contentColor = if (isVerticalFlipped) activeContentColor else contentColor,
             border = if (isVerticalFlipped) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { viewModel.toggleVerticalFlip() }
           ) {
             Row(
@@ -1014,13 +1051,13 @@ fun RenderPlayerButton(
           }
       } else {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isVerticalFlipped) activeSurfaceColor else surfaceColor,
             contentColor = if (isVerticalFlipped) activeContentColor else contentColor,
             border = if (isVerticalFlipped) activeBorderColor else borderColor,
             modifier = Modifier
               .size(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable(onClick = viewModel::toggleVerticalFlip),
           ) {
             Box(contentAlignment = Alignment.Center) {
@@ -1046,13 +1083,13 @@ fun RenderPlayerButton(
 
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isActive) activeSurfaceColor else surfaceColor,
             contentColor = if (isActive) activeContentColor else contentColor,
             border = if (isActive) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable {
                 viewModel.toggleABLoopExpanded()
                 onOpenSheet(Sheets.None)
@@ -1077,12 +1114,12 @@ fun RenderPlayerButton(
           }
       } else {
         Surface(
-          shape = CircleShape,
+          shape = itemShape,
           color = if (isActive) activeSurfaceColor else surfaceColor,
           border = if (isActive) activeBorderColor else borderColor,
           modifier = Modifier
             .size(buttonSize)
-            .clip(CircleShape)
+            .clip(itemShape)
             .clickable(onClick = viewModel::toggleABLoopExpanded),
         ) {
           Box(contentAlignment = Alignment.Center) {
@@ -1104,13 +1141,13 @@ fun RenderPlayerButton(
 
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .combinedClickable(
                 onClick = { audioPreferences.automaticBackgroundPlayback.set(!automaticBackgroundPlayback) },
                 onLongClick = { activity.triggerBackgroundPlayback() },
@@ -1140,6 +1177,7 @@ fun RenderPlayerButton(
             icon = icon,
             onClick = { audioPreferences.automaticBackgroundPlayback.set(!automaticBackgroundPlayback) },
             onLongClick = { activity.triggerBackgroundPlayback() },
+            isActive = automaticBackgroundPlayback,
             modifier = Modifier.size(buttonSize),
           )
       }
@@ -1150,13 +1188,13 @@ fun RenderPlayerButton(
         
         if (isMoreSheet) {
             Surface(
-              shape = CircleShape,
+              shape = itemShape,
               color = if (isAmbientEnabled) activeSurfaceColor else surfaceColor,
               contentColor = if (isAmbientEnabled) activeContentColor else contentColor,
               border = if (isAmbientEnabled) activeBorderColor else borderColor,
               modifier = Modifier
                 .height(buttonSize)
-                .clip(CircleShape)
+                .clip(itemShape)
                 .clickable { viewModel.toggleAmbientMode() }
             ) {
               Row(
@@ -1177,33 +1215,16 @@ fun RenderPlayerButton(
               }
             }
         } else {
-            @OptIn(ExperimentalFoundationApi::class)
-            Surface(
-              shape = CircleShape,
-              color = if (isAmbientEnabled) activeSurfaceColor else surfaceColor,
-              contentColor = if (isAmbientEnabled) activeContentColor else contentColor,
-              border = if (isAmbientEnabled) activeBorderColor else borderColor,
-              modifier = Modifier
-                .size(buttonSize)
-                .clip(CircleShape)
-                .clickable(
-                  interactionSource = remember { MutableInteractionSource() },
-                  indication = ripple(bounded = true),
-                  onClick = { 
-                    clickEvent()
-                    viewModel.toggleAmbientMode() 
-                  }
-                ),
-            ) {
-              Box(contentAlignment = Alignment.Center) {
-                Icon(
-                  imageVector = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,
-                  contentDescription = stringResource(R.string.ambience_mode),
-                  tint = if (isAmbientEnabled) activeContentColor else contentColor,
-                  modifier = Modifier.size(24.dp)
-                )
-              }
-            }
+            ControlsButton(
+              icon = if (isAmbientEnabled) Icons.Filled.BlurOn else Icons.Outlined.BlurOn,
+              title = stringResource(R.string.ambience_mode),
+              onClick = {
+                clickEvent()
+                viewModel.toggleAmbientMode()
+              },
+              isActive = isAmbientEnabled,
+              modifier = Modifier.size(buttonSize),
+            )
         }
     }
 
@@ -1213,13 +1234,13 @@ fun RenderPlayerButton(
 
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = if (isActive) activeSurfaceColor else surfaceColor,
             contentColor = if (isActive) activeContentColor else contentColor,
             border = if (isActive) activeBorderColor else borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable {
                 onOpenSheet(Sheets.SleepTimer)
               }
@@ -1246,24 +1267,13 @@ fun RenderPlayerButton(
             }
           }
       } else {
-        Surface(
-          shape = CircleShape,
-          color = if (isActive) activeSurfaceColor else surfaceColor,
-          border = if (isActive) activeBorderColor else borderColor,
-          modifier = Modifier
-            .size(buttonSize)
-            .clip(CircleShape)
-            .clickable(onClick = { onOpenSheet(Sheets.SleepTimer) }),
-        ) {
-          Box(contentAlignment = Alignment.Center) {
-            Icon(
-              imageVector = Icons.Outlined.Timer,
-              contentDescription = stringResource(R.string.sleep_timer),
-              tint = if (isActive) activeContentColor else contentColor,
-              modifier = Modifier.size(24.dp),
-            )
-          }
-        }
+        ControlsButton(
+          icon = Icons.Outlined.Timer,
+          title = stringResource(R.string.sleep_timer),
+          onClick = { onOpenSheet(Sheets.SleepTimer) },
+          isActive = isActive,
+          modifier = Modifier.size(buttonSize),
+        )
       }
     }
 
@@ -1274,7 +1284,7 @@ fun RenderPlayerButton(
       if (availableQualities.size > 1) {
         val label = currentQuality?.shortLabel ?: stringResource(R.string.video_quality_auto)
         Surface(
-          shape = CircleShape,
+          shape = itemShape,
           color = surfaceColor,
           contentColor = contentColor,
           tonalElevation = 0.dp,
@@ -1282,7 +1292,7 @@ fun RenderPlayerButton(
           border = borderColor,
           modifier = Modifier
             .height(buttonSize)
-            .clip(CircleShape)
+            .clip(itemShape)
             .clickable(
               interactionSource = remember { MutableInteractionSource() },
               indication = ripple(bounded = true),
@@ -1324,7 +1334,7 @@ fun RenderPlayerButton(
 @Composable
 fun Surface(
     modifier: Modifier = Modifier,
-    shape: androidx.compose.ui.graphics.Shape = androidx.compose.foundation.shape.CircleShape,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
     color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
     contentColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
     tonalElevation: androidx.compose.ui.unit.Dp = 0.dp,
@@ -1336,6 +1346,7 @@ fun Surface(
     val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
     val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
     val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+    val inDock = xyz.mpv.rex.ui.player.controls.components.LocalInControlsDock.current
 
     val activeSurfaceColor = when {
         hideBackground -> androidx.compose.ui.graphics.Color.Transparent
@@ -1345,9 +1356,27 @@ fun Surface(
 
     val isActive = color == activeSurfaceColor
     
-    val glassModifier = if (enableGlass && color != androidx.compose.ui.graphics.Color.Transparent) {
+    val finalColor = when {
+        inDock && !isActive -> androidx.compose.ui.graphics.Color.Transparent
+        enableGlass && color != androidx.compose.ui.graphics.Color.Transparent -> androidx.compose.ui.graphics.Color.Transparent
+        else -> color
+    }
+
+    val finalBorder = when {
+        inDock && !isActive -> null
+        enableGlass && color != androidx.compose.ui.graphics.Color.Transparent -> null
+        else -> border
+    }
+
+    val effectiveShape = when {
+        inDock -> RoundedCornerShape(10.dp)
+        shape == CircleShape -> RoundedCornerShape(12.dp)
+        else -> shape
+    }
+
+    val glassModifier = if (enableGlass && !inDock && color != androidx.compose.ui.graphics.Color.Transparent) {
         Modifier.glassSurface(
-            shape = shape as? RoundedCornerShape ?: androidx.compose.foundation.shape.CircleShape,
+            shape = effectiveShape as? RoundedCornerShape ?: RoundedCornerShape(12.dp),
             backgroundColor = if (isActive) androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.05f),
             borderColor = if (isActive) androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.15f),
             borderWidth = 1.dp,
@@ -1368,12 +1397,9 @@ fun Surface(
         Modifier
     }
 
-    val finalColor = if (enableGlass && color != androidx.compose.ui.graphics.Color.Transparent) androidx.compose.ui.graphics.Color.Transparent else color
-    val finalBorder = if (enableGlass && color != androidx.compose.ui.graphics.Color.Transparent) null else border
-
     M3Surface(
         modifier = modifier.then(glassModifier),
-        shape = shape,
+        shape = effectiveShape,
         color = finalColor,
         contentColor = contentColor,
         tonalElevation = tonalElevation,
