@@ -1162,7 +1162,6 @@
     <string name="filter_preset_neon_pop_desc">Colores vibrantes, tipo neón, con un toque atrevido</string>
     <string name="filter_preset_deep_black">Negro intenso</string>
     <string name="filter_preset_deep_black_desc">Negros mejorados para pantallas OLED</string>
-<<<<<<< Updated upstream
     <string name="open_with_mini_player">Abrir con mini reproductor</string>
     <string name="ui_loading">Cargando…</string>
     <string name="ui_loading_percent">Cargando %d%%</string>
@@ -1199,7 +1198,6 @@
     <string name="pref_player_default_aspect_ratio">Relación de aspecto predeterminada</string>
     <string name="pref_player_remember_aspect_ratio">Recordar la relación de aspecto en los videos</string>
     <string name="pref_player_remember_aspect_ratio_summary">Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes</string>
-=======
     <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
     <string name="open_with_mini_player">Abrir con el mini reproductor</string>
     <string name="ui_loading">Cargando…</string>
@@ -1233,39 +1231,30 @@
     <string name="pref_player_play_in_mini_player">Reproducir audio en mini reproductor</string>
     <string name="pref_player_play_in_mini_player_summary_on">Al tocar un archivo de audio, se inicia la reproducción directamente en la barra inferior del mini reproductor.</string>
     <string name="pref_player_play_in_mini_player_summary_off">Al tocar un archivo de audio, se abre el reproductor en pantalla completa.</string>
->>>>>>> Stashed changes
     <string name="pref_player_remember_long_press_speed_title">Recuerda la velocidad ajustada</string>
     <string name="pref_player_remember_long_press_speed_summary">Utiliza la última velocidad de deslizamiento para las presiones prolongadas siguientes</string>
     <string name="pref_subtitles_force_ltr_title">Forzar dirección LTR</string>
     <string name="pref_subtitles_force_ltr_summary">Fuerza la dirección de izquierda a derecha para los subtítulos RTL</string>
-<<<<<<< Updated upstream
-=======
     <string name="pref_subtitles_encoding_title">Codificación de subtítulos</string>
     <string name="pref_subtitles_encoding_summary">Codificación de caracteres utilizada para subtítulos externos.</string>
->>>>>>> Stashed changes
     <string name="pref_advanced_history_auto_remove_deleted_title">Eliminar automáticamente los archivos borrados</string>
     <string name="pref_advanced_history_auto_remove_deleted_summary">Eliminar y limpiar automáticamente los archivos multimedia borrados de Reproducidos recientemente</string>
     <string name="pref_advanced_history_exclude_external_title">Excluir medios externos y compartidos</string>
     <string name="pref_advanced_history_exclude_external_summary">No agregar archivos multimedia a Reproducidos recientemente cuando se abra desde otras aplicaciones o desde el menú de compartir</string>
-<<<<<<< Updated upstream
     <string name="player_sheets_sub_primary_position">Posición del subtítulo principal</string>
     <string name="player_sheets_secondary_sub_position">Posición del subtítulo secundario</string>
     <string name="player_sheets_secondary_sub_scale">Escala de subtítulos secundarios</string>
     <string name="player_sheets_stats_page_6_desc">Estadísticas del sistema. Nivel de batería, consumo de energía, temperatura, memoria RAM, pantalla.</string>
-=======
     <string name="player_sheets_sub_primary_position">Posición principal del subtítulo</string>
     <string name="player_sheets_secondary_sub_position">Posición de subtítulos secundarios</string>
     <string name="player_sheets_secondary_sub_scale">Escala de subtítulos secundarios</string>
     <string name="player_sheets_stats_page_6_desc">Estadísticas del sistema. Nivel de batería, consumo de energía, temperatura, RAM, pantalla.</string>
->>>>>>> Stashed changes
     <string name="diagnostics_playback_decoder_header">REPRODUCCIÓN Y DECODIFICADOR</string>
     <string name="diagnostics_power_thermals_header">ENERGÍA Y TEMPERATURA</string>
     <string name="diagnostics_session_header">SESIÓN</string>
     <string name="diagnostics_app_cpu">CPU de la aplicación</string>
     <string name="diagnostics_memory_cache_header">MEMORIA Y CACHÉ</string>
     <string name="diagnostics_process_memory">Proceso</string>
-<<<<<<< Updated upstream
-=======
     <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Nativo %4$s</string>
     <string name="diagnostics_playback_cache">Reproducción</string>
     <string name="diagnostics_playback_cache_value">%1$.1f s almacenados en el búfer | Paquetes %2$s | Archivo %3$s</string>
@@ -1322,5 +1311,4 @@
     <string name="pref_player_autoplay_on_open_summary_off">Abrir el contenido multimedia en estado de pausa</string>
     <string name="shorts_restart_from_beginning">Volver a empezar desde el principio</string>
     <string name="shorts_reshuffle_feed">Reorganizar el feed</string>
->>>>>>> Stashed changes
 </resources>
