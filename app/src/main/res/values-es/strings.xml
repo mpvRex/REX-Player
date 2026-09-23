@@ -1162,7 +1162,7 @@
     <string name="filter_preset_neon_pop_desc">Colores vibrantes, tipo neón, con un toque atrevido</string>
     <string name="filter_preset_deep_black">Negro intenso</string>
     <string name="filter_preset_deep_black_desc">Negros mejorados para pantallas OLED</string>
-    <string name="open_with_mini_player">Abrir con mini reproductor</string>
+    <string name="open_with_mini_player">Abrir con el mini reproductor</string>
     <string name="ui_loading">Cargando…</string>
     <string name="ui_loading_percent">Cargando %d%%</string>
     <string name="pref_appearance_tab_you_summary">Combinar listas de reproducción y reproducidas recientemente en una sola pestaña</string>
@@ -1198,7 +1198,6 @@
     <string name="pref_player_remember_aspect_ratio">Recordar la relación de aspecto en los videos</string>
     <string name="pref_player_remember_aspect_ratio_summary">Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes</string>
     <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
-    <string name="open_with_mini_player">Abrir con el mini reproductor</string>
     <string name="ui_loading">Cargando…</string>
     <string name="ui_loading_percent">Cargando %d%%</string>
     <string name="pref_appearance_tab_you_summary">Combine las listas de reproducción y las reproducidas recientemente en una sola pestaña</string>
