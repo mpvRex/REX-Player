@@ -1179,7 +1179,6 @@
     <string name="pref_player_resume_mode_ask_summary">Mensaje para reanudar o comenzar de nuevo</string>
     <string name="pref_player_resume_mode_never">Empieza siempre de cero</string>
     <string name="pref_player_resume_mode_never_summary">Iniciar siempre la reproducción a partir de las 00:00</string>
-    <string name="player_resume_prompt_title">Reanudar la reproducción</string>
     <string name="player_resume_prompt_message">Ya has visto hasta %1$s.</string>
     <string name="player_resume_prompt_message_with_duration">Ya has visto hasta %1$s de %2$s.</string>
     <string name="player_resume_action_resume">Reanudar</string>
@@ -1198,8 +1197,6 @@
     <string name="pref_player_remember_aspect_ratio">Recordar la relación de aspecto en los videos</string>
     <string name="pref_player_remember_aspect_ratio_summary">Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes</string>
     <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
-    <string name="ui_loading">Cargando…</string>
-    <string name="ui_loading_percent">Cargando %d%%</string>
     <string name="pref_appearance_tab_you_summary">Combine las listas de reproducción y las reproducidas recientemente en una sola pestaña</string>
     <string name="pref_appearance_show_next_previous_buttons_title">Mostrar botones siguiente/anterior</string>
     <string name="pref_appearance_show_next_previous_buttons_summary">Mostrar los botones de salto siguiente y anterior en la superposición de controles del reproductor</string>
