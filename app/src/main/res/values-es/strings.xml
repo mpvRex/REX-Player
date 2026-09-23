@@ -1165,7 +1165,6 @@
     <string name="open_with_mini_player">Abrir con mini reproductor</string>
     <string name="ui_loading">Cargando…</string>
     <string name="ui_loading_percent">Cargando %d%%</string>
-    <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
     <string name="pref_appearance_tab_you_summary">Combinar listas de reproducción y reproducidas recientemente en una sola pestaña</string>
     <string name="pref_appearance_show_next_previous_buttons_title">Mostrar botones Siguiente/Anterior</string>
     <string name="pref_appearance_show_next_previous_buttons_summary">Mostrar los botones de siguiente y anterior en la superposición de controles del reproductor</string>
