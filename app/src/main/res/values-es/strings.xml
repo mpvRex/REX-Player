@@ -1197,7 +1197,6 @@
     <string name="pref_player_remember_aspect_ratio">Recordar la relación de aspecto en los videos</string>
     <string name="pref_player_remember_aspect_ratio_summary">Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes</string>
     <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
-    <string name="pref_appearance_show_next_previous_buttons_title">Mostrar botones siguiente/anterior</string>
     <string name="pref_appearance_player_always_dark_mode_disabled_toast">Se requiere el modo siempre oscuro del reproductor cuando los controles del reproductor de cristal están habilitados</string>
     <string name="pref_autoplay_on_open_title">Reproducción automática al abrir</string>
     <string name="pref_autoplay_on_open_summary">Iniciar automáticamente la reproducción cuando se abre el archivo multimedia</string>
