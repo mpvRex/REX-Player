@@ -1050,9 +1050,11 @@ fun PlayerControls(
                   1.0f to Color.Transparent,
                 )
 
+              val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
               val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
               val surfaceColor = when {
                 hideBackground -> Color.Transparent
+                enableGlass -> Color.Transparent
                 matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
                 else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
               }
@@ -1063,7 +1065,7 @@ fun PlayerControls(
                 }
                 else -> if (hideBackground) controlColor else MaterialTheme.colorScheme.onSurface
               }
-              val borderColor = if (hideBackground) null else BorderStroke(
+              val borderColor = if (hideBackground || enableGlass) null else BorderStroke(
                 1.dp,
                 if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
@@ -1074,8 +1076,30 @@ fun PlayerControls(
                 val canGoNext = viewModel.hasNext()
                 if (!hideBackground) {
                   val centerDockShape = RoundedCornerShape(22.dp)
+                  val centerGlassModifier = if (enableGlass) {
+                    Modifier.glassSurface(
+                      shape = centerDockShape,
+                      backgroundColor = Color.White.copy(alpha = 0.05f),
+                      borderColor = Color.White.copy(alpha = 0.15f),
+                      borderWidth = 1.dp,
+                      outerShadowColor = Color.Black.copy(alpha = 0.00f),
+                      outerShadowBlur = 0.dp,
+                      outerShadowOffsetX = 0.dp,
+                      outerShadowOffsetY = 0.dp,
+                      innerHighlightColor = Color.White.copy(alpha = 0.35f),
+                      innerHighlightBlur = 5.dp,
+                      innerHighlightOffsetX = (-2).dp,
+                      innerHighlightOffsetY = (-2).dp,
+                      innerShadowColor = Color.Black.copy(alpha = 0.35f),
+                      innerShadowBlur = 5.dp,
+                      innerShadowOffsetX = 2.dp,
+                      innerShadowOffsetY = 2.dp
+                    )
+                  } else {
+                    Modifier
+                  }
                   Surface(
-                    modifier = Modifier.height(60.dp),
+                    modifier = Modifier.height(60.dp).then(centerGlassModifier),
                     shape = centerDockShape,
                     color = surfaceColor,
                     contentColor = contentColor,
@@ -1117,6 +1141,7 @@ fun PlayerControls(
                           .clip(RoundedCornerShape(16.dp))
                           .background(
                             if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                            else if (enableGlass) Color.White.copy(alpha = 0.12f)
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                           )
                           .clickable(
@@ -1242,10 +1267,33 @@ fun PlayerControls(
                 }
               } else {
                 val heroShape = if (hideBackground) CircleShape else RoundedCornerShape(18.dp)
+                val heroGlassModifier = if (enableGlass && !hideBackground) {
+                  Modifier.glassSurface(
+                    shape = RoundedCornerShape(18.dp),
+                    backgroundColor = Color.White.copy(alpha = 0.08f),
+                    borderColor = Color.White.copy(alpha = 0.18f),
+                    borderWidth = 1.dp,
+                    outerShadowColor = Color.Black.copy(alpha = 0.00f),
+                    outerShadowBlur = 0.dp,
+                    outerShadowOffsetX = 0.dp,
+                    outerShadowOffsetY = 0.dp,
+                    innerHighlightColor = Color.White.copy(alpha = 0.35f),
+                    innerHighlightBlur = 5.dp,
+                    innerHighlightOffsetX = (-2).dp,
+                    innerHighlightOffsetY = (-2).dp,
+                    innerShadowColor = Color.Black.copy(alpha = 0.35f),
+                    innerShadowBlur = 5.dp,
+                    innerShadowOffsetX = 2.dp,
+                    innerShadowOffsetY = 2.dp
+                  )
+                } else {
+                  Modifier
+                }
                 Surface(
                   modifier =
                     Modifier
                       .size(58.dp)
+                      .then(heroGlassModifier)
                       .clip(heroShape)
                       .clickable(interaction, ripple(), onClick = {
                         resetControlsTimestamp = System.currentTimeMillis()

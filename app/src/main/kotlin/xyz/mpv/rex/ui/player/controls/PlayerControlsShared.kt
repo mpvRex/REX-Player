@@ -118,11 +118,13 @@ fun RenderPlayerButton(
 ) {
   val appearancePreferences = org.koin.compose.koinInject<xyz.mpv.rex.preferences.AppearancePreferences>()
   val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+  val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
   val inDock = xyz.mpv.rex.ui.player.controls.components.LocalInControlsDock.current
   val itemShape = if (inDock) RoundedCornerShape(14.dp) else RoundedCornerShape(12.dp)
   
   val surfaceColor = when {
     hideBackground -> Color.Transparent
+    enableGlass -> Color.Transparent
     matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
     else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
   }
@@ -137,11 +139,13 @@ fun RenderPlayerButton(
   
   val activeSurfaceColor = when {
     hideBackground -> Color.Transparent
+    enableGlass -> Color.White.copy(alpha = 0.20f)
     matchTheme -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
     else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
   }
   
   val activeContentColor = when {
+    enableGlass -> Color.White
     matchTheme -> {
       if (hideBackground) MaterialTheme.colorScheme.secondary
       else MaterialTheme.colorScheme.onSecondaryContainer
@@ -149,17 +153,18 @@ fun RenderPlayerButton(
     else -> MaterialTheme.colorScheme.primary
   }
   
-  val borderColor = if (hideBackground) null else BorderStroke(
+  val borderColor = if (hideBackground || enableGlass) null else BorderStroke(
     1.dp,
     if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
     else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
   )
   
-  val activeBorderColor = if (hideBackground) null else BorderStroke(
-    1.dp,
-    if (matchTheme) MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
-    else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-  )
+  val activeBorderColor = when {
+    hideBackground -> null
+    enableGlass -> BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
+    else -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+  }
 
   val clickEvent = LocalPlayerButtonsClickEvent.current
   when (button) {
@@ -1350,6 +1355,7 @@ fun Surface(
 
     val activeSurfaceColor = when {
         hideBackground -> androidx.compose.ui.graphics.Color.Transparent
+        enableGlass -> androidx.compose.ui.graphics.Color.White.copy(alpha = 0.20f)
         matchTheme -> androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
         else -> androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
     }
@@ -1358,13 +1364,13 @@ fun Surface(
     
     val finalColor = when {
         inDock && !isActive -> androidx.compose.ui.graphics.Color.Transparent
-        enableGlass && color != androidx.compose.ui.graphics.Color.Transparent -> androidx.compose.ui.graphics.Color.Transparent
+        enableGlass && !isActive && color != androidx.compose.ui.graphics.Color.Transparent -> androidx.compose.ui.graphics.Color.Transparent
         else -> color
     }
 
     val finalBorder = when {
         inDock && !isActive -> null
-        enableGlass && color != androidx.compose.ui.graphics.Color.Transparent -> null
+        enableGlass && !isActive && color != androidx.compose.ui.graphics.Color.Transparent -> null
         else -> border
     }
 

@@ -65,11 +65,13 @@ fun ControlsButton(
 
   val activeSurfaceColor = when {
     hideBackground -> Color.Transparent
+    enableGlass -> Color.White.copy(alpha = 0.20f)
     matchTheme -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
     else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
   }
 
   val activeContentColor = when {
+    enableGlass -> Color.White
     matchTheme -> {
       if (hideBackground) MaterialTheme.colorScheme.secondary
       else MaterialTheme.colorScheme.onSecondaryContainer
@@ -77,11 +79,12 @@ fun ControlsButton(
     else -> MaterialTheme.colorScheme.primary
   }
 
-  val activeBorderColor = if (hideBackground) null else BorderStroke(
-    1.dp,
-    if (matchTheme) MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
-    else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-  )
+  val activeBorderColor = when {
+    hideBackground -> null
+    enableGlass -> BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
+    else -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+  }
 
   val normalSurfaceColor = when {
     inDock -> Color.Transparent
@@ -189,6 +192,7 @@ fun ControlsGroup(
 
   val surfaceColor = when {
     hideBackground -> Color.Transparent
+    enableGlass -> Color.Transparent
     matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
     else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
   }

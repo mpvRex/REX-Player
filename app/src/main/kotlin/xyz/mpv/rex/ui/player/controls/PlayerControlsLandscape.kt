@@ -50,6 +50,7 @@ fun TopLeftPlayerControlsLandscape(
 ) {
   val appearancePreferences = org.koin.compose.koinInject<xyz.mpv.rex.preferences.AppearancePreferences>()
   val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+  val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
   val playlistModeEnabled = viewModel.hasPlaylistSupport()
   val clickEvent = LocalPlayerButtonsClickEvent.current
 
@@ -77,7 +78,8 @@ fun TopLeftPlayerControlsLandscape(
           .width(1.dp)
           .height(16.dp)
           .background(
-            if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            if (enableGlass) Color.White.copy(alpha = 0.18f)
+            else if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
           )
       )
