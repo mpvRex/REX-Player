@@ -102,7 +102,7 @@ object PlayerPreferencesScreen : Screen {
             GroupedListColumn {
               GroupedPreferenceCard(
                 position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_player_orientation,
+                highlightKey = listOf(R.string.pref_player, R.string.pref_player_orientation),
               ) {
                 ListPreference(
                   value = orientation,
@@ -160,7 +160,11 @@ object PlayerPreferencesScreen : Screen {
 
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_resume_playback_title,
+                highlightKey = if (resumePlaybackMode != ResumePlaybackMode.Ask) {
+                  listOf(R.string.pref_player_resume_playback_title, R.string.pref_player_auto_resume_on_ask_title)
+                } else {
+                  R.string.pref_player_resume_playback_title
+                },
               ) {
                 ListPreference(
                   value = resumePlaybackMode,

@@ -599,7 +599,7 @@ object SubtitlesPreferencesScreen : Screen {
 
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
-                highlightKey = "Advanced Search Filters",
+                highlightKey = listOf("Advanced Search Filters", "Hearing-impaired friendly"),
               ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                   Row(

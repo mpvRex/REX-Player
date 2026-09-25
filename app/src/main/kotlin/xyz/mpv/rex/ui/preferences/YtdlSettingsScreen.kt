@@ -163,8 +163,10 @@ object YtdlSettingsScreen : Screen {
             }
         ) { padding ->
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+            val lazyListState = rememberPreferenceLazyListState()
             ProvidePreferenceLocals {
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
@@ -175,7 +177,11 @@ object YtdlSettingsScreen : Screen {
                 ) {
                     // Section 1: Addon Status Card
                     item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .preferenceHighlight("yt-dlp", RoundedCornerShape(24.dp))
+                        ) {
                             if (!isAddonInstalled) {
                                 AddonNotInstalledCard(
                                     onDownloadClick = {
@@ -232,7 +238,10 @@ object YtdlSettingsScreen : Screen {
                         val preferNightly by preferences.preferNightly.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = "Resolution Preference",
+                            ) {
                                 ListPreference(
                                     value = quality,
                                     onValueChange = { preferences.qualityPreference.set(it) },
@@ -266,7 +275,10 @@ object YtdlSettingsScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = "Geo-Bypass",
+                            ) {
                                 SwitchPreference(
                                     value = geoBypass,
                                     onValueChange = { preferences.geoBypass.set(it) },
@@ -275,7 +287,10 @@ object YtdlSettingsScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = "Prefer Nightly Channel",
+                            ) {
                                 SwitchPreference(
                                     value = preferNightly,
                                     onValueChange = { preferences.preferNightly.set(it) },
@@ -296,7 +311,10 @@ object YtdlSettingsScreen : Screen {
                         val customDomains by preferences.customDomains.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = "Auto-detect Web Pages",
+                            ) {
                                 SwitchPreference(
                                     value = autoDetectWebPages,
                                     onValueChange = { preferences.autoDetectWebPages.set(it) },
@@ -310,7 +328,10 @@ object YtdlSettingsScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = "Custom Supported Domains",
+                            ) {
                                 TextFieldPreference(
                                     value = customDomains,
                                     onValueChange = { preferences.customDomains.set(it) },
@@ -347,7 +368,10 @@ object YtdlSettingsScreen : Screen {
                         val proxy by preferences.proxy.collectAsState()
 
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = "Custom Format Selector",
+                            ) {
                                 TextFieldPreference(
                                     value = customFormat,
                                     onValueChange = { preferences.customFormat.set(it) },
@@ -371,7 +395,10 @@ object YtdlSettingsScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = "Proxy",
+                            ) {
                                 TextFieldPreference(
                                     value = proxy,
                                     onValueChange = { preferences.proxy.set(it) },
@@ -395,7 +422,10 @@ object YtdlSettingsScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = "Custom User-Agent",
+                            ) {
                                 TextFieldPreference(
                                     value = customUserAgent,
                                     onValueChange = { preferences.customUserAgent.set(it) },
