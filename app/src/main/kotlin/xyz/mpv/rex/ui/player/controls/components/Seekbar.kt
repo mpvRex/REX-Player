@@ -180,10 +180,10 @@ fun SeekbarWithTimers(
 
   val rowModifier = if (isGlassActive) {
     modifier
-      .height(54.dp)
+      .height(44.dp)
       .padding(horizontal = 16.dp)
       .glassSurface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         backgroundColor = Color.White.copy(alpha = 0.05f),
         borderColor = Color.White.copy(alpha = 0.15f),
         borderWidth = 1.dp,
@@ -200,7 +200,7 @@ fun SeekbarWithTimers(
         innerShadowOffsetX = 2.dp,
         innerShadowOffsetY = 2.dp
       )
-      .padding(horizontal = 14.dp)
+      .padding(horizontal = 12.dp)
   } else {
     modifier.height(48.dp)
   }
@@ -225,7 +225,7 @@ fun SeekbarWithTimers(
       modifier =
         Modifier
           .weight(1f)
-          .height(48.dp)
+          .fillMaxHeight()
           .graphicsLayer {
             scaleY = squeezeScale
           },
