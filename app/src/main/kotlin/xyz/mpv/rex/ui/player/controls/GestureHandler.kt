@@ -10,6 +10,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.indication
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalRippleConfiguration
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -56,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -1190,6 +1193,7 @@ fun DoubleTapToSeekOvals(
   
   val showCircularDoubleTapSeek by playerPreferences.showCircularDoubleTapSeek.collectAsState()
   val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
 
   // Track the last direction/amount so we know where to slide/hide and show correct text even when amount becomes 0
   var lastIsRight by remember { mutableStateOf(true) }
@@ -1246,7 +1250,7 @@ fun DoubleTapToSeekOvals(
 
     val circleShape = RoundedCornerShape(36.dp)
 
-    val glassModifier = if (enableGlass) {
+    val circleModifier = if (enableGlass) {
       Modifier.glassSurface(
         shape = circleShape,
         backgroundColor = Color.White.copy(alpha = 0.05f),
@@ -1266,7 +1270,19 @@ fun DoubleTapToSeekOvals(
         innerShadowOffsetY = 2.dp
       )
     } else {
-      Modifier.background(Color.Black.copy(alpha = 0.55f), shape = circleShape)
+      Modifier
+        .background(
+          if (matchTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+          else Color.Black.copy(alpha = 0.55f),
+          shape = circleShape
+        )
+        .then(
+          if (matchTheme) {
+            Modifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), shape = circleShape)
+          } else {
+            Modifier
+          }
+        )
     }
 
     if (amount != 0 || overlayAlpha > 0.01f) {
@@ -1280,39 +1296,57 @@ fun DoubleTapToSeekOvals(
             .fillMaxWidth(seekAreaFraction),
           contentAlignment = Alignment.Center,
         ) {
-          Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+          Layout(
+            content = {
+              // 0: Rounded circle around the chevrons
+              Box(
+                modifier = Modifier
+                  .size(72.dp)
+                  .clip(circleShape)
+                  .then(circleModifier),
+                contentAlignment = Alignment.Center
+              ) {
+                CombiningChevronsAnimation(
+                  isRight = isRight,
+                  trigger = animationTrigger
+                )
+              }
+
+              // 1: Seek time display right below the circle
+              Text(
+                text = if (isRight) "+${seekDisplayAmount}s" else "-${seekDisplayAmount}s",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+              )
+            },
             modifier = Modifier
               .graphicsLayer {
                 alpha = overlayAlpha
                 scaleX = overlayScale * scale
                 scaleY = overlayScale * scale
               }
-          ) {
-            // Rounded circle around the chevrons
-            Box(
-              modifier = Modifier
-                .size(72.dp)
-                .clip(circleShape)
-                .then(glassModifier),
-              contentAlignment = Alignment.Center
-            ) {
-              CombiningChevronsAnimation(
-                isRight = isRight,
-                trigger = animationTrigger
+          ) { measurables, constraints ->
+            val circlePlaceable = measurables[0].measure(constraints)
+            val textPlaceable = measurables[1].measure(constraints)
+            val spacing = 8.dp.roundToPx()
+
+            val width = maxOf(circlePlaceable.width, textPlaceable.width)
+            // Report height as only the circle's height so Alignment.Center vertically
+            // aligns the center of the circle exactly with the screen's center line
+            // (matching the center play/pause/prev/next controls), while placing the text below.
+            val height = circlePlaceable.height
+
+            layout(width, height) {
+              circlePlaceable.placeRelative(
+                x = (width - circlePlaceable.width) / 2,
+                y = 0
+              )
+              textPlaceable.placeRelative(
+                x = (width - textPlaceable.width) / 2,
+                y = circlePlaceable.height + spacing
               )
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Seek time display right below the circle
-            Text(
-              text = if (isRight) "+${seekDisplayAmount}s" else "-${seekDisplayAmount}s",
-              fontSize = 18.sp,
-              fontWeight = FontWeight.ExtraBold,
-              color = Color.White
-            )
           }
         }
       }
