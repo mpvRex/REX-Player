@@ -89,7 +89,7 @@ fun TopLeftPlayerControlsLandscape(
       modifier =
         Modifier
           .fillMaxHeight()
-          .clip(RoundedCornerShape(10.dp))
+          .clip(RoundedCornerShape(14.dp))
           .clickable(
             interactionSource = titleInteractionSource,
             indication = ripple(bounded = true),

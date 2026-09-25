@@ -61,12 +61,12 @@ fun ControlsButton(
   val inDock = LocalInControlsDock.current
   val clickEvent = LocalPlayerButtonsClickEvent.current
 
-  val buttonShape = if (inDock) RoundedCornerShape(10.dp) else RoundedCornerShape(12.dp)
+  val buttonShape = if (inDock) RoundedCornerShape(14.dp) else RoundedCornerShape(12.dp)
 
   val activeSurfaceColor = when {
     hideBackground -> Color.Transparent
     matchTheme -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f)
+    else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
   }
 
   val activeContentColor = when {
@@ -251,7 +251,7 @@ fun ControlsGroup(
         shadowElevation = 0.dp,
       ) {
         Row(
-          modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+          modifier = Modifier.padding(horizontal = 2.dp, vertical = 2.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(2.dp),
           content = content,

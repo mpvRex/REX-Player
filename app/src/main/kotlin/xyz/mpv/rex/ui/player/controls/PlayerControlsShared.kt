@@ -119,7 +119,7 @@ fun RenderPlayerButton(
   val appearancePreferences = org.koin.compose.koinInject<xyz.mpv.rex.preferences.AppearancePreferences>()
   val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
   val inDock = xyz.mpv.rex.ui.player.controls.components.LocalInControlsDock.current
-  val itemShape = if (inDock) RoundedCornerShape(10.dp) else RoundedCornerShape(12.dp)
+  val itemShape = if (inDock) RoundedCornerShape(14.dp) else RoundedCornerShape(12.dp)
   
   val surfaceColor = when {
     hideBackground -> Color.Transparent
@@ -138,7 +138,7 @@ fun RenderPlayerButton(
   val activeSurfaceColor = when {
     hideBackground -> Color.Transparent
     matchTheme -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.75f)
+    else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
   }
   
   val activeContentColor = when {
@@ -719,13 +719,13 @@ fun RenderPlayerButton(
     PlayerButton.AUDIO_TRACK -> {
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { onOpenSheet(Sheets.AudioTracks) }
           ) {
             Row(
@@ -758,13 +758,13 @@ fun RenderPlayerButton(
     PlayerButton.SUBTITLES -> {
       if (isMoreSheet) {
           Surface(
-            shape = CircleShape,
+            shape = itemShape,
             color = surfaceColor,
             contentColor = contentColor,
             border = borderColor,
             modifier = Modifier
               .height(buttonSize)
-              .clip(CircleShape)
+              .clip(itemShape)
               .clickable { onOpenSheet(Sheets.SubtitleTracks) }
           ) {
             Row(
@@ -1351,7 +1351,7 @@ fun Surface(
     val activeSurfaceColor = when {
         hideBackground -> androidx.compose.ui.graphics.Color.Transparent
         matchTheme -> androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-        else -> androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.75f)
+        else -> androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
     }
 
     val isActive = color == activeSurfaceColor
@@ -1369,7 +1369,7 @@ fun Surface(
     }
 
     val effectiveShape = when {
-        inDock -> RoundedCornerShape(10.dp)
+        inDock -> RoundedCornerShape(14.dp)
         shape == CircleShape -> RoundedCornerShape(12.dp)
         else -> shape
     }
