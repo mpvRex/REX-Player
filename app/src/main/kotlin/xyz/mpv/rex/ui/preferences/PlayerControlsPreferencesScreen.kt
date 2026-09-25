@@ -348,7 +348,10 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         val bottomControlsBelowSeekbar by playerPrefs.bottomControlsBelowSeekbar.collectAsState()
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_controls_layout_below_seekbar_title,
+                            ) {
                                 SwitchPreference(
                                     value = bottomControlsBelowSeekbar,
                                     onValueChange = { playerPrefs.bottomControlsBelowSeekbar.set(it) },

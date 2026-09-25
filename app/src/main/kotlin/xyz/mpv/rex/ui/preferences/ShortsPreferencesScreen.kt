@@ -106,8 +106,10 @@ object ShortsPreferencesScreen : Screen {
             },
         ) { padding ->
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+            val lazyListState = rememberPreferenceLazyListState()
             ProvidePreferenceLocals {
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
@@ -119,7 +121,10 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = listOf(R.string.pref_category_rexshorts_settings, R.string.pref_enable_rexshorts),
+                            ) {
                                 SwitchPreference(
                                     value = enableShorts,
                                     onValueChange = { browserPreferences.enableShorts.set(it) },
@@ -128,7 +133,10 @@ object ShortsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_auto_swipe_shorts,
+                            ) {
                                 SwitchPreference(
                                     value = autoSwipeShorts,
                                     onValueChange = { browserPreferences.autoSwipeShorts.set(it) },
@@ -137,7 +145,10 @@ object ShortsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_enable_glass_shorts_controls,
+                            ) {
                                 SwitchPreference(
                                     value = enableGlassShortsControls,
                                     onValueChange = { browserPreferences.enableGlassShortsControls.set(it) },
@@ -146,7 +157,10 @@ object ShortsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_show_shorts_back_button,
+                            ) {
                                 SwitchPreference(
                                     value = showShortsBackButton,
                                     onValueChange = { browserPreferences.showShortsBackButton.set(it) },
@@ -163,7 +177,10 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.FIRST,
+                                highlightKey = R.string.pref_include_short_horizontal_videos,
+                            ) {
                                 SwitchPreference(
                                     value = includeHorizontal,
                                     onValueChange = { browserPreferences.includeShortHorizontalVideos.set(it) },
@@ -172,7 +189,10 @@ object ShortsPreferencesScreen : Screen {
                                 )
                             }
 
-                            GroupedPreferenceCard(position = GroupPosition.MIDDLE) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_max_horizontal_video_duration,
+                            ) {
                                  SliderPreference(
                                     value = maxDuration.toFloat(),
                                     onValueChange = { browserPreferences.maxHorizontalVideoDurationMinutes.set(it.roundToInt()) },
@@ -193,7 +213,10 @@ object ShortsPreferencesScreen : Screen {
 
                             val sourcedAllText = stringResource(R.string.pref_sourced_folders_all)
                             val sourcedCountText = stringResource(R.string.pref_sourced_folders_count, shortsSourceFolders.size)
-                            GroupedPreferenceCard(position = GroupPosition.LAST) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_sourced_folders,
+                            ) {
                                 Preference(
                                     title = { Text(stringResource(R.string.pref_sourced_folders)) },
                                     summary = {
@@ -221,7 +244,10 @@ object ShortsPreferencesScreen : Screen {
 
                     item {
                         GroupedListColumn {
-                            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_blocked_videos,
+                            ) {
                                 Preference(
                                     title = { Text(stringResource(R.string.pref_blocked_videos)) },
                                     summary = { 

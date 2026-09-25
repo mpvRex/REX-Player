@@ -154,7 +154,7 @@ object GesturePreferencesScreen : Screen {
 
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_gesture_double_tap_seek_area_width_title,
+                highlightKey = listOf(R.string.pref_gesture_double_tap_seek_area_width_title, R.string.pref_double_tap_seek_area_width_title),
               ) {
                 ListPreference(
                   value = doubleTapSeekAreaWidth,
