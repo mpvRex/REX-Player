@@ -183,7 +183,7 @@ fun SeekbarWithTimers(
       .height(54.dp)
       .padding(horizontal = 16.dp)
       .glassSurface(
-        shape = RoundedCornerShape(27.dp),
+        shape = RoundedCornerShape(16.dp),
         backgroundColor = Color.White.copy(alpha = 0.05f),
         borderColor = Color.White.copy(alpha = 0.15f),
         borderWidth = 1.dp,

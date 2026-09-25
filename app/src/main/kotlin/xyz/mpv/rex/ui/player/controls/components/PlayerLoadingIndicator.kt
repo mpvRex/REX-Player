@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -35,13 +36,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 import xyz.mpv.rex.R
+import xyz.mpv.rex.preferences.AppearancePreferences
+import xyz.mpv.rex.preferences.preference.collectAsState
 
 private const val LOADING_SHOW_DELAY_MS = 250L
 private const val LOADING_HIDE_DELAY_MS = 250L
@@ -139,10 +144,58 @@ internal fun PlayerLoadingIndicator(
           stringResource(R.string.ui_loading)
       }
 
+      val appearancePreferences = koinInject<AppearancePreferences>()
+      val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
+      val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+
+      val chipShape = RoundedCornerShape(12.dp)
+      val glassModifier = if (enableGlass) {
+        Modifier.glassSurface(
+          shape = chipShape,
+          backgroundColor = Color.White.copy(alpha = 0.05f),
+          borderColor = Color.White.copy(alpha = 0.15f),
+          borderWidth = 1.dp,
+          outerShadowColor = Color.Black.copy(alpha = 0.00f),
+          outerShadowBlur = 0.dp,
+          outerShadowOffsetX = 0.dp,
+          outerShadowOffsetY = 0.dp,
+          innerHighlightColor = Color.White.copy(alpha = 0.35f),
+          innerHighlightBlur = 5.dp,
+          innerHighlightOffsetX = (-2).dp,
+          innerHighlightOffsetY = (-2).dp,
+          innerShadowColor = Color.Black.copy(alpha = 0.35f),
+          innerShadowBlur = 5.dp,
+          innerShadowOffsetX = 2.dp,
+          innerShadowOffsetY = 2.dp
+        )
+      } else {
+        Modifier
+      }
+
+      val surfaceColor = when {
+        enableGlass -> Color.Transparent
+        matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f)
+      }
+
+      val contentColor = when {
+        enableGlass -> Color.White
+        matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
+      }
+
+      val border = when {
+        enableGlass -> null
+        matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+      }
+
       Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        shape = chipShape,
+        color = surfaceColor,
+        contentColor = contentColor,
+        border = border,
+        modifier = Modifier.then(glassModifier),
       ) {
         Row(
           modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -174,7 +227,7 @@ internal fun PlayerLoadingIndicator(
               fontWeight = FontWeight.SemiBold,
               letterSpacing = 0.25.sp,
             ),
-            color = MaterialTheme.colorScheme.onSurface,
+            color = contentColor,
           )
         }
       }

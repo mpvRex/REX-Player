@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.player.controls.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -56,6 +57,10 @@ fun SlideToUnlock(
   
   val appearancePrefs = koinInject<AppearancePreferences>()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePrefs.matchPlayerControlsToTheme.collectAsState()
+
+  val containerShape = RoundedCornerShape(20.dp)
+  val sliderShape = RoundedCornerShape(16.dp)
 
   var containerWidthPx by remember { mutableFloatStateOf(0f) }
   val sliderSize = 56.dp
@@ -65,7 +70,7 @@ fun SlideToUnlock(
   
   val containerModifier = if (enableGlass) {
     Modifier.glassSurface(
-      shape = RoundedCornerShape(32.dp),
+      shape = containerShape,
       backgroundColor = Color.White.copy(alpha = 0.05f),
       borderColor = Color.White.copy(alpha = 0.15f),
       borderWidth = 1.dp,
@@ -83,12 +88,23 @@ fun SlideToUnlock(
       innerShadowOffsetY = 2.dp
     )
   } else {
-    Modifier.background(Color.Black.copy(alpha = 0.6f))
+    Modifier
+      .background(
+        if (matchTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+        else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.65f),
+        containerShape
+      )
+      .border(
+        width = 1.dp,
+        color = if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+        shape = containerShape
+      )
   }
 
   val sliderModifier = if (enableGlass) {
     Modifier.glassSurface(
-      shape = CircleShape,
+      shape = sliderShape,
       backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
       borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
       borderWidth = 1.dp,
@@ -106,14 +122,14 @@ fun SlideToUnlock(
       innerShadowOffsetY = 2.dp
     )
   } else {
-    Modifier.background(MaterialTheme.colorScheme.primary)
+    Modifier.background(MaterialTheme.colorScheme.primary, sliderShape)
   }
 
   Box(
     modifier = modifier
       .width(200.dp)
       .height(64.dp)
-      .clip(RoundedCornerShape(32.dp))
+      .clip(containerShape)
       .then(containerModifier)
       .padding(4.dp)
       .onSizeChanged { size ->
@@ -125,6 +141,12 @@ fun SlideToUnlock(
     val unlockThreshold = if (maxOffset > 0f) maxOffset * 0.85f else Float.MAX_VALUE
 
     // Background text - slightly to the right
+    val textColor = when {
+      enableGlass -> Color.White.copy(alpha = 0.7f)
+      matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+      else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+    }
+
     Box(
       modifier = Modifier
         .matchParentSize()
@@ -134,7 +156,7 @@ fun SlideToUnlock(
     ) {
       Text(
         text = stringResource(R.string.slide_to_unlock),
-        color = Color.White.copy(alpha = 0.7f),
+        color = textColor,
         fontSize = 16.sp,
         fontWeight = FontWeight.Medium,
       )
@@ -148,7 +170,7 @@ fun SlideToUnlock(
       modifier = Modifier
         .offset { IntOffset(offsetX.value.roundToInt(), 0) }
         .size(sliderSize)
-        .clip(CircleShape)
+        .clip(sliderShape)
         .then(sliderModifier)
         .pointerInput(containerWidthPx) {
           if (containerWidthPx <= 0f) return@pointerInput

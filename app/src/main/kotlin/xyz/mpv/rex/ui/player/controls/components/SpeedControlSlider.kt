@@ -72,10 +72,13 @@ fun CompactSpeedIndicator(
 
   val appearancePreferences = koinInject<AppearancePreferences>()
   val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+
+  val chipShape = RoundedCornerShape(16.dp)
 
   val glassModifier = if (enableGlass) {
     Modifier.glassSurface(
-      shape = RoundedCornerShape(100.dp),
+      shape = chipShape,
       backgroundColor = Color.White.copy(alpha = 0.05f),
       borderColor = Color.White.copy(alpha = 0.15f),
       borderWidth = 1.dp,
@@ -96,28 +99,46 @@ fun CompactSpeedIndicator(
     Modifier
   }
 
-  Surface(
-    shape = RoundedCornerShape(100.dp),
-    color = if (enableGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = MaterialTheme.colorScheme.onSurface,
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-    border = if (enableGlass) null else BorderStroke(
+  val surfaceColor = when {
+    enableGlass -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  }
+
+  val contentColor = when {
+    enableGlass -> Color.White
+    matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+    else -> MaterialTheme.colorScheme.onSurface
+  }
+
+  val border = when {
+    enableGlass -> null
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    else -> BorderStroke(
       1.dp,
       MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-    ),
+    )
+  }
+
+  Surface(
+    shape = chipShape,
+    color = surfaceColor,
+    contentColor = contentColor,
+    tonalElevation = 0.dp,
+    shadowElevation = 0.dp,
+    border = border,
     modifier = modifier.then(glassModifier)
   ) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.Center,
-      modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+      modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
       Icon(
         imageVector = Icons.Default.FastForward,
         contentDescription = null,
         modifier = Modifier.size(16.dp),
-        tint = MaterialTheme.colorScheme.onSurface
+        tint = contentColor
       )
       
       Row(
@@ -129,7 +150,7 @@ fun CompactSpeedIndicator(
                 text = "$prefix ",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                color = contentColor.copy(alpha = 0.9f)
             )
         }
 
@@ -155,14 +176,14 @@ fun CompactSpeedIndicator(
               fontSize = 14.sp,
               fontWeight = FontWeight.ExtraBold,
               style = MaterialTheme.typography.bodyLarge,
-              color = MaterialTheme.colorScheme.onSurface
+              color = contentColor
             )
             Text(
               text = "x",
               fontSize = 12.sp,
               fontWeight = FontWeight.Bold,
               modifier = Modifier.padding(start = 1.dp),
-              color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+              color = contentColor.copy(alpha = 0.75f)
             )
           }
         }
@@ -172,18 +193,19 @@ fun CompactSpeedIndicator(
                 text = " $suffix",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                color = contentColor.copy(alpha = 0.9f)
             )
         }
 
         if (onReset != null) {
+            val resetShape = RoundedCornerShape(10.dp)
             Spacer(modifier = Modifier.size(MaterialTheme.spacing.small))
             Surface(
-                shape = CircleShape,
-                color = if (enableGlass) Color.White.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = resetShape,
+                color = if (enableGlass) Color.White.copy(alpha = 0.15f) else if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier
                     .size(24.dp)
-                    .clip(CircleShape)
+                    .clip(resetShape)
                     .clickable { onReset() }
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -191,7 +213,7 @@ fun CompactSpeedIndicator(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Reset Speed",
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = if (matchTheme && !enableGlass) MaterialTheme.colorScheme.primary else contentColor
                     )
                 }
             }

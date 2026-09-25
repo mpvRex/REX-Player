@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.DoubleArrow
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,10 +49,13 @@ fun PlayerUpdate(
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+
+  val updateShape = RoundedCornerShape(16.dp)
 
   val glassModifier = if (enableGlass) {
     Modifier.glassSurface(
-      shape = RoundedCornerShape(100.dp),
+      shape = updateShape,
       backgroundColor = Color.White.copy(alpha = 0.05f),
       borderColor = Color.White.copy(alpha = 0.15f),
       borderWidth = 1.dp,
@@ -72,24 +76,42 @@ fun PlayerUpdate(
     Modifier
   }
 
-  Surface(
-    shape = RoundedCornerShape(100.dp),
-    color = if (enableGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = MaterialTheme.colorScheme.onSurface,
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-    border = if (enableGlass) null else BorderStroke(
+  val surfaceColor = when {
+    enableGlass -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  }
+
+  val contentColor = when {
+    enableGlass -> Color.White
+    matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+    else -> MaterialTheme.colorScheme.onSurface
+  }
+
+  val border = when {
+    enableGlass -> null
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    else -> BorderStroke(
       1.dp,
       MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-    ),
+    )
+  }
+
+  Surface(
+    shape = updateShape,
+    color = surfaceColor,
+    contentColor = contentColor,
+    tonalElevation = 0.dp,
+    shadowElevation = 0.dp,
+    border = border,
     modifier = modifier
       .then(glassModifier)
       .animateContentSize(),
   ) {
     Box(
       modifier = Modifier.padding(
-        vertical = 4.dp,
-        horizontal = 10.dp,
+        vertical = 6.dp,
+        horizontal = 12.dp,
       ),
       contentAlignment = Alignment.Center,
     ) {
@@ -110,7 +132,6 @@ fun TextPlayerUpdate(
       fontSize = 14.sp,
       fontWeight = FontWeight.ExtraBold,
       textAlign = TextAlign.Center,
-      color = MaterialTheme.colorScheme.onSurface,
       style = MaterialTheme.typography.bodyLarge,
     )
   }
@@ -121,18 +142,65 @@ fun LockHint(
   text: String,
   modifier: Modifier = Modifier,
 ) {
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val enableGlass by appearancePreferences.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePreferences.matchPlayerControlsToTheme.collectAsState()
+
+  val hintShape = RoundedCornerShape(14.dp)
+  val glassModifier = if (enableGlass) {
+    Modifier.glassSurface(
+      shape = hintShape,
+      backgroundColor = Color.White.copy(alpha = 0.08f),
+      borderColor = Color.White.copy(alpha = 0.18f),
+      borderWidth = 1.dp,
+      outerShadowColor = Color.Black.copy(alpha = 0.00f),
+      outerShadowBlur = 0.dp,
+      outerShadowOffsetX = 0.dp,
+      outerShadowOffsetY = 0.dp,
+      innerHighlightColor = Color.White.copy(alpha = 0.35f),
+      innerHighlightBlur = 5.dp,
+      innerHighlightOffsetX = (-2).dp,
+      innerHighlightOffsetY = (-2).dp,
+      innerShadowColor = Color.Black.copy(alpha = 0.35f),
+      innerShadowBlur = 5.dp,
+      innerShadowOffsetX = 2.dp,
+      innerShadowOffsetY = 2.dp
+    )
+  } else {
+    Modifier
+  }
+
+  val surfaceColor = when {
+    enableGlass -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
+    else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.85f)
+  }
+
+  val contentColor = when {
+    enableGlass -> Color.White
+    matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+    else -> MaterialTheme.colorScheme.onSurface
+  }
+
+  val border = when {
+    enableGlass -> null
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+    else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+  }
+
   Surface(
-    shape = RoundedCornerShape(8.dp),
-    color = Color.Black.copy(alpha = 0.6f),
-    contentColor = Color.White,
-    modifier = modifier
+    shape = hintShape,
+    color = surfaceColor,
+    contentColor = contentColor,
+    border = border,
+    modifier = modifier.then(glassModifier),
   ) {
     Text(
       text = text,
-      modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+      modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
       style = MaterialTheme.typography.labelLarge,
       fontWeight = FontWeight.Bold,
-      color = Color.White
+      color = contentColor,
     )
   }
 }
@@ -157,6 +225,7 @@ fun SeekPlayerUpdate(
   modifier: Modifier = Modifier,
 ) {
   PlayerUpdate(modifier) {
+    val contentColor = LocalContentColor.current
     Row(
       verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -165,7 +234,7 @@ fun SeekPlayerUpdate(
         fontSize = 14.sp,
         fontWeight = FontWeight.ExtraBold,
         textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = contentColor,
         style = MaterialTheme.typography.bodyLarge,
       )
 
@@ -174,7 +243,7 @@ fun SeekPlayerUpdate(
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        color = contentColor.copy(alpha = 0.75f),
       )
     }
   }
@@ -186,6 +255,7 @@ fun ResumedFromPlayerUpdate(
   onRestart: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val actionShape = RoundedCornerShape(10.dp)
   PlayerUpdate(modifier) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
@@ -196,19 +266,18 @@ fun ResumedFromPlayerUpdate(
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurface,
         style = MaterialTheme.typography.bodyMedium,
       )
       Surface(
-        shape = RoundedCornerShape(100.dp),
+        shape = actionShape,
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
         modifier = Modifier
-          .clip(RoundedCornerShape(100.dp))
+          .clip(actionShape)
           .clickable(onClick = onRestart),
       ) {
         Row(
-          modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+          modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -236,6 +305,7 @@ fun PromptResumePlayerUpdate(
   onResume: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val actionShape = RoundedCornerShape(10.dp)
   PlayerUpdate(modifier) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
@@ -246,19 +316,18 @@ fun PromptResumePlayerUpdate(
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurface,
         style = MaterialTheme.typography.bodyMedium,
       )
       Surface(
-        shape = RoundedCornerShape(100.dp),
+        shape = actionShape,
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
         modifier = Modifier
-          .clip(RoundedCornerShape(100.dp))
+          .clip(actionShape)
           .clickable(onClick = onResume),
       ) {
         Row(
-          modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+          modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {

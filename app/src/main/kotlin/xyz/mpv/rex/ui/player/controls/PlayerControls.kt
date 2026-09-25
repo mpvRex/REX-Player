@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FastRewind
+import xyz.mpv.rex.ui.player.controls.components.ControlsGroup
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.offset
@@ -820,13 +821,14 @@ fun PlayerControls(
             ) {
                 customButtons.filter { it.isLeft }.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
+                    val customButtonShape = RoundedCornerShape(14.dp)
                     Surface(
-                        shape = CircleShape,
+                        shape = customButtonShape,
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
                         modifier = Modifier
-                            .clip(CircleShape)
+                            .clip(customButtonShape)
                             .combinedClickable(
                                 interactionSource = buttonInteractionSource,
                                 indication = ripple(),
@@ -886,13 +888,14 @@ fun PlayerControls(
             ) {
                 customButtons.filter { !it.isLeft }.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
+                    val customButtonShape = RoundedCornerShape(14.dp)
                     Surface(
-                        shape = CircleShape,
+                        shape = customButtonShape,
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
                         modifier = Modifier
-                            .clip(CircleShape)
+                            .clip(customButtonShape)
                             .combinedClickable(
                                 interactionSource = buttonInteractionSource,
                                 indication = ripple(),
@@ -951,13 +954,14 @@ fun PlayerControls(
             ) {
                 customButtons.forEach { button ->
                     val buttonInteractionSource = remember { MutableInteractionSource() }
+                    val customButtonShape = RoundedCornerShape(14.dp)
                     Surface(
-                        shape = CircleShape,
+                        shape = customButtonShape,
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
                         modifier = Modifier
-                            .clip(CircleShape)
+                            .clip(customButtonShape)
                             .combinedClickable(
                                 interactionSource = buttonInteractionSource,
                                 indication = ripple(),
@@ -1767,104 +1771,93 @@ fun PlayerControls(
             verticalBias = abLoopVerticalBias
           }
         ) {
-          val buttonSize = 40.dp
-          Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-            modifier = Modifier.height(buttonSize),
+          val itemShape = RoundedCornerShape(14.dp)
+          val buttonSize = 38.dp
+          ControlsGroup(
+            shape = RoundedCornerShape(16.dp),
           ) {
-            Row(
-              horizontalArrangement = Arrangement.spacedBy(2.dp),
-              verticalAlignment = Alignment.CenterVertically,
-              modifier = Modifier.padding(horizontal = 4.dp),
+            Surface(
+              shape = itemShape,
+              color = if (abLoopA != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
+              modifier = Modifier
+                .height(buttonSize)
+                .widthIn(min = buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = { viewModel.setLoopA() }),
             ) {
-
-              Surface(
-                shape = CircleShape,
-                color = if (abLoopA != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
-                modifier = Modifier
-                  .height(buttonSize - 4.dp)
-                  .widthIn(min = buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = { viewModel.setLoopA() }),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Text(
-                    text = if (abLoopA != null) viewModel.formatTimestamp(abLoopA!!) else "A",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (abLoopA != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = if (abLoopA != null) 8.dp else 0.dp),
-                  )
-                }
+              Box(contentAlignment = Alignment.Center) {
+                Text(
+                  text = if (abLoopA != null) viewModel.formatTimestamp(abLoopA!!) else "A",
+                  style = MaterialTheme.typography.labelLarge,
+                  color = if (abLoopA != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.padding(horizontal = if (abLoopA != null) 8.dp else 0.dp),
+                )
               }
+            }
 
-              Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                modifier = Modifier
-                  .size(buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = {
-                    viewModel.clearABLoop()
-                    viewModel.toggleABLoopExpanded()
-                  }),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Clear Loop",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(16.dp),
-                  )
-                }
+            Surface(
+              shape = itemShape,
+              color = Color.Transparent,
+              modifier = Modifier
+                .size(buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = {
+                  viewModel.clearABLoop()
+                  viewModel.toggleABLoopExpanded()
+                }),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Default.Close,
+                  contentDescription = "Clear Loop",
+                  tint = MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.size(16.dp),
+                )
               }
+            }
 
-              Surface(
-                shape = CircleShape,
-                color = if (abLoopB != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
-                modifier = Modifier
-                  .height(buttonSize - 4.dp)
-                  .widthIn(min = buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = { viewModel.setLoopB() }),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Text(
-                    text = if (abLoopB != null) viewModel.formatTimestamp(abLoopB!!) else "B",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (abLoopB != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = if (abLoopB != null) 8.dp else 0.dp),
-                  )
-                }
+            Surface(
+              shape = itemShape,
+              color = if (abLoopB != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
+              modifier = Modifier
+                .height(buttonSize)
+                .widthIn(min = buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = { viewModel.setLoopB() }),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Text(
+                  text = if (abLoopB != null) viewModel.formatTimestamp(abLoopB!!) else "B",
+                  style = MaterialTheme.typography.labelLarge,
+                  color = if (abLoopB != null) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.padding(horizontal = if (abLoopB != null) 8.dp else 0.dp),
+                )
               }
+            }
 
-              val context = LocalContext.current
-              val canCut = abLoopA != null && abLoopB != null
-              Surface(
-                shape = CircleShape,
-                color = if (canCut) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-                border = BorderStroke(1.dp, if (canCut) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                modifier = Modifier
-                  .size(buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = {
-                    if (canCut) {
-                      onOpenSheet(Sheets.ClipExport)
-                    } else {
-                      android.widget.Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                  }),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Icon(
-                    imageVector = Icons.Default.ContentCut,
-                    contentDescription = stringResource(R.string.ab_loop_cut_clip),
-                    tint = if (canCut) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp),
-                  )
-                }
+            val context = LocalContext.current
+            val canCut = abLoopA != null && abLoopB != null
+            Surface(
+              shape = itemShape,
+              color = if (canCut) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+              modifier = Modifier
+                .size(buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = {
+                  if (canCut) {
+                    onOpenSheet(Sheets.ClipExport)
+                  } else {
+                    android.widget.Toast.makeText(context, context.getString(R.string.ab_loop_set_both_points), android.widget.Toast.LENGTH_SHORT).show()
+                  }
+                }),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Default.ContentCut,
+                  contentDescription = stringResource(R.string.ab_loop_cut_clip),
+                  tint = if (canCut) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                  modifier = Modifier.size(16.dp),
+                )
               }
             }
           }
@@ -1883,121 +1876,113 @@ fun PlayerControls(
             }
             .offset(y = frameNavYOffset)
         ) {
-          val buttonSize = 40.dp
+          val itemShape = RoundedCornerShape(14.dp)
+          val buttonSize = 38.dp
           val context = LocalContext.current
-          Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-            modifier = Modifier.height(buttonSize),
+          ControlsGroup(
+            shape = RoundedCornerShape(16.dp),
           ) {
-            Row(
-              horizontalArrangement = Arrangement.spacedBy(2.dp),
-              verticalAlignment = Alignment.CenterVertically,
-              modifier = Modifier.padding(horizontal = 4.dp),
+            // Previous frame button
+            Surface(
+              shape = itemShape,
+              color = Color.Transparent,
+              modifier = Modifier
+                .size(buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = {
+                  viewModel.frameStepBackward()
+                }),
             ) {
-              // Previous frame button
-              Surface(
-                shape = CircleShape,
-                color = Color.Transparent,
-                modifier = Modifier
-                  .size(buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = {
-                    viewModel.frameStepBackward()
-                  }),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Icon(
-                    imageVector = Icons.Default.FastRewind,
-                    contentDescription = "Previous Frame",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp),
-                  )
-                }
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Default.FastRewind,
+                  contentDescription = "Previous Frame",
+                  tint = MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.size(24.dp),
+                )
               }
+            }
 
-              // Camera / Loading button
-              if (isSnapshotLoading) {
-                Surface(
-                  shape = CircleShape,
-                  color = Color.Transparent,
-                  modifier = Modifier.size(buttonSize - 4.dp),
-                ) {
-                  Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    CircularProgressIndicator(
-                      modifier = Modifier.size(16.dp),
-                      strokeWidth = 2.dp,
-                      color = MaterialTheme.colorScheme.onSurface,
-                    )
-                  }
-                }
-              } else {
-                @OptIn(ExperimentalFoundationApi::class)
-                Surface(
-                  shape = CircleShape,
-                  color = Color.Transparent,
-                  modifier = Modifier
-                    .size(buttonSize - 4.dp)
-                    .clip(CircleShape)
-                    .combinedClickable(
-                      onClick = {
-                        viewModel.takeSnapshot(context)
-                      },
-                      onLongClick = { onOpenSheet(Sheets.FrameNavigation) },
-                    ),
-                ) {
-                  Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                      imageVector = Icons.Default.CameraAlt,
-                      contentDescription = "Take Screenshot",
-                      tint = MaterialTheme.colorScheme.onSurface,
-                      modifier = Modifier.size(24.dp),
-                    )
-                  }
-                }
-              }
-
-              // Next frame button
+            // Camera / Loading button
+            if (isSnapshotLoading) {
               Surface(
-                shape = CircleShape,
+                shape = itemShape,
                 color = Color.Transparent,
-                modifier = Modifier
-                  .size(buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = {
-                    viewModel.frameStepForward()
-                  }),
+                modifier = Modifier.size(buttonSize),
               ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Icon(
-                    imageVector = Icons.Default.FastForward,
-                    contentDescription = "Next Frame",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp),
-                  )
-                }
-              }
-
-              // Close button
-              Surface(
-                shape = CircleShape,
-                color = Color.Transparent,
-                modifier = Modifier
-                  .size(buttonSize - 4.dp)
-                  .clip(CircleShape)
-                  .clickable(onClick = {
-                    viewModel.toggleFrameNavigationExpanded()
-                  }),
-              ) {
-                Box(contentAlignment = Alignment.Center) {
-                  Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close Frame Nav",
-                    tint = MaterialTheme.colorScheme.onSurface,
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                  CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurface,
                   )
                 }
+              }
+            } else {
+              @OptIn(ExperimentalFoundationApi::class)
+              Surface(
+                shape = itemShape,
+                color = Color.Transparent,
+                modifier = Modifier
+                  .size(buttonSize)
+                  .clip(itemShape)
+                  .combinedClickable(
+                    onClick = {
+                      viewModel.takeSnapshot(context)
+                    },
+                    onLongClick = { onOpenSheet(Sheets.FrameNavigation) },
+                  ),
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Take Screenshot",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(24.dp),
+                  )
+                }
+              }
+            }
+
+            // Next frame button
+            Surface(
+              shape = itemShape,
+              color = Color.Transparent,
+              modifier = Modifier
+                .size(buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = {
+                  viewModel.frameStepForward()
+                }),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Default.FastForward,
+                  contentDescription = "Next Frame",
+                  tint = MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.size(24.dp),
+                )
+              }
+            }
+
+            // Close button
+            Surface(
+              shape = itemShape,
+              color = Color.Transparent,
+              modifier = Modifier
+                .size(buttonSize)
+                .clip(itemShape)
+                .clickable(onClick = {
+                  viewModel.toggleFrameNavigationExpanded()
+                }),
+            ) {
+              Box(contentAlignment = Alignment.Center) {
+                Icon(
+                  imageVector = Icons.Default.Close,
+                  contentDescription = "Close Frame Nav",
+                  tint = MaterialTheme.colorScheme.onSurface,
+                  modifier = Modifier.size(16.dp),
+                )
               }
             }
           }

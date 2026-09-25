@@ -1360,7 +1360,12 @@ fun Surface(
         else -> androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.90f)
     }
 
-    val isActive = color == activeSurfaceColor
+    val isActive = color == activeSurfaceColor || (
+        color != androidx.compose.ui.graphics.Color.Transparent &&
+        color != androidx.compose.ui.graphics.Color.Unspecified &&
+        color != androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f) &&
+        color != androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    )
     
     val finalColor = when {
         inDock && !isActive -> androidx.compose.ui.graphics.Color.Transparent

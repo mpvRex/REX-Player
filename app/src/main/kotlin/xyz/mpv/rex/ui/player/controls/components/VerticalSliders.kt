@@ -74,6 +74,8 @@ fun VerticalSlider(
   val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
 
+  val matchTheme by appearancePrefs.matchPlayerControlsToTheme.collectAsState()
+
   val trackWidthAnim = remember { Animatable(22f) }
 
   // Listen for changes to the interaction state (touching vs. released)
@@ -125,10 +127,15 @@ fun VerticalSlider(
     )
   } else {
     Modifier
-      .background(MaterialTheme.colorScheme.background)
+      .background(
+        if (matchTheme) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        else MaterialTheme.colorScheme.background,
+        RoundedCornerShape(16.dp)
+      )
       .border(
         width = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+        color = if (matchTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         shape = RoundedCornerShape(16.dp),
       )
   }
@@ -296,6 +303,7 @@ fun BrightnessSlider(
 ) {
   val appearancePrefs = koinInject<AppearancePreferences>()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePrefs.matchPlayerControlsToTheme.collectAsState()
 
   val glassModifier = if (enableGlass) {
     Modifier.glassSurface(
@@ -320,15 +328,33 @@ fun BrightnessSlider(
     Modifier
   }
 
+  val surfaceColor = when {
+    enableGlass -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  }
+
+  val contentColor = when {
+    enableGlass -> Color.White
+    matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+    else -> MaterialTheme.colorScheme.onSurface
+  }
+
+  val border = when {
+    enableGlass -> null
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+  }
+
   val coercedBrightness = brightness.coerceIn(range)
   Surface(
     modifier = modifier.then(glassModifier),
     shape = RoundedCornerShape(20.dp),
-    color = if (enableGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = MaterialTheme.colorScheme.onSurface,
+    color = surfaceColor,
+    contentColor = contentColor,
     tonalElevation = 0.dp,
     shadowElevation = 0.dp,
-    border = if (enableGlass) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+    border = border,
   ) {
     Column(
       modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
@@ -369,6 +395,7 @@ fun VolumeSlider(
 ) {
   val appearancePrefs = koinInject<AppearancePreferences>()
   val enableGlass by appearancePrefs.enableGlassPlayerControls.collectAsState()
+  val matchTheme by appearancePrefs.matchPlayerControlsToTheme.collectAsState()
 
   val glassModifier = if (enableGlass) {
     Modifier.glassSurface(
@@ -393,15 +420,33 @@ fun VolumeSlider(
     Modifier
   }
 
+  val surfaceColor = when {
+    enableGlass -> Color.Transparent
+    matchTheme -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  }
+
+  val contentColor = when {
+    enableGlass -> Color.White
+    matchTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+    else -> MaterialTheme.colorScheme.onSurface
+  }
+
+  val border = when {
+    enableGlass -> null
+    matchTheme -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+  }
+
   val percentage = (percentage(volume, range) * 100).roundToInt()
   Surface(
     modifier = modifier.then(glassModifier),
     shape = RoundedCornerShape(20.dp),
-    color = if (enableGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = MaterialTheme.colorScheme.onSurface,
+    color = surfaceColor,
+    contentColor = contentColor,
     tonalElevation = 0.dp,
     shadowElevation = 0.dp,
-    border = if (enableGlass) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+    border = border,
   ) {
     Column(
       modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
