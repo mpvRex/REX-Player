@@ -404,12 +404,14 @@
     "translated_value": "Buscar"
   },
   "pref_autoplay_title": {
-    "source_hash": "289414abd1599be93f3056a98eb2164ab269585c00c4cf97526281a6f87ac34c",
-    "translated_value": "Activar navegación siguiente/anterior"
+    "source_hash": "eb139bb5327c966eea150fd1517645795589d2092b275c2ad2d9edb8109f5a71",
+    "translated_value": "Poner automáticamente en la fila los videos de la carpeta",
+    "ignore_warnings": false
   },
   "pref_autoplay_summary": {
-    "source_hash": "57d7558a208d8aa82292439f82259757131b542b462e451f470ca091b35d2907",
-    "translated_value": "Mostrar botones de siguiente/anterior para todos los videos de la carpeta"
+    "source_hash": "70b6e7c45facac641f50f538877c4b6b723d342c26e591a9e5a103526a90f92e",
+    "translated_value": "Agregar automáticamente todos los videos de la carpeta a una lista de reproducción",
+    "ignore_warnings": false
   },
   "pref_autoplay_next_video_title": {
     "source_hash": "a4bebacb05a300f3585be5244a9ae76a079f9f0c0be653b69a4666d7fefc81fe",
@@ -812,8 +814,9 @@
     "translated_value": "Buscar en relación con la posición inicial del arrastre en lugar de la posición absoluta del dedo."
   },
   "pref_gesture_double_tap_custom_info": {
-    "source_hash": "ae38018a716be660ae4cb8fad8c13950957f31d68659e95be1db86cf3aa7fc24",
-    "translated_value": "You can bind custom actions to these gestures in input.conf using the following key codes:\n\nLeft: MBTN_LEFT_DBL\nCenter: MBTN_MID_DBL\nRight: MBTN_RIGHT_DBL"
+    "source_hash": "5235624166409edeaa69e9c101c392873ea37869d1bdd9dcc0d3c1076a76de98",
+    "translated_value": "Puedes asignar acciones personalizadas a estos gestos en el archivo input.conf utilizando los siguientes códigos de teclas:",
+    "ignore_warnings": false
   },
   "pref_gesture_media_title": {
     "source_hash": "d07deb8344922b975cd38c7159ac14e708774db894e8233c7022217e43cebd40",
@@ -832,8 +835,9 @@
     "translated_value": "Siguiente"
   },
   "pref_gesture_media_custom_info": {
-    "source_hash": "548e830844d75abb5e46b7cfc19b5a42a2a72185eb7907371aa3f07c990dd0c5",
-    "translated_value": "You can bind custom actions to media controls in input.conf using the following key codes:\n\nPrevious: PREV\nPlay/Pause: PLAYPAUSE\nNext: NEXT"
+    "source_hash": "1930fd98ef113ba8c37d1a841b52ae03349dd2cbc202d8f849b2b6c443e1981a",
+    "translated_value": "Puedes vincular acciones personalizadas a los controles multimedia en input.conf usando los siguientes códigos de tecla:",
+    "ignore_warnings": false
   },
   "pref_gesture_view_title": {
     "source_hash": "dcc839a4015c4b7dd9db959a8f757833b8adb92462a751b973386e453c6d58a3",
@@ -2692,8 +2696,9 @@
     "translated_value": "Agregue videos a su dispositivo para ver carpetas aquí"
   },
   "search_in_all_storage_volumes": {
-    "source_hash": "338363568aa6e0f9fef16b0ba5eea8e2edf705d0296426dd284ad3b6a13942a7",
-    "translated_value": "Buscar en todos los volúmenes de almacenamiento..."
+    "source_hash": "0a0bc8dfde3d2a544222b2e5a764ad79045551864238924f8438e97f10ba3d25",
+    "translated_value": "Buscar en todo el almacenamiento",
+    "ignore_warnings": false
   },
   "search_in_folder_placeholder": {
     "source_hash": "88c080604340610100483fcfb1023e3b5c2715bcc14d7619c874f002527deb9b",
@@ -3788,12 +3793,14 @@
     "translated_value": "Permanecer en el vídeo actual cuando termine"
   },
   "pref_player_playlist_mode_summary_on": {
-    "source_hash": "57d7558a208d8aa82292439f82259757131b542b462e451f470ca091b35d2907",
-    "translated_value": "Mostrar botones de siguiente/anterior para todos los videos de la carpeta"
+    "source_hash": "70b6e7c45facac641f50f538877c4b6b723d342c26e591a9e5a103526a90f92e",
+    "translated_value": "Agregar automáticamente todos los videos de la carpeta a una lista de reproducción",
+    "ignore_warnings": false
   },
   "pref_player_playlist_mode_summary_off": {
-    "source_hash": "4bcc67a0a26893cc27b2aab27743e2312bc359aab9b07037d841584fd3f91f57",
-    "translated_value": "Reproduzca videos individualmente (seleccione varios para la lista de reproducción)"
+    "source_hash": "4eed9d6407793068440273d2b727fb5634145e80acaa73532a0ad764fd1a2f7c",
+    "translated_value": "Reproduce los videos uno por uno (selecciona varios para reproducirlos como una lista de reproducción)",
+    "ignore_warnings": false
   },
   "pref_player_keep_screen_on_when_paused_summary_on": {
     "source_hash": "f2412ba37ae77d99eb6734bc44638fb84875f1442e967b640cf669bf48ad3290",
@@ -5014,6 +5021,443 @@
   "shorts_reshuffle_feed": {
     "source_hash": "b7e3878a92d39faf585b61e1fee84bf33b70ade12f8b04d58bc113ba92b2c823",
     "translated_value": "Reorganizar el feed",
+    "ignore_warnings": false
+  },
+  "pref_player_default_aspect_ratio": {
+    "source_hash": "e6a2a15fef200b5885e21c8391af0a024b6514ebf835b6f3dda4c68da2514d23",
+    "translated_value": "Relación de aspecto predeterminada"
+  },
+  "pref_player_remember_aspect_ratio": {
+    "source_hash": "135e7d192c29a9948ec4fa930757c9e0e6766dae2e431188fbe3543458f38ddf",
+    "translated_value": "Recordar la relación de aspecto en los videos"
+  },
+  "pref_player_remember_aspect_ratio_summary": {
+    "source_hash": "d8428d48f856a9b5d565452b28716a54d1f5518c873e1eec24e47f7e155cabcd",
+    "translated_value": "Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes"
+  },
+  "system_default": {
+    "source_hash": "d8081c667c73359f755864913dd9e6be70e785e8b864d7715b5c41c2b143245b",
+    "translated_value": "Configuración predeterminada del sistema",
+    "ignore_warnings": false
+  },
+  "pref_appearance_language_title": {
+    "source_hash": "f5b8f8e081be7cc907a6b2060283050df6763bcd194460a45ae5ef701cc073f3",
+    "translated_value": "Idioma de la aplicación",
+    "ignore_warnings": false
+  },
+  "pref_appearance_language_summary": {
+    "source_hash": "804612730cf2f722e87ebf6949f7b64140ac66bd5b2e177ce1985f7d8f80ce22",
+    "translated_value": "Cambiar el idioma de visualización de la aplicación",
+    "ignore_warnings": false
+  },
+  "welcome_title": {
+    "source_hash": "aa2d6198377acdf724084a9772d1d17fe5da03abe2714bfb3fad052614d08f7c",
+    "translated_value": "Bienvenido a mpvRex",
+    "ignore_warnings": false
+  },
+  "welcome_subtitle": {
+    "source_hash": "b7adf909929fb5db446486aaecb29969f0ceca395533d186b8c53a97be550df0",
+    "translated_value": "Tu reproductor multimedia moderno, potente y personalizable.",
+    "ignore_warnings": false
+  },
+  "welcome_language_section_title": {
+    "source_hash": "864313e9304389938163bc3b37d8b1b267c5ef0f412ec8db3b17d1665a08db43",
+    "translated_value": "Idioma preferido",
+    "ignore_warnings": false
+  },
+  "welcome_language_section_desc": {
+    "source_hash": "fdc934aa646226cde15e2462b5ebf2057092bf5a2518fb36c4590f0a61194b1b",
+    "translated_value": "Selecciona el idioma de visualización",
+    "ignore_warnings": false
+  },
+  "storage_access_granted": {
+    "source_hash": "27a6b7c15d87472b3e1755008ee50823a96cacb5a8dd4e9a8ffb0c79d8e2b647",
+    "translated_value": "Acceso al almacenamiento concedido",
+    "ignore_warnings": false
+  },
+  "storage_access_granted_desc": {
+    "source_hash": "f79315de73e666ea34e15ece13a6cf5997c6cb1e2085db1630e1a499aa97f288",
+    "translated_value": "Se ha otorgado el permiso. mpvRex está listo para detectar y reproducir tus archivos multimedia.",
+    "ignore_warnings": false
+  },
+  "welcome_grant_permission": {
+    "source_hash": "e402e05f0e4cfb26b583ac50c9243d5d88093d421adec9836650227633605ff9",
+    "translated_value": "Conceder permiso",
+    "ignore_warnings": false
+  },
+  "welcome_get_started": {
+    "source_hash": "983f311018642b0ae60c71253b5735579906d43d260ea926ebe5e815b1c97abb",
+    "translated_value": "Empezar",
+    "ignore_warnings": false
+  },
+  "welcome_skip_permission": {
+    "source_hash": "cd2e4e1e58dfa64ce37a7c6c59efaaa1436842ec9b8da53137d56e34e463ebfd",
+    "translated_value": "Continuar sin acceso al almacenamiento",
+    "ignore_warnings": false
+  },
+  "preview_chapter_chip": {
+    "source_hash": "ac6d63d52707fda1023a28c015d0a39a920fd9b252c0b9533b9d8127e600c2a5",
+    "translated_value": "1:06 • Capítulo 1",
+    "ignore_warnings": false
+  },
+  "sort_by": {
+    "source_hash": "c9129025bd3ff6522a7eeebc1abf1481f36e4ac9d74524a473ac1c3be1c6fc2f",
+    "translated_value": "Ordenar por",
+    "ignore_warnings": false
+  },
+  "cd_toggle_sort_order": {
+    "source_hash": "609855b3bfc1b3cfb6dafb6c339cfbee056303e766bcf06017ea81446da89410",
+    "translated_value": "Cambiar el orden de clasificación",
+    "ignore_warnings": false
+  },
+  "cd_expand": {
+    "source_hash": "07548c2c6511d4d1780564de8a237a1966cf9c99a97cf5c8a185e6c2aeacff09",
+    "translated_value": "Expandir",
+    "ignore_warnings": false
+  },
+  "cd_collapse": {
+    "source_hash": "be6eb1fc3b05bf9dceebad2eac7841d1b2f40bda9aa2da34df8ca22af02bc3ed",
+    "translated_value": "Colapsar",
+    "ignore_warnings": false
+  },
+  "sort_type_title": {
+    "source_hash": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674",
+    "translated_value": "Título",
+    "ignore_warnings": false
+  },
+  "sort_type_duration": {
+    "source_hash": "4fc52a3c4c558b517c463b22d86d0e3b9cfd4255c98fe3510f9075b37ab419c9",
+    "translated_value": "Duración",
+    "ignore_warnings": false
+  },
+  "sort_type_date": {
+    "source_hash": "99c40ab405926cb5ad1def9cff4d7ce624f8f8abfff4e85f655347fcb949d08e",
+    "translated_value": "Fecha",
+    "ignore_warnings": false
+  },
+  "sort_type_size": {
+    "source_hash": "1af851907331c0ed99e7c63b4e55df808bc5fc4c990a1cf80ca8c0f76daf1f3b",
+    "translated_value": "Tamaño",
+    "ignore_warnings": false
+  },
+  "sort_type_count": {
+    "source_hash": "37bac4952becf21ac5838d3c9ba82811bc421c857571e89634dcbe346681d54c",
+    "translated_value": "Recuento",
+    "ignore_warnings": false
+  },
+  "sort_order_ascending": {
+    "source_hash": "77184595bde3befc7f5a20efc97caea43f4858e4c97cd2ee406af2c61db3266c",
+    "translated_value": "Ascendente",
+    "ignore_warnings": false
+  },
+  "sort_order_descending": {
+    "source_hash": "79479a6c76d8416ab7839952a2f8222e350862464f4d02db13d8d8f9551dbf8e",
+    "translated_value": "Descendente",
+    "ignore_warnings": false
+  },
+  "sort_order_longest": {
+    "source_hash": "802803c7888480fc3a394d9c3060e509a76ff29c9e223246060a734b88a80f41",
+    "translated_value": "más largo",
+    "ignore_warnings": false
+  },
+  "sort_order_oldest": {
+    "source_hash": "505dc450753e546ecbef6830acea257dc35d0d5303d8e76d0d605a7997a10a42",
+    "translated_value": "más antiguo",
+    "ignore_warnings": false
+  },
+  "sort_order_smallest": {
+    "source_hash": "b2443d1a486e89394d77d9823d55af518353744d29b727f2fcaeaff48198d574",
+    "translated_value": "El más pequeño",
+    "ignore_warnings": false
+  },
+  "sort_order_largest": {
+    "source_hash": "5511a4b7d571662097f8c45c5d65b463eb6d6b872a0ddf4284ee7af8df086e5b",
+    "translated_value": "El más grande",
+    "ignore_warnings": false
+  },
+  "view_mode_folder": {
+    "source_hash": "74ccd43303847f2655300641a934959cdb11689ce171aa0f00faa92917fbd340",
+    "translated_value": "Carpeta",
+    "ignore_warnings": false
+  },
+  "view_mode_library": {
+    "source_hash": "dc20b3d5d2cddf82fad332821ca5e9a4efdcede4a273aa193d2b495bdcc92825",
+    "translated_value": "Biblioteca",
+    "ignore_warnings": false
+  },
+  "layout": {
+    "source_hash": "a511909161e1b84fb81b52028fc2ce79525a96b40ccda823caa4a66ee64772b5",
+    "translated_value": "Diseño",
+    "ignore_warnings": false
+  },
+  "layout_mode_list": {
+    "source_hash": "6f202f54a7b2d8fe42aa804eabe48ef900cdf73a74c570a47fd1b1a4920a051d",
+    "translated_value": "Lista",
+    "ignore_warnings": false
+  },
+  "layout_mode_grid": {
+    "source_hash": "0d7d12ac624c66e687f98a68ce621c8a44531d5da1db7d0005aa215e2f1d964f",
+    "translated_value": "Cuadrícula",
+    "ignore_warnings": false
+  },
+  "grid_columns": {
+    "source_hash": "d2e509b3176a52f703f699c97a3f25f7bc2de6db9cd8590b7fdee8d3958c061d",
+    "translated_value": "Columnas de la cuadrícula",
+    "ignore_warnings": false
+  },
+  "folder_grid": {
+    "source_hash": "88c304ca406eeb9d2a75efb307f16465071311eea8523a9e3c4906474a482d9f",
+    "translated_value": "Cuadrícula de carpetas",
+    "ignore_warnings": false
+  },
+  "num_columns#plural#one": {
+    "source_hash": "c2d607d7696f7c1f765d969a911d921bb3d85bc85db560fed5f63be2bd1cfe07",
+    "translated_value": "%1$d columna",
+    "ignore_warnings": false
+  },
+  "num_columns#plural#other": {
+    "source_hash": "73fceb47cefbf498e5274660328de323f6ddbda37f1c34697672bea6fe73f05e",
+    "translated_value": "%1$d columnas",
+    "ignore_warnings": false
+  },
+  "filters": {
+    "source_hash": "546ebb8eb993ea561029d9febd84c363bdb09010bb2cb915a8287762b76b9a64",
+    "translated_value": "Filtros",
+    "ignore_warnings": false
+  },
+  "filter_audio_files": {
+    "source_hash": "85b791f3241caa0d91a2d7fecc8d32d231ead7285972e3f6be4296c2793d07c8",
+    "translated_value": "Archivos de audio",
+    "ignore_warnings": false
+  },
+  "filter_show_nomedia_folders": {
+    "source_hash": "dbf90ed1a8adb11ff46f6c219bfd248aa2dca3b77cb70d10d3c41d8693b20052",
+    "translated_value": "Mostrar carpetas .nomedia",
+    "ignore_warnings": false
+  },
+  "fields": {
+    "source_hash": "616f48c1db195b6f23031e5064d19920ab9f1c394100bbad51800d1020f7702d",
+    "translated_value": "Sectores",
+    "ignore_warnings": false
+  },
+  "field_video_thumbnails": {
+    "source_hash": "2a15ae206631e0b2b6b96698ece5930c08fae3992c58d3a6001f0c419424c771",
+    "translated_value": "Miniaturas de videos",
+    "ignore_warnings": false
+  },
+  "field_full_name": {
+    "source_hash": "8e00cdf71fa7cc76882846b180305bb5bc1d658057630d4f87bb12c07754c30b",
+    "translated_value": "Nombre completo",
+    "ignore_warnings": false
+  },
+  "field_total_videos": {
+    "source_hash": "8664dff1bd2f5245692b20ee8909c375e8a63951a428c62b29f20325ffca9c12",
+    "translated_value": "Vídeos totales",
+    "ignore_warnings": false
+  },
+  "field_total_duration": {
+    "source_hash": "a1a08a77edd86ec9c1919534c45d98986e5fa4f4c4de8ce7bf29703efc9edd8f",
+    "translated_value": "Duración total",
+    "ignore_warnings": false
+  },
+  "field_folder_size": {
+    "source_hash": "b2fd0cd87713f82d13dc4fbbac25cb5a43a45e09f542f31d85d424f4a05dbb55",
+    "translated_value": "Tamaño de carpeta",
+    "ignore_warnings": false
+  },
+  "field_file_size": {
+    "source_hash": "cf18d7d7b624cfde1a2b3163d142488d158a0044925017b8a5a2fe8ede14be34",
+    "translated_value": "Tamaño de archivo",
+    "ignore_warnings": false
+  },
+  "field_resolution": {
+    "source_hash": "d4055fafa3794fa88b1e89e70c167d5a9575067a1442a6d94e9520d65a575378",
+    "translated_value": "Resolución",
+    "ignore_warnings": false
+  },
+  "field_framerate": {
+    "source_hash": "76c739796a87afe53448db44c204e0fc5d3577fdf2dbf36c76eda731adc39456",
+    "translated_value": "Velocidad de fotogramas",
+    "ignore_warnings": false
+  },
+  "field_progress_bar": {
+    "source_hash": "a4616f1ea376a701915a487a093b4972f2b2c7234f588a0228300b9fa40abe7b",
+    "translated_value": "Barra de progreso",
+    "ignore_warnings": false
+  },
+  "field_subtitle_indicator": {
+    "source_hash": "5ce5506960e14df7bbd2430efc8cfb8767737bafe1c1a707d025932596fc4f71",
+    "translated_value": "Indicador de subtítulos",
+    "ignore_warnings": false
+  },
+  "auto_playlists": {
+    "source_hash": "d4871dff77b173771ee2b0ca143a60d4761cd984c4fcfb2999d6192dbd98d579",
+    "translated_value": "Listas de reproducción automáticas",
+    "ignore_warnings": false
+  },
+  "auto_playlists_desc": {
+    "source_hash": "190164d1f07f49f1611f73c0b46335c7d66b3e9094f475df75ebf2af46882e8c",
+    "translated_value": "Configurar listas de reproducción dinámicas generadas por el sistema",
+    "ignore_warnings": false
+  },
+  "playlist_recently_added": {
+    "source_hash": "76ad8e11d3ba073a5c8210c0dd61c481bfaf34a6c766d3a71de719fc7f9a7c2f",
+    "translated_value": "Agregado recientemente",
+    "ignore_warnings": false
+  },
+  "playlist_recently_added_desc": {
+    "source_hash": "c6fcf95a7faf4a29e92b36ab9cc14848e98175dbfd909f78a29bfffd1bfd9e4f",
+    "translated_value": "Lista de reproducción dinámica de los archivos multimedia que acabas de agregar",
+    "ignore_warnings": false
+  },
+  "playlist_most_played": {
+    "source_hash": "68a80e80b8d5ad7f23cd3c45ab63ce52d917170d224113a0eec3f7802754d245",
+    "translated_value": "Los más reproducidos",
+    "ignore_warnings": false
+  },
+  "playlist_most_played_desc": {
+    "source_hash": "a2a07b42c6d2567992571b784af3006dfd911079b4fe3c49ee6c3afaef62da47",
+    "translated_value": "Lista de reproducción dinámica de tus archivos multimedia más vistos",
+    "ignore_warnings": false
+  },
+  "auto_playlist_badge": {
+    "source_hash": "0286249762f7c94349cdc0ba3bb2255baf9a80036e2193ead1d77696f888582f",
+    "translated_value": "Automático",
+    "ignore_warnings": false
+  },
+  "web_share_title": {
+    "source_hash": "1d3db2a3b63ca400ffcad493983986689644494c7e79c439128c4212fe76810d",
+    "translated_value": "Compartir en la web",
+    "ignore_warnings": false
+  },
+  "web_share_file": {
+    "source_hash": "3b9c358f36f0a31b6ad3e14f309c7cf198ac9246e8316f9ce543d5b19ac02b80",
+    "translated_value": "archivo",
+    "ignore_warnings": false
+  },
+  "web_share_files": {
+    "source_hash": "3d7db37d08f9140fd09f12b9621cd0954b6d56a9d2f357fb2c7f5d62636d2fd1",
+    "translated_value": "archivos",
+    "ignore_warnings": false
+  },
+  "web_share_enable_notifications_title": {
+    "source_hash": "87b9876704ed8c31d24cf89069a3cac5066193ccaebdf684706d0a475e080a8d",
+    "translated_value": "Habilitar notificaciones",
+    "ignore_warnings": false
+  },
+  "web_share_enable_notifications_desc": {
+    "source_hash": "57a3318fbc7e2cf08e85dfc70b1a8febe8b4169e1e3fa70412f84df3431edd16",
+    "translated_value": "Sigue compartiendo en segundo plano y vuelve a abrirlo cuando quieras",
+    "ignore_warnings": false
+  },
+  "web_share_allow": {
+    "source_hash": "e213c161d5cefa520c8dd4155c9569076d9a40406111465136a6f1b207045761",
+    "translated_value": "Permitir",
+    "ignore_warnings": false
+  },
+  "web_share_require_token_title": {
+    "source_hash": "d5a2e4e40c75d000c81926b6aa9e479af706ba03c684337c6eabead87db72b97",
+    "translated_value": "Se requiere un token de seguridad",
+    "ignore_warnings": false
+  },
+  "web_share_require_token_enabled_desc": {
+    "source_hash": "d59de3607f2421a99d4e5feb4023c6b9e969bc72a551b926c0c1d1e26448c4aa",
+    "translated_value": "Se requiere el token ?t= para ver los archivos",
+    "ignore_warnings": false
+  },
+  "web_share_require_token_disabled_desc": {
+    "source_hash": "08f8850db473fabc348fb31c1d61fc9d99c6188c164bc696d0014ddc51ebb976",
+    "translated_value": "Acceso libre (rápido y fácil)",
+    "ignore_warnings": false
+  },
+  "web_share_received_title": {
+    "source_hash": "8efe95d648fb153ceaef35e0d67ecb3841a1a5b5bd21c268e5928142b3560f0e",
+    "translated_value": "Recibido (%1$d)",
+    "ignore_warnings": false
+  },
+  "web_share_received_path": {
+    "source_hash": "ffa2e382b065631657a74aa3dc3d8c790a083ceec808f4008a034af8561edd89",
+    "translated_value": "Descargar/REX Player",
+    "ignore_warnings": false
+  },
+  "web_share_copy_link": {
+    "source_hash": "724e78a3254c899d16ef6324a7abc9a8f5240ffce8bff74976df397c68ce9d78",
+    "translated_value": "Copiar enlace",
+    "ignore_warnings": false
+  },
+  "web_share_link_copied": {
+    "source_hash": "e2a627b4134a5455218d4018fec6393c005ed0097d63e533d50ea350a1eab6c2",
+    "translated_value": "Enlace copiado al portapapeles",
+    "ignore_warnings": false
+  },
+  "web_share_step_2": {
+    "source_hash": "9dcad5b2c927540558d71fbc0f77749468e3d321d9e0f59b6a561a34679a71e0",
+    "translated_value": "Escanee el código QR o escriba la URL en cualquier navegador",
+    "ignore_warnings": false
+  },
+  "sort_order_az": {
+    "source_hash": "11508a93417cb949377fabc7e0e72ba19fdde6716457dac9b70fe0c6b0cb520f",
+    "translated_value": "A-Z",
+    "ignore_warnings": false
+  },
+  "sort_order_za": {
+    "source_hash": "e0d9d32bdacb12761e37f67bec3e7bbf518d81135fda97f82d31c3dac6d0e42f",
+    "translated_value": "Z-A",
+    "ignore_warnings": false
+  },
+  "sort_order_shortest": {
+    "source_hash": "3be807632d673d43c530cad23427dfd19fa1edbca5f148738a1e8ac943f126ef",
+    "translated_value": "El más corto",
+    "ignore_warnings": false
+  },
+  "sort_order_newest": {
+    "source_hash": "d15efa178cf65ae16596a270671aa320bc9d2a5f18d78ecc5d479f73b3ffd51e",
+    "translated_value": "Más recientes",
+    "ignore_warnings": false
+  },
+  "sort_order_asc_abbrev": {
+    "source_hash": "cddeba5cfc9a05ad4415f0d25b1c9be2d44103e5b12352a2a811f0c7ebffffe7",
+    "translated_value": "asc",
+    "ignore_warnings": false
+  },
+  "sort_order_desc_abbrev": {
+    "source_hash": "5c4419a6999d2a7a29e0e1d00876b4c5992d56d1dbc9a03ecc515eaa554b7f04",
+    "translated_value": "Desc",
+    "ignore_warnings": false
+  },
+  "view_mode": {
+    "source_hash": "955303856d4b689fdec870fb9ea0a00cf472ca1d4a050ad5a2e85d152c4f81fa",
+    "translated_value": "Modo de visualización",
+    "ignore_warnings": false
+  },
+  "view_mode_tree": {
+    "source_hash": "b85f5fabf97d3b18eab12b1746fcff04590986982ae5f205a171880c5c21202b",
+    "translated_value": "Árbol",
+    "ignore_warnings": false
+  },
+  "video_grid": {
+    "source_hash": "e700d109000f62d2b96c700024f58ae40f51c92757b5b9be212c0ed72ba7c126",
+    "translated_value": "Cuadrícula de videos",
+    "ignore_warnings": false
+  },
+  "web_share_qr_desc": {
+    "source_hash": "0aa0128597cbc9d57afb861dfd11ff6148f8112f4f4e571c759d116d8cd1de0f",
+    "translated_value": "Escanear código QR",
+    "ignore_warnings": false
+  },
+  "web_share_no_network": {
+    "source_hash": "1dd7eb726fa8ae8ba6573eaebb50fca694a8e2b3a893ab06aa703b61e526b14d",
+    "translated_value": "Activa el punto de acceso o conéctate a una red Wi-Fi para compartir",
+    "ignore_warnings": false
+  },
+  "web_share_step_1": {
+    "source_hash": "658bf8c02c5654fe6a6d608eb4c6a8d69754645efc82dc8119e71536df3c57de",
+    "translated_value": "Conecta el teléfono receptor a este punto de acceso o a la red Wi-Fi",
+    "ignore_warnings": false
+  },
+  "web_share_stop_sharing": {
+    "source_hash": "042afa22248968fdcaed8522959441cf87fb4ec09f8fcdf1359c1ba481a03b71",
+    "translated_value": "Dejar de compartir",
     "ignore_warnings": false
   }
 }

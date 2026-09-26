@@ -95,8 +95,8 @@
     <string name="settings_search_title">Buscar</string>
 
     <!-- Player Preferences Hardcoded -->
-    <string name="pref_autoplay_title">Activar navegación siguiente/anterior</string>
-    <string name="pref_autoplay_summary">Mostrar botones de siguiente/anterior para todos los videos de la carpeta</string>
+    <string name="pref_autoplay_title">Poner automáticamente en la fila los videos de la carpeta</string>
+    <string name="pref_autoplay_summary">Agregar automáticamente todos los videos de la carpeta a una lista de reproducción</string>
     <string name="pref_auto_pip_title">Imagen en imagen automática (PIP)</string>
     <string name="pref_auto_pip_summary">Entrar automáticamente en modo PIP al presionar inicio o volver</string>
     <string name="pref_dynamic_speed_overlay_title">Superposición de velocidad dinámica</string>
@@ -120,7 +120,6 @@
     <string name="pref_clear_config_cache_summary">Borrar los ajustes guardados en caché de mpv.conf</string>
     <string name="pref_clear_thumbnail_cache_title">Borrar caché de miniaturas</string>
     <string name="pref_clear_thumbnail_cache_summary">Eliminar todas las miniaturas de video guardadas en caché (se regenerarán al explorar carpetas)</string>
-
 
     <string name="pref_layout_title">Diseño del reproductor</string>
     <string name="pref_layout_summary">Personalizar el diseño de los botones del reproductor</string>
@@ -199,7 +198,7 @@
     <string name="pref_gesture_use_relative_seeking_title">Usar búsqueda relativa</string>
     <string name="pref_gesture_use_relative_seeking_summary">Buscar en relación con la posición inicial del arrastre en lugar de la posición absoluta del dedo.</string>
 
-    <string name="pref_gesture_double_tap_custom_info">Puedes vincular acciones personalizadas a estos gestos en input.conf usando los siguientes códigos de tecla:</string>
+    <string name="pref_gesture_double_tap_custom_info">Puedes asignar acciones personalizadas a estos gestos en el archivo input.conf utilizando los siguientes códigos de teclas:</string>
     <string name="pref_gesture_double_tap_left">Izquierda</string>
     <string name="pref_gesture_double_tap_center">Centro</string>
     <string name="pref_gesture_double_tap_right">Derecha</string>
@@ -433,8 +432,6 @@
     <string name="timer_remaining">Faltan %s</string>
 
     <string name="toast_sleep_timer_ended">El temporizador de apagado ha finalizado</string>
-
-
 
     <string name="swap_the_volume_and_brightness_slider">Intercambiar deslizadores de volumen y brillo</string>
     <string name="pref_player_display_reduce_player_animation">Reducir animaciones del reproductor</string>
@@ -701,7 +698,7 @@
     <string name="also_delete_files">Eliminar también los archivos originales</string>
     <string name="no_video_folders_found">No se encontraron carpetas de videos</string>
     <string name="no_video_folders_found_desc">Agregue videos a su dispositivo para ver carpetas aquí</string>
-    <string name="search_in_all_storage_volumes">Buscar en todos los volúmenes de almacenamiento...</string>
+    <string name="search_in_all_storage_volumes">Buscar en todo el almacenamiento</string>
     <string name="search_in_folder_placeholder">Buscar en %1$s…</string>
     <string name="search_default_folder_name">carpeta</string>
     <string name="empty_folder_title">carpeta vacia</string>
@@ -980,8 +977,8 @@
     <string name="no_videos_in_folder_desc">Los vídeos que agregues a esta carpeta aparecerán aquí.</string>
     <string name="tree_view">Vista de árbol</string>
     <string name="pref_player_general">General</string>
-    <string name="pref_player_playlist_mode_summary_on">Mostrar botones de siguiente/anterior para todos los videos de la carpeta</string>
-    <string name="pref_player_playlist_mode_summary_off">Reproduzca videos individualmente (seleccione varios para la lista de reproducción)</string>
+    <string name="pref_player_playlist_mode_summary_on">Agregar automáticamente todos los videos de la carpeta a una lista de reproducción</string>
+    <string name="pref_player_playlist_mode_summary_off">Reproduce los videos uno por uno (selecciona varios para reproducirlos como una lista de reproducción)</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_on">La pantalla permanece activa mientras el video está en pausa</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">La pantalla puede apagarse mientras el vídeo está en pausa</string>
     <string name="pref_player_auto_pip">Imagen en imagen automática</string>
@@ -1162,9 +1159,11 @@
     <string name="filter_preset_neon_pop_desc">Colores vibrantes, tipo neón, con un toque atrevido</string>
     <string name="filter_preset_deep_black">Negro intenso</string>
     <string name="filter_preset_deep_black_desc">Negros mejorados para pantallas OLED</string>
-    <string name="open_with_mini_player">Abrir con el mini reproductor</string>
+
+    <string name="open_with_mini_player">Abrir con mini reproductor</string>
     <string name="ui_loading">Cargando…</string>
     <string name="ui_loading_percent">Cargando %d%%</string>
+    <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
     <string name="pref_appearance_tab_you_summary">Combinar listas de reproducción y reproducidas recientemente en una sola pestaña</string>
     <string name="pref_appearance_show_next_previous_buttons_title">Mostrar botones Siguiente/Anterior</string>
     <string name="pref_appearance_show_next_previous_buttons_summary">Mostrar los botones de siguiente y anterior en la superposición de controles del reproductor</string>
@@ -1179,7 +1178,7 @@
     <string name="pref_player_resume_mode_ask_summary">Mensaje para reanudar o comenzar de nuevo</string>
     <string name="pref_player_resume_mode_never">Empieza siempre de cero</string>
     <string name="pref_player_resume_mode_never_summary">Iniciar siempre la reproducción a partir de las 00:00</string>
-    <string name="player_resume_prompt_title">¿Reanudar la reproducción?</string>
+    <string name="player_resume_prompt_title">Reanudar la reproducción</string>
     <string name="player_resume_prompt_message">Ya has visto hasta %1$s.</string>
     <string name="player_resume_prompt_message_with_duration">Ya has visto hasta %1$s de %2$s.</string>
     <string name="player_resume_action_resume">Reanudar</string>
@@ -1197,27 +1196,32 @@
     <string name="pref_player_default_aspect_ratio">Relación de aspecto predeterminada</string>
     <string name="pref_player_remember_aspect_ratio">Recordar la relación de aspecto en los videos</string>
     <string name="pref_player_remember_aspect_ratio_summary">Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes</string>
-    <string name="pref_appearance_tab_you_title">Pestaña \'Tú\'</string>
+
     <string name="pref_player_remember_long_press_speed_title">Recuerda la velocidad ajustada</string>
     <string name="pref_player_remember_long_press_speed_summary">Utiliza la última velocidad de deslizamiento para las presiones prolongadas siguientes</string>
     <string name="pref_subtitles_force_ltr_title">Forzar dirección LTR</string>
     <string name="pref_subtitles_force_ltr_summary">Fuerza la dirección de izquierda a derecha para los subtítulos RTL</string>
+
     <string name="pref_subtitles_encoding_title">Codificación de subtítulos</string>
     <string name="pref_subtitles_encoding_summary">Codificación de caracteres utilizada para subtítulos externos.</string>
+
     <string name="pref_advanced_history_auto_remove_deleted_title">Eliminar automáticamente los archivos borrados</string>
     <string name="pref_advanced_history_auto_remove_deleted_summary">Eliminar y limpiar automáticamente los archivos multimedia borrados de Reproducidos recientemente</string>
     <string name="pref_advanced_history_exclude_external_title">Excluir medios externos y compartidos</string>
     <string name="pref_advanced_history_exclude_external_summary">No agregar archivos multimedia a Reproducidos recientemente cuando se abra desde otras aplicaciones o desde el menú de compartir</string>
+
     <string name="player_sheets_sub_primary_position">Posición del subtítulo principal</string>
     <string name="player_sheets_secondary_sub_position">Posición del subtítulo secundario</string>
     <string name="player_sheets_secondary_sub_scale">Escala de subtítulos secundarios</string>
     <string name="player_sheets_stats_page_6_desc">Estadísticas del sistema. Nivel de batería, consumo de energía, temperatura, memoria RAM, pantalla.</string>
+
     <string name="diagnostics_playback_decoder_header">REPRODUCCIÓN Y DECODIFICADOR</string>
     <string name="diagnostics_power_thermals_header">ENERGÍA Y TEMPERATURA</string>
     <string name="diagnostics_session_header">SESIÓN</string>
     <string name="diagnostics_app_cpu">CPU de la aplicación</string>
     <string name="diagnostics_memory_cache_header">MEMORIA Y CACHÉ</string>
     <string name="diagnostics_process_memory">Proceso</string>
+
     <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Nativo %4$s</string>
     <string name="diagnostics_playback_cache">Reproducción</string>
     <string name="diagnostics_playback_cache_value">%1$.1f s almacenados en el búfer | Paquetes %2$s | Archivo %3$s</string>
@@ -1274,4 +1278,93 @@
     <string name="pref_player_autoplay_on_open_summary_off">Abrir el contenido multimedia en estado de pausa</string>
     <string name="shorts_restart_from_beginning">Volver a empezar desde el principio</string>
     <string name="shorts_reshuffle_feed">Reorganizar el feed</string>
+
+    <string name="system_default">Configuración predeterminada del sistema</string>
+    <string name="pref_appearance_language_title">Idioma de la aplicación</string>
+    <string name="pref_appearance_language_summary">Cambiar el idioma de visualización de la aplicación</string>
+    <string name="welcome_title">Bienvenido a mpvRex</string>
+    <string name="welcome_subtitle">Tu reproductor multimedia moderno, potente y personalizable.</string>
+    <string name="welcome_language_section_title">Idioma preferido</string>
+    <string name="welcome_language_section_desc">Selecciona el idioma de visualización</string>
+    <string name="storage_access_granted">Acceso al almacenamiento concedido</string>
+    <string name="storage_access_granted_desc">Se ha otorgado el permiso. mpvRex está listo para detectar y reproducir tus archivos multimedia.</string>
+    <string name="welcome_grant_permission">Conceder permiso</string>
+    <string name="welcome_get_started">Empezar</string>
+    <string name="welcome_skip_permission">Continuar sin acceso al almacenamiento</string>
+    <string name="preview_chapter_chip">1:06 • Capítulo 1</string>
+    <string name="sort_by">Ordenar por</string>
+    <string name="cd_toggle_sort_order">Cambiar el orden de clasificación</string>
+    <string name="cd_expand">Expandir</string>
+    <string name="cd_collapse">Colapsar</string>
+    <string name="sort_type_title">Título</string>
+    <string name="sort_type_duration">Duración</string>
+    <string name="sort_type_date">Fecha</string>
+    <string name="sort_type_size">Tamaño</string>
+    <string name="sort_type_count">Recuento</string>
+    <string name="sort_order_ascending">Ascendente</string>
+    <string name="sort_order_descending">Descendente</string>
+    <string name="sort_order_longest">más largo</string>
+    <string name="sort_order_oldest">más antiguo</string>
+    <string name="sort_order_smallest">El más pequeño</string>
+    <string name="sort_order_largest">El más grande</string>
+    <string name="view_mode_folder">Carpeta</string>
+    <string name="view_mode_library">Biblioteca</string>
+    <string name="layout">Diseño</string>
+    <string name="layout_mode_list">Lista</string>
+    <string name="layout_mode_grid">Cuadrícula</string>
+    <string name="grid_columns">Columnas de la cuadrícula</string>
+    <string name="folder_grid">Cuadrícula de carpetas</string>
+    <plurals name="num_columns">
+        <item quantity="one">%1$d columna</item>
+        <item quantity="other">%1$d columnas</item>
+    </plurals>
+    <string name="filters">Filtros</string>
+    <string name="filter_audio_files">Archivos de audio</string>
+    <string name="filter_show_nomedia_folders">Mostrar carpetas .nomedia</string>
+    <string name="fields">Sectores</string>
+    <string name="field_video_thumbnails">Miniaturas de videos</string>
+    <string name="field_full_name">Nombre completo</string>
+    <string name="field_total_videos">Vídeos totales</string>
+    <string name="field_total_duration">Duración total</string>
+    <string name="field_folder_size">Tamaño de carpeta</string>
+    <string name="field_file_size">Tamaño de archivo</string>
+    <string name="field_resolution">Resolución</string>
+    <string name="field_framerate">Velocidad de fotogramas</string>
+    <string name="field_progress_bar">Barra de progreso</string>
+    <string name="field_subtitle_indicator">Indicador de subtítulos</string>
+    <string name="auto_playlists">Listas de reproducción automáticas</string>
+    <string name="auto_playlists_desc">Configurar listas de reproducción dinámicas generadas por el sistema</string>
+    <string name="playlist_recently_added">Agregado recientemente</string>
+    <string name="playlist_recently_added_desc">Lista de reproducción dinámica de los archivos multimedia que acabas de agregar</string>
+    <string name="playlist_most_played">Los más reproducidos</string>
+    <string name="playlist_most_played_desc">Lista de reproducción dinámica de tus archivos multimedia más vistos</string>
+    <string name="auto_playlist_badge">Automático</string>
+    <string name="web_share_title">Compartir en la web</string>
+    <string name="web_share_file">archivo</string>
+    <string name="web_share_files">archivos</string>
+    <string name="web_share_enable_notifications_title">Habilitar notificaciones</string>
+    <string name="web_share_enable_notifications_desc">Sigue compartiendo en segundo plano y vuelve a abrirlo cuando quieras</string>
+    <string name="web_share_allow">Permitir</string>
+    <string name="web_share_require_token_title">Se requiere un token de seguridad</string>
+    <string name="web_share_require_token_enabled_desc">Se requiere el token ?t= para ver los archivos</string>
+    <string name="web_share_require_token_disabled_desc">Acceso libre (rápido y fácil)</string>
+    <string name="web_share_received_title">Recibido (%1$d)</string>
+    <string name="web_share_received_path">Descargar/REX Player</string>
+    <string name="web_share_copy_link">Copiar enlace</string>
+    <string name="web_share_link_copied">Enlace copiado al portapapeles</string>
+    <string name="web_share_step_2">Escanee el código QR o escriba la URL en cualquier navegador</string>
+    <string name="sort_order_az">A-Z</string>
+    <string name="sort_order_za">Z-A</string>
+    <string name="sort_order_shortest">El más corto</string>
+    <string name="sort_order_newest">Más recientes</string>
+    <string name="sort_order_asc_abbrev">asc</string>
+    <string name="sort_order_desc_abbrev">Desc</string>
+    <string name="view_mode">Modo de visualización</string>
+    <string name="view_mode_tree">Árbol</string>
+    <string name="video_grid">Cuadrícula de videos</string>
+    <string name="web_share_qr_desc">Escanear código QR</string>
+    <string name="web_share_no_network">Activa el punto de acceso o conéctate a una red Wi-Fi para compartir</string>
+    <string name="web_share_step_1">Conecta el teléfono receptor a este punto de acceso o a la red Wi-Fi</string>
+    <string name="web_share_stop_sharing">Dejar de compartir</string>
+
 </resources>
