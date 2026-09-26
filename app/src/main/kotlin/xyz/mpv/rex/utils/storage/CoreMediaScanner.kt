@@ -51,6 +51,10 @@ object CoreMediaScanner {
         val directAudioCount: Int = 0,
         val directNewCount: Int = 0,
         val directUnwatchedCount: Int = 0,
+        val directVideoSize: Long = 0L,
+        val directAudioSize: Long = 0L,
+        val directVideoDuration: Long = 0L,
+        val directAudioDuration: Long = 0L,
         val directSize: Long = 0L,
         val directDuration: Long = 0L,
         val lastModified: Long = 0L,
@@ -61,6 +65,10 @@ object CoreMediaScanner {
         var recursiveAudioCount: Int = 0,
         var recursiveNewCount: Int = 0,
         var recursiveUnwatchedCount: Int = 0,
+        var recursiveVideoSize: Long = 0L,
+        var recursiveAudioSize: Long = 0L,
+        var recursiveVideoDuration: Long = 0L,
+        var recursiveAudioDuration: Long = 0L,
         var recursiveSize: Long = 0L,
         var recursiveDuration: Long = 0L,
         var latestModified: Long = 0L
@@ -101,6 +109,10 @@ object CoreMediaScanner {
                     audioCount = node.directAudioCount,
                     totalSize = node.directSize,
                     totalDuration = node.directDuration,
+                    videoSize = node.directVideoSize,
+                    audioSize = node.directAudioSize,
+                    videoDuration = node.directVideoDuration,
+                    audioDuration = node.directAudioDuration,
                     lastModified = node.lastModified,
                     hasSubfolders = node.hasDirectSubfolders,
                     isRecursive = false,
@@ -136,6 +148,10 @@ object CoreMediaScanner {
                     audioCount = node.recursiveAudioCount,
                     totalSize = node.recursiveSize,
                     totalDuration = node.recursiveDuration,
+                    videoSize = node.recursiveVideoSize,
+                    audioSize = node.recursiveAudioSize,
+                    videoDuration = node.recursiveVideoDuration,
+                    audioDuration = node.recursiveAudioDuration,
                     lastModified = node.latestModified,
                     hasSubfolders = node.hasDirectSubfolders,
                     isRecursive = true,
@@ -176,7 +192,8 @@ object CoreMediaScanner {
             val entries = child.listFiles() ?: continue
             var videoCount = 0
             var audioCount = 0
-            var totalSize = 0L
+            var videoSize = 0L
+            var audioSize = 0L
             var latestModified = child.lastModified() / 1000
             var hasSubfolders = false
 
@@ -192,8 +209,13 @@ object CoreMediaScanner {
                 val isAudio = FileTypeUtils.isAudioFile(entry)
                 if (!isVideo && !isAudio) continue
 
-                if (isAudio) audioCount++ else videoCount++
-                totalSize += entry.length()
+                if (isAudio) {
+                    audioCount++
+                    audioSize += entry.length()
+                } else {
+                    videoCount++
+                    videoSize += entry.length()
+                }
                 latestModified = maxOf(latestModified, entry.lastModified() / 1000)
             }
 
@@ -206,8 +228,12 @@ object CoreMediaScanner {
                     path = normalizedPath,
                     videoCount = videoCount,
                     audioCount = audioCount,
-                    totalSize = totalSize,
+                    totalSize = videoSize + audioSize,
                     totalDuration = 0,
+                    videoSize = videoSize,
+                    audioSize = audioSize,
+                    videoDuration = 0,
+                    audioDuration = 0,
                     lastModified = latestModified,
                     hasSubfolders = hasSubfolders,
                     isRecursive = false,
@@ -261,6 +287,10 @@ object CoreMediaScanner {
                 audioCount = node.recursiveAudioCount,
                 totalSize = node.recursiveSize,
                 totalDuration = node.recursiveDuration,
+                videoSize = node.recursiveVideoSize,
+                audioSize = node.recursiveAudioSize,
+                videoDuration = node.recursiveVideoDuration,
+                audioDuration = node.recursiveAudioDuration,
                 lastModified = node.latestModified,
                 hasSubfolders = node.hasDirectSubfolders,
                 isRecursive = true,
@@ -341,20 +371,24 @@ object CoreMediaScanner {
             var audioCount = 0
             var newCount = 0
             var unwatchedCount = 0
-            var totalSize = 0L
-            var totalDuration = 0L
+            var videoSize = 0L
+            var audioSize = 0L
+            var videoDuration = 0L
+            var audioDuration = 0L
             var latestModified = 0L
             
             if (!isBlacklisted) {
                 for (item in items) {
-                    totalSize += item.size
-                    totalDuration += item.duration
                     if (item.dateModified > latestModified) latestModified = item.dateModified
                     
                     if (item.isAudio) {
                         audioCount++
+                        audioSize += item.size
+                        audioDuration += item.duration
                     } else {
                         videoCount++
+                        videoSize += item.size
+                        videoDuration += item.duration
                     }
 
                     if (!showAudioFiles && item.isAudio) continue
@@ -398,8 +432,12 @@ object CoreMediaScanner {
                 directAudioCount = audioCount,
                 directNewCount = newCount,
                 directUnwatchedCount = unwatchedCount,
-                directSize = totalSize,
-                directDuration = totalDuration,
+                directVideoSize = videoSize,
+                directAudioSize = audioSize,
+                directVideoDuration = videoDuration,
+                directAudioDuration = audioDuration,
+                directSize = videoSize + audioSize,
+                directDuration = videoDuration + audioDuration,
                 lastModified = latestModified
             )
         }
@@ -555,6 +593,10 @@ object CoreMediaScanner {
             node.recursiveAudioCount = node.directAudioCount
             node.recursiveNewCount = node.directNewCount
             node.recursiveUnwatchedCount = node.directUnwatchedCount
+            node.recursiveVideoSize = node.directVideoSize
+            node.recursiveAudioSize = node.directAudioSize
+            node.recursiveVideoDuration = node.directVideoDuration
+            node.recursiveAudioDuration = node.directAudioDuration
             node.recursiveSize = node.directSize
             node.recursiveDuration = node.directDuration
             node.latestModified = node.lastModified
@@ -568,6 +610,10 @@ object CoreMediaScanner {
                     node.recursiveAudioCount += otherNode.recursiveAudioCount
                     node.recursiveNewCount += otherNode.recursiveNewCount
                     node.recursiveUnwatchedCount += otherNode.recursiveUnwatchedCount
+                    node.recursiveVideoSize += otherNode.recursiveVideoSize
+                    node.recursiveAudioSize += otherNode.recursiveAudioSize
+                    node.recursiveVideoDuration += otherNode.recursiveVideoDuration
+                    node.recursiveAudioDuration += otherNode.recursiveAudioDuration
                     node.recursiveSize += otherNode.recursiveSize
                     node.recursiveDuration += otherNode.recursiveDuration
                     if (otherNode.latestModified > node.latestModified) {

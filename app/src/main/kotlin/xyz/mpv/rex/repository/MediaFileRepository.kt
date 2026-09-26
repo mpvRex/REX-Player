@@ -150,6 +150,10 @@ object MediaFileRepository {
                 audioCount = folderData.audioCount,
                 totalSize = folderData.totalSize,
                 totalDuration = folderData.totalDuration,
+                videoSize = folderData.videoSize,
+                audioSize = folderData.audioSize,
+                videoDuration = folderData.videoDuration,
+                audioDuration = folderData.audioDuration,
                 hasSubfolders = folderData.hasSubfolders,
                 newCount = folderData.newCount,
                 unwatchedVideoCount = folderData.unwatchedVideoCount

@@ -606,8 +606,186 @@ class HybridMediaIndexRepositoryTest {
     assertNotNull(musicFolder)
     assertEquals(1, musicFolder!!.audioCount)
     assertEquals(1, musicFolder.videoCount)
+    assertEquals(100L, musicFolder.videoSize)
+    assertEquals(100L, musicFolder.audioSize)
+    assertEquals(200L, musicFolder.totalSize)
+    assertEquals(100L, musicFolder.activeSize(showAudioFiles = false))
+    assertEquals(200L, musicFolder.activeSize(showAudioFiles = true))
+    assertEquals(1, musicFolder.activeCount(showAudioFiles = false))
+    assertEquals(2, musicFolder.activeCount(showAudioFiles = true))
     assertEquals(2, musicFolder.newCount)
     assertEquals(2, musicFolder.unwatchedVideoCount)
+  }
+
+  @Test
+  fun flatFolders_accumulatesVideoAndAudioStatsSeparately() = runTest {
+    val video = media(
+      identity = "file:/storage/Media/clip.mp4",
+      location = "/storage/Media/clip.mp4",
+      parent = "/storage/Media",
+      isAudio = false,
+    ).copy(size = 500L, duration = 30_000L)
+
+    val audio = media(
+      identity = "file:/storage/Media/song.mp3",
+      location = "/storage/Media/song.mp3",
+      parent = "/storage/Media",
+      isAudio = true,
+    ).copy(size = 200L, duration = 15_000L)
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(video, audio)
+
+    val folders = repository.getFlatFolders(
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    val folder = folders.first()
+    assertEquals(1, folder.videoCount)
+    assertEquals(1, folder.audioCount)
+    assertEquals(500L, folder.videoSize)
+    assertEquals(200L, folder.audioSize)
+    assertEquals(700L, folder.totalSize)
+    assertEquals(30_000L, folder.videoDuration)
+    assertEquals(15_000L, folder.audioDuration)
+    assertEquals(45_000L, folder.totalDuration)
+  }
+
+  @Test
+  fun foldersInDirectory_accumulatesVideoAndAudioStatsSeparately() = runTest {
+    val video = media(
+      identity = "file:/storage/Media/clip.mp4",
+      location = "/storage/Media/clip.mp4",
+      parent = "/storage/Media",
+      isAudio = false,
+    ).copy(size = 1000L, duration = 60_000L)
+
+    val audio = media(
+      identity = "file:/storage/Media/song.mp3",
+      location = "/storage/Media/song.mp3",
+      parent = "/storage/Media",
+      isAudio = true,
+    ).copy(size = 400L, duration = 20_000L)
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(video, audio)
+
+    val folders = repository.getFoldersInDirectory(
+      parentPath = "/storage",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    val folder = folders.first()
+    assertEquals(1, folder.videoCount)
+    assertEquals(1, folder.audioCount)
+    assertEquals(1000L, folder.videoSize)
+    assertEquals(400L, folder.audioSize)
+    assertEquals(1400L, folder.totalSize)
+    assertEquals(60_000L, folder.videoDuration)
+    assertEquals(20_000L, folder.audioDuration)
+    assertEquals(80_000L, folder.totalDuration)
+  }
+
+  @Test
+  fun foldersInDirectory_withNestedSubfolders_accumulatesVideoAndAudioStatsRecursively() = runTest {
+    val video = media(
+      identity = "file:/storage/Media/clip.mp4",
+      location = "/storage/Media/clip.mp4",
+      parent = "/storage/Media",
+      isAudio = false,
+    ).copy(size = 1000L, duration = 60_000L)
+
+    val nestedAudio = media(
+      identity = "file:/storage/Media/Sub/song.mp3",
+      location = "/storage/Media/Sub/song.mp3",
+      parent = "/storage/Media/Sub",
+      isAudio = true,
+    ).copy(size = 400L, duration = 20_000L)
+
+    coEvery { dao.getAvailableMedia(true) } returns listOf(video, nestedAudio)
+
+    val folders = repository.getFoldersInDirectory(
+      parentPath = "/storage",
+      playbackStates = emptyList(),
+      thresholdDays = 7,
+      watchedThreshold = 95,
+      includeNoMedia = true,
+    )
+
+    assertEquals(1, folders.size)
+    val folder = folders.first()
+    assertEquals(1, folder.videoCount)
+    assertEquals(1, folder.audioCount)
+    assertEquals(1000L, folder.videoSize)
+    assertEquals(400L, folder.audioSize)
+    assertEquals(1400L, folder.totalSize)
+    assertEquals(60_000L, folder.videoDuration)
+    assertEquals(20_000L, folder.audioDuration)
+    assertEquals(80_000L, folder.totalDuration)
+    assertEquals(1000L, folder.activeSize(showAudioFiles = false))
+    assertEquals(1400L, folder.activeSize(showAudioFiles = true))
+    assertEquals(1, folder.activeCount(showAudioFiles = false))
+    assertEquals(2, folder.activeCount(showAudioFiles = true))
+  }
+
+  @Test
+  fun folderStats_toMediaFolder_respectsRecursiveFlagForDirectAndAggregatedCounts() {
+    val stats = HybridMediaIndexRepository.FolderStats(
+      path = "/storage/Mixed",
+      name = "Mixed",
+      directVideoCount = 1,
+      directAudioCount = 1,
+      directVideoSize = 1000L,
+      directAudioSize = 200L,
+      directVideoDuration = 60_000L,
+      directAudioDuration = 10_000L,
+      directNewCount = 1,
+      directUnwatchedCount = 1,
+      videoCount = 5,
+      audioCount = 3,
+      videoSize = 5000L,
+      audioSize = 1000L,
+      videoDuration = 300_000L,
+      audioDuration = 50_000L,
+      totalSize = 6000L,
+      totalDuration = 350_000L,
+      lastModified = 12345L,
+      hasSubfolders = true,
+      newCount = 4,
+      unwatchedCount = 3,
+    )
+
+    val nonRecursive = stats.toMediaFolder(recursive = false)
+    assertEquals(1, nonRecursive.videoCount)
+    assertEquals(1, nonRecursive.audioCount)
+    assertEquals(1000L, nonRecursive.videoSize)
+    assertEquals(200L, nonRecursive.audioSize)
+    assertEquals(1200L, nonRecursive.totalSize)
+    assertEquals(60_000L, nonRecursive.videoDuration)
+    assertEquals(10_000L, nonRecursive.audioDuration)
+    assertEquals(70_000L, nonRecursive.totalDuration)
+    assertEquals(1, nonRecursive.newCount)
+    assertEquals(1, nonRecursive.unwatchedVideoCount)
+    assertEquals(false, nonRecursive.isRecursive)
+
+    val recursive = stats.toMediaFolder(recursive = true)
+    assertEquals(5, recursive.videoCount)
+    assertEquals(3, recursive.audioCount)
+    assertEquals(5000L, recursive.videoSize)
+    assertEquals(1000L, recursive.audioSize)
+    assertEquals(6000L, recursive.totalSize)
+    assertEquals(300_000L, recursive.videoDuration)
+    assertEquals(50_000L, recursive.audioDuration)
+    assertEquals(350_000L, recursive.totalDuration)
+    assertEquals(4, recursive.newCount)
+    assertEquals(3, recursive.unwatchedVideoCount)
+    assertEquals(true, recursive.isRecursive)
   }
 
   private fun media(

@@ -33,14 +33,15 @@ object SortUtils {
     folders: List<VideoFolder>,
     sortType: FolderSortType,
     sortOrder: SortOrder,
+    showAudioFiles: Boolean = true,
   ): List<VideoFolder> {
     val sorted =
       when (sortType) {
         FolderSortType.Title -> folders.sortedWith { t1, t2 -> NaturalOrderComparator.DEFAULT.compare(t1.name, t2.name) }
-        FolderSortType.Duration -> folders.sortedBy { it.totalDuration }
+        FolderSortType.Duration -> folders.sortedBy { it.activeDuration(showAudioFiles) }
         FolderSortType.Date -> folders.sortedBy { it.lastModified }
-        FolderSortType.Size -> folders.sortedBy { it.totalSize }
-        FolderSortType.VideoCount -> folders.sortedBy { it.videoCount }
+        FolderSortType.Size -> folders.sortedBy { it.activeSize(showAudioFiles) }
+        FolderSortType.VideoCount -> folders.sortedBy { it.activeCount(showAudioFiles) }
       }
     return if (sortOrder.isAscending) sorted else sorted.reversed()
   }
@@ -53,6 +54,7 @@ object SortUtils {
     items: List<FileSystemItem>,
     sortType: FolderSortType,
     sortOrder: SortOrder,
+    showAudioFiles: Boolean = true,
   ): List<FileSystemItem> {
     // Separate folders and videos
     val folders = items.filterIsInstance<FileSystemItem.Folder>()
@@ -62,10 +64,10 @@ object SortUtils {
     val sortedFolders =
       when (sortType) {
         FolderSortType.Title -> folders.sortedWith { t1, t2 -> NaturalOrderComparator.DEFAULT.compare(t1.name, t2.name) }
-        FolderSortType.Duration -> folders.sortedBy { it.totalDuration }
+        FolderSortType.Duration -> folders.sortedBy { it.activeDuration(showAudioFiles) }
         FolderSortType.Date -> folders.sortedBy { it.lastModified }
-        FolderSortType.Size -> folders.sortedBy { it.totalSize }
-        FolderSortType.VideoCount -> folders.sortedBy { it.videoCount }
+        FolderSortType.Size -> folders.sortedBy { it.activeSize(showAudioFiles) }
+        FolderSortType.VideoCount -> folders.sortedBy { it.activeCount(showAudioFiles) }
       }
 
     // Sort videos (by corresponding properties)

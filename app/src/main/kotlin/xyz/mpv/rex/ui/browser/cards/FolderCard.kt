@@ -74,7 +74,9 @@ fun FolderCard(
   val browserPreferences = koinInject<BrowserPreferences>()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
-  val totalCount = if (showAudioFiles) folder.videoCount + folder.audioCount else folder.videoCount
+  val totalCount = folder.activeCount(showAudioFiles)
+  val totalSize = folder.activeSize(showAudioFiles)
+  val totalDuration = folder.activeDuration(showAudioFiles)
   val countLabel = if (totalCount == 1) "1 Item" else "$totalCount Items"
   val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
   val parentPath = folder.path.substringBeforeLast("/", folder.path)
@@ -127,7 +129,7 @@ fun FolderCard(
           )
         }
       }
-      if (isGridMode && uiSettings.showTotalDurationChip && folder.totalDuration > 0) {
+      if (isGridMode && uiSettings.showTotalDurationChip && totalDuration > 0) {
         Surface(
           shape = pillShape,
           color = Color.Black.copy(alpha = 0.72f),
@@ -137,7 +139,7 @@ fun FolderCard(
             .padding(6.dp),
         ) {
           Text(
-            text = MediaFormatter.formatDuration(folder.totalDuration),
+            text = MediaFormatter.formatDuration(totalDuration),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
@@ -163,11 +165,11 @@ fun FolderCard(
       if (totalCount > 0) {
         MediaMetadataChip(text = countLabel)
       }
-      if (uiSettings.showSizeChip && folder.totalSize > 0) {
-        MediaMetadataChip(text = MediaFormatter.formatFileSize(folder.totalSize))
+      if (uiSettings.showSizeChip && totalSize > 0) {
+        MediaMetadataChip(text = MediaFormatter.formatFileSize(totalSize))
       }
-      if (uiSettings.showTotalDurationChip && folder.totalDuration > 0) {
-        MediaMetadataChip(text = MediaFormatter.formatDuration(folder.totalDuration))
+      if (uiSettings.showTotalDurationChip && totalDuration > 0) {
+        MediaMetadataChip(text = MediaFormatter.formatDuration(totalDuration))
       }
       if (uiSettings.showDateChip && folder.lastModified > 0) {
         MediaMetadataChip(text = MediaFormatter.formatDate(folder.lastModified * 1000))

@@ -57,6 +57,9 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
+import org.koin.compose.koinInject
+import xyz.mpv.rex.preferences.BrowserPreferences
+import xyz.mpv.rex.preferences.preference.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -149,6 +152,8 @@ data class SearchScreen(
     val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
     val recentlyPlayedFilePaths by viewModel.recentlyPlayedFilePaths.collectAsState()
     val recentlyPlayedPaths by viewModel.recentlyPlayedPaths.collectAsState()
+    val browserPreferences = koinInject<BrowserPreferences>()
+    val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
 
     // Selection managers
     val folders = searchResults.filterIsInstance<FileSystemItem.Folder>()
@@ -290,8 +295,8 @@ data class SearchScreen(
                   multiSelectionUnit = "folder"
                   multiSelectionInfo = Triple(
                     selected.size,
-                    selected.sumOf { it.totalSize },
-                    selected.sumOf { it.totalDuration },
+                    selected.sumOf { it.activeSize(showAudioFiles) },
+                    selected.sumOf { it.activeDuration(showAudioFiles) },
                   )
                 }
               }
@@ -302,8 +307,8 @@ data class SearchScreen(
                   multiSelectionUnit = "item"
                   multiSelectionInfo = Triple(
                     selectedVideos.size + selectedFolders.size,
-                    selectedVideos.sumOf { it.size } + selectedFolders.sumOf { it.totalSize },
-                    selectedVideos.sumOf { it.duration } + selectedFolders.sumOf { it.totalDuration },
+                    selectedVideos.sumOf { it.size } + selectedFolders.sumOf { it.activeSize(showAudioFiles) },
+                    selectedVideos.sumOf { it.duration } + selectedFolders.sumOf { it.activeDuration(showAudioFiles) },
                   )
                 }
               }

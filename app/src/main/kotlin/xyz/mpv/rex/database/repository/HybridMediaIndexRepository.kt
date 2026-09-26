@@ -331,15 +331,40 @@ class HybridMediaIndexRepository(
 
     items.groupBy { it.parentIdentity }.map { (parent, media) ->
       val counts = presentationCounts(media, stateByIdentity, watchedThreshold, thresholdMillis, now)
+      var videoCount = 0
+      var audioCount = 0
+      var videoSize = 0L
+      var audioSize = 0L
+      var videoDuration = 0L
+      var audioDuration = 0L
+      var lastModified = 0L
+      for (item in media) {
+        if (item.dateModified > lastModified) {
+          lastModified = item.dateModified
+        }
+        if (item.isAudio) {
+          audioCount++
+          audioSize += item.size
+          audioDuration += item.duration
+        } else {
+          videoCount++
+          videoSize += item.size
+          videoDuration += item.duration
+        }
+      }
       MediaFolder(
         id = parent,
         name = media.first().parentDisplayName,
         path = parent,
-        videoCount = media.count { !it.isAudio },
-        audioCount = media.count { it.isAudio },
-        totalSize = media.sumOf { it.size },
-        totalDuration = media.sumOf { it.duration },
-        lastModified = media.maxOfOrNull { it.dateModified } ?: 0,
+        videoCount = videoCount,
+        audioCount = audioCount,
+        totalSize = videoSize + audioSize,
+        totalDuration = videoDuration + audioDuration,
+        videoSize = videoSize,
+        audioSize = audioSize,
+        videoDuration = videoDuration,
+        audioDuration = audioDuration,
+        lastModified = lastModified,
         hasSubfolders = false,
         isRecursive = false,
         newCount = counts.first,
@@ -781,18 +806,47 @@ class HybridMediaIndexRepository(
 
     fileItems.groupBy { it.parentIdentity }.forEach { (path, directItems) ->
       val counts = presentationCounts(directItems, stateByIdentity, watchedThreshold, thresholdMillis, now)
-      val directVideos = directItems.count { !it.isAudio }
-      val directAudios = directItems.count { it.isAudio }
+      var directVideos = 0
+      var directAudios = 0
+      var directVideoSize = 0L
+      var directAudioSize = 0L
+      var directVideoDuration = 0L
+      var directAudioDuration = 0L
+      var lastModified = 0L
+      for (item in directItems) {
+        if (item.dateModified > lastModified) {
+          lastModified = item.dateModified
+        }
+        if (item.isAudio) {
+          directAudios++
+          directAudioSize += item.size
+          directAudioDuration += item.duration
+        } else {
+          directVideos++
+          directVideoSize += item.size
+          directVideoDuration += item.duration
+        }
+      }
       tree[path] = FolderStats(
         path = path,
         name = File(path).name,
         directVideoCount = directVideos,
         directAudioCount = directAudios,
+        directVideoSize = directVideoSize,
+        directAudioSize = directAudioSize,
+        directVideoDuration = directVideoDuration,
+        directAudioDuration = directAudioDuration,
+        directNewCount = counts.first,
+        directUnwatchedCount = counts.second,
         videoCount = directVideos,
         audioCount = directAudios,
-        totalSize = directItems.sumOf { it.size },
-        totalDuration = directItems.sumOf { it.duration },
-        lastModified = directItems.maxOfOrNull { it.dateModified } ?: 0,
+        videoSize = directVideoSize,
+        audioSize = directAudioSize,
+        videoDuration = directVideoDuration,
+        audioDuration = directAudioDuration,
+        totalSize = directVideoSize + directAudioSize,
+        totalDuration = directVideoDuration + directAudioDuration,
+        lastModified = lastModified,
         newCount = counts.first,
         unwatchedCount = counts.second,
       )
@@ -817,6 +871,10 @@ class HybridMediaIndexRepository(
       parent.hasSubfolders = true
       parent.videoCount += node.videoCount
       parent.audioCount += node.audioCount
+      parent.videoSize += node.videoSize
+      parent.audioSize += node.audioSize
+      parent.videoDuration += node.videoDuration
+      parent.audioDuration += node.audioDuration
       parent.totalSize += node.totalSize
       parent.totalDuration += node.totalDuration
       parent.lastModified = maxOf(parent.lastModified, node.lastModified)
@@ -906,13 +964,23 @@ class HybridMediaIndexRepository(
     val authorized: Boolean = true,
   )
 
-  private data class FolderStats(
+  internal data class FolderStats(
     val path: String,
     val name: String,
     val directVideoCount: Int = 0,
     val directAudioCount: Int = 0,
+    val directVideoSize: Long = 0,
+    val directAudioSize: Long = 0,
+    val directVideoDuration: Long = 0,
+    val directAudioDuration: Long = 0,
+    val directNewCount: Int = 0,
+    val directUnwatchedCount: Int = 0,
     var videoCount: Int = 0,
     var audioCount: Int = 0,
+    var videoSize: Long = 0,
+    var audioSize: Long = 0,
+    var videoDuration: Long = 0,
+    var audioDuration: Long = 0,
     var totalSize: Long = 0,
     var totalDuration: Long = 0,
     var lastModified: Long = 0,
@@ -925,15 +993,19 @@ class HybridMediaIndexRepository(
       id = path,
       name = name,
       path = path,
-      videoCount = videoCount,
-      audioCount = audioCount,
-      totalSize = totalSize,
-      totalDuration = totalDuration,
+      videoCount = if (recursive) videoCount else directVideoCount,
+      audioCount = if (recursive) audioCount else directAudioCount,
+      totalSize = if (recursive) totalSize else (directVideoSize + directAudioSize),
+      totalDuration = if (recursive) totalDuration else (directVideoDuration + directAudioDuration),
+      videoSize = if (recursive) videoSize else directVideoSize,
+      audioSize = if (recursive) audioSize else directAudioSize,
+      videoDuration = if (recursive) videoDuration else directVideoDuration,
+      audioDuration = if (recursive) audioDuration else directAudioDuration,
       lastModified = lastModified,
       hasSubfolders = hasSubfolders,
       isRecursive = recursive,
-      newCount = newCount,
-      unwatchedVideoCount = unwatchedCount,
+      newCount = if (recursive) newCount else directNewCount,
+      unwatchedVideoCount = if (recursive) unwatchedCount else directUnwatchedCount,
     )
   }
 

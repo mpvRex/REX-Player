@@ -60,6 +60,10 @@ object MediaMetadataOps {
                             audioCount = folder.audioCount,
                             totalSize = folder.totalSize,
                             totalDuration = folder.totalDuration,
+                            videoSize = folder.videoSize,
+                            audioSize = folder.audioSize,
+                            videoDuration = folder.videoDuration,
+                            audioDuration = folder.audioDuration,
                             lastModified = folder.lastModified,
                             newCount = folder.newCount,
                             unwatchedVideoCount = folder.unwatchedVideoCount

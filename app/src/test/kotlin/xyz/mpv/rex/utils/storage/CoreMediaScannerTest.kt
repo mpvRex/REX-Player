@@ -29,6 +29,7 @@ class CoreMediaScannerTest {
   fun setUp() {
     tempDir = Files.createTempDirectory("core-media-scanner-test").toFile()
     every { browserPreferences.watchedThreshold.get() } returns 95
+    every { browserPreferences.includeNoMediaContent.get() } returns false
 
     mockkObject(StorageVolumeUtils)
     every { StorageVolumeUtils.getExternalStorageVolumes(any()) } returns listOf(mockVolume)
@@ -94,12 +95,28 @@ class CoreMediaScannerTest {
     val music = folders.first { it.path == musicFolder.absolutePath }
     assertEquals(1, music.audioCount)
     assertEquals(0, music.videoCount)
+    assertEquals(0L, music.videoSize)
+    assertEquals(File(musicFolder, "song.mp3").length(), music.audioSize)
+    assertEquals(File(musicFolder, "song.mp3").length(), music.totalSize)
+    assertEquals(0L, music.activeSize(showAudioFiles = false))
+    assertEquals(File(musicFolder, "song.mp3").length(), music.activeSize(showAudioFiles = true))
+    assertEquals(0, music.activeCount(showAudioFiles = false))
+    assertEquals(1, music.activeCount(showAudioFiles = true))
     assertEquals(1, music.newCount)
     assertEquals(1, music.unwatchedVideoCount)
 
     val mixed = folders.first { it.path == mixedFolder.absolutePath }
     assertEquals(1, mixed.audioCount)
     assertEquals(1, mixed.videoCount)
+    val videoLen = File(mixedFolder, "clip.mp4").length()
+    val audioLen = File(mixedFolder, "track.mp3").length()
+    assertEquals(videoLen, mixed.videoSize)
+    assertEquals(audioLen, mixed.audioSize)
+    assertEquals(videoLen + audioLen, mixed.totalSize)
+    assertEquals(videoLen, mixed.activeSize(showAudioFiles = false))
+    assertEquals(videoLen + audioLen, mixed.activeSize(showAudioFiles = true))
+    assertEquals(1, mixed.activeCount(showAudioFiles = false))
+    assertEquals(2, mixed.activeCount(showAudioFiles = true))
     assertEquals(2, mixed.newCount)
     assertEquals(2, mixed.unwatchedVideoCount)
   }
@@ -120,6 +137,15 @@ class CoreMediaScannerTest {
     assertNotNull(mediaNode)
     assertEquals(1, mediaNode!!.audioCount)
     assertEquals(1, mediaNode.videoCount)
+    val videoLen = File(parentFolder, "clip.mp4").length()
+    val audioLen = File(subFolder, "song.mp3").length()
+    assertEquals(videoLen, mediaNode.videoSize)
+    assertEquals(audioLen, mediaNode.audioSize)
+    assertEquals(videoLen + audioLen, mediaNode.totalSize)
+    assertEquals(videoLen, mediaNode.activeSize(showAudioFiles = false))
+    assertEquals(videoLen + audioLen, mediaNode.activeSize(showAudioFiles = true))
+    assertEquals(1, mediaNode.activeCount(showAudioFiles = false))
+    assertEquals(2, mediaNode.activeCount(showAudioFiles = true))
     assertEquals(1, mediaNode.newCount)
     assertEquals(1, mediaNode.unwatchedVideoCount)
   }
@@ -140,6 +166,15 @@ class CoreMediaScannerTest {
     assertNotNull(mediaNode)
     assertEquals(1, mediaNode!!.audioCount)
     assertEquals(1, mediaNode.videoCount)
+    val videoLen = File(parentFolder, "clip.mp4").length()
+    val audioLen = File(subFolder, "song.mp3").length()
+    assertEquals(videoLen, mediaNode.videoSize)
+    assertEquals(audioLen, mediaNode.audioSize)
+    assertEquals(videoLen + audioLen, mediaNode.totalSize)
+    assertEquals(videoLen, mediaNode.activeSize(showAudioFiles = false))
+    assertEquals(videoLen + audioLen, mediaNode.activeSize(showAudioFiles = true))
+    assertEquals(1, mediaNode.activeCount(showAudioFiles = false))
+    assertEquals(2, mediaNode.activeCount(showAudioFiles = true))
     assertEquals(2, mediaNode.newCount)
     assertEquals(2, mediaNode.unwatchedVideoCount)
   }

@@ -81,6 +81,10 @@ object FileSystemOps {
                                 audioCount = folderData.audioCount,
                                 totalSize = folderData.totalSize,
                                 totalDuration = folderData.totalDuration,
+                                videoSize = folderData.videoSize,
+                                audioSize = folderData.audioSize,
+                                videoDuration = folderData.videoDuration,
+                                audioDuration = folderData.audioDuration,
                                 hasSubfolders = true,
                                 newCount = folderData.newCount,
                                 unwatchedVideoCount = folderData.unwatchedVideoCount
@@ -115,6 +119,10 @@ object FileSystemOps {
                                     audioCount = folderData.audioCount,
                                     totalSize = folderData.totalSize,
                                     totalDuration = folderData.totalDuration,
+                                    videoSize = folderData.videoSize,
+                                    audioSize = folderData.audioSize,
+                                    videoDuration = folderData.videoDuration,
+                                    audioDuration = folderData.audioDuration,
                                     hasSubfolders = true,
                                     newCount = folderData.newCount,
                                     unwatchedVideoCount = folderData.unwatchedVideoCount
