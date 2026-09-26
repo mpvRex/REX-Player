@@ -161,7 +161,7 @@ class SearchViewModel(
         if (targetPath == null) {
           val folders = MediaFileRepository.getAllVideoFolders(getApplication())
           folders.filter { it.name.contains(query, ignoreCase = true) || it.path.contains(query, ignoreCase = true) }
-            .filter { it.path !in blacklist }
+            .filter { it.path !in blacklist && (isAudioEnabled || it.videoCount > 0) }
             .forEach { folder ->
               results.add(
                 FileSystemItem.Folder(
@@ -172,6 +172,10 @@ class SearchViewModel(
                   audioCount = folder.audioCount,
                   totalSize = folder.totalSize,
                   totalDuration = folder.totalDuration,
+                  videoSize = folder.videoSize,
+                  audioSize = folder.audioSize,
+                  videoDuration = folder.videoDuration,
+                  audioDuration = folder.audioDuration,
                   hasSubfolders = false,
                   newCount = folder.newCount,
                   unwatchedVideoCount = folder.unwatchedVideoCount,

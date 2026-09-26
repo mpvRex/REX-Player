@@ -283,8 +283,8 @@ object MetadataRetrieval {
             return@withContext folder
         }
 
-        // If folder already has duration, return as-is
-        if (folder.totalDuration > 0) {
+        // If folder has no videos or already has video duration, return as-is
+        if (folder.videoCount == 0 || folder.videoDuration > 0L) {
             return@withContext folder
         }
 
@@ -311,9 +311,12 @@ object MetadataRetrieval {
             val metadataMap = metadataCache.getOrExtractMetadataBatch(fileTriples)
 
             // Calculate total duration
-            val totalDuration = metadataMap.values.sumOf { it.durationMs }
+            val videoDuration = metadataMap.values.sumOf { it.durationMs }
 
-            folder.copy(totalDuration = totalDuration)
+            folder.copy(
+                videoDuration = videoDuration,
+                totalDuration = videoDuration + folder.audioDuration,
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error enriching folder metadata: ${folder.name}", e)
             folder
@@ -337,7 +340,7 @@ object MetadataRetrieval {
         }
 
         // Filter folders that need metadata extraction
-        val foldersNeedingMetadata = folders.filter { it.totalDuration == 0L }
+        val foldersNeedingMetadata = folders.filter { it.videoCount > 0 && it.videoDuration == 0L }
 
         if (foldersNeedingMetadata.isEmpty()) {
             return@withContext folders

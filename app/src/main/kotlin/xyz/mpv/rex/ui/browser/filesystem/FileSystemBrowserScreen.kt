@@ -212,6 +212,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val recentlyPlayedPaths by viewModel.recentlyPlayedPaths.collectAsState()
   val recentlyPlayedFilePaths by viewModel.recentlyPlayedFilePaths.collectAsState()
   val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
+  val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
 
   // Use standalone local states instead of CompositionLocal to avoid scroll issues with predictive back gesture
   val rememberedIndex = rememberSaveable { mutableIntStateOf(0) }
@@ -507,8 +508,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   multiSelectionUnit = "folder"
                   multiSelectionInfo = Triple(
                     selected.size,
-                    selected.sumOf { it.totalSize },
-                    selected.sumOf { it.totalDuration },
+                    selected.sumOf { it.activeSize(showAudioFiles) },
+                    selected.sumOf { it.activeDuration(showAudioFiles) },
                   )
                 }
               }
@@ -519,8 +520,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   multiSelectionUnit = "item"
                   multiSelectionInfo = Triple(
                     selectedVideos.size + selectedFolders.size,
-                    selectedVideos.sumOf { it.size } + selectedFolders.sumOf { it.totalSize },
-                    selectedVideos.sumOf { it.duration } + selectedFolders.sumOf { it.totalDuration },
+                    selectedVideos.sumOf { it.size } + selectedFolders.sumOf { it.activeSize(showAudioFiles) },
+                    selectedVideos.sumOf { it.duration } + selectedFolders.sumOf { it.activeDuration(showAudioFiles) },
                   )
                 }
               }

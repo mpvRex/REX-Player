@@ -186,7 +186,7 @@ class FolderListViewModel(
   private fun serializeFoldersToJson(folders: List<VideoFolder>): String {
     // For now using a simple approach since we only cache basic info
     return folders.joinToString("|") { folder ->
-      "${folder.bucketId};${folder.name};${folder.path};${folder.videoCount};${folder.audioCount};${folder.totalSize};${folder.totalDuration};${folder.lastModified};${folder.newCount}"
+      "${folder.bucketId};${folder.name};${folder.path};${folder.videoCount};${folder.audioCount};${folder.totalSize};${folder.totalDuration};${folder.lastModified};${folder.newCount};${folder.videoSize};${folder.audioSize};${folder.videoDuration};${folder.audioDuration}"
     }
   }
 
@@ -195,16 +195,30 @@ class FolderListViewModel(
     return json.split("|").mapNotNull { line ->
       try {
         val parts = line.split(";")
+        val videoCount = parts[3].toInt()
+        val audioCount = parts[4].toInt()
+        val totalSize = parts[5].toLong()
+        val totalDuration = parts[6].toLong()
+        val lastModified = parts[7].toLong()
+        val newCount = if (parts.size > 8) parts[8].toInt() else 0
+        val videoSize = if (parts.size > 9) parts[9].toLong() else 0L
+        val audioSize = if (parts.size > 10) parts[10].toLong() else 0L
+        val videoDuration = if (parts.size > 11) parts[11].toLong() else 0L
+        val audioDuration = if (parts.size > 12) parts[12].toLong() else 0L
         VideoFolder(
           bucketId = parts[0],
           name = parts[1],
           path = parts[2],
-          videoCount = parts[3].toInt(),
-          audioCount = parts[4].toInt(),
-          totalSize = parts[5].toLong(),
-          totalDuration = parts[6].toLong(),
-          lastModified = parts[7].toLong(),
-          newCount = if (parts.size > 8) parts[8].toInt() else 0
+          videoCount = videoCount,
+          audioCount = audioCount,
+          totalSize = totalSize,
+          totalDuration = totalDuration,
+          videoSize = videoSize,
+          audioSize = audioSize,
+          videoDuration = videoDuration,
+          audioDuration = audioDuration,
+          lastModified = lastModified,
+          newCount = newCount,
         )
       } catch (e: Exception) {
         null

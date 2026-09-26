@@ -215,6 +215,7 @@ object FolderListScreen : Screen {
     val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
     val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
+    val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
     val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
 
     // UI state - use standalone states to avoid scroll issues with predictive back gesture
@@ -226,8 +227,8 @@ object FolderListScreen : Screen {
     val hasGridAutoScrolled = rememberSaveable(inputs = arrayOf(recentlyPlayedFilePath ?: "")) { mutableStateOf(false) }
 
     // Sorting and filtering
-    val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder) {
-      SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
+    val sortedFolders = remember(videoFolders, folderSortType, folderSortOrder, showAudioFiles) {
+      SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder, showAudioFiles)
     }
 
     val initialListIndex = if (rememberedListIndex.intValue > 0) {
@@ -456,8 +457,8 @@ object FolderListScreen : Screen {
               val selected = selectionManager.getSelectedItems()
               folderSelectionInfo = Triple(
                 selected.size,
-                selected.sumOf { it.totalSize },
-                selected.sumOf { it.totalDuration },
+                selected.sumOf { it.activeSize(showAudioFiles) },
+                selected.sumOf { it.activeDuration(showAudioFiles) },
               )
             },
             onPlayClick = {

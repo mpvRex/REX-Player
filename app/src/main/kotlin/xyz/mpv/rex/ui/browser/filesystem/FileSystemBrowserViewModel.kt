@@ -46,7 +46,6 @@ class FileSystemBrowserViewModel(
   private val appearancePreferences: xyz.mpv.rex.preferences.AppearancePreferences by inject()
 
   // Special marker for "show storage volumes" mode
-  private val STORAGE_ROOTS_MARKER = "__STORAGE_ROOTS__"
 
   private var homeDirectory: String? = null
   private var isRootResolved = false
@@ -91,6 +90,7 @@ class FileSystemBrowserViewModel(
 
   companion object {
     private const val TAG = "FileSystemBrowserVM"
+    const val STORAGE_ROOTS_MARKER = "__STORAGE_ROOTS__"
 
     fun factory(
       application: Application,
@@ -127,10 +127,20 @@ class FileSystemBrowserViewModel(
     viewModelScope.launch {
       combine(
         _unsortedItems,
+        _currentPath,
         browserPreferences.folderSortType.changes(),
         browserPreferences.folderSortOrder.changes(),
-      ) { items, sortType, sortOrder ->
-        SortUtils.sortFileSystemItems(items, sortType, sortOrder)
+        browserPreferences.showAudioFiles.changes(),
+      ) { items, currentPath, sortType, sortOrder, showAudioFiles ->
+        val visibleItems = if (!showAudioFiles) {
+          items.filterNot {
+            (it is FileSystemItem.VideoFile && it.video.isAudio) ||
+            (currentPath != STORAGE_ROOTS_MARKER && it is FileSystemItem.Folder && it.videoCount == 0)
+          }
+        } else {
+          items
+        }
+        SortUtils.sortFileSystemItems(visibleItems, sortType, sortOrder, showAudioFiles)
       }.collectLatest { sortedItems ->
         _items.value = sortedItems
       }
@@ -142,6 +152,7 @@ class FileSystemBrowserViewModel(
         refresh(silent = true)
       }
     }
+
   }
 
   override fun loadData() {
@@ -266,13 +277,7 @@ class FileSystemBrowserViewModel(
         if (path == STORAGE_ROOTS_MARKER) {
           _breadcrumbs.value = emptyList()
           val roots = MediaFileRepository.getStorageRoots(getApplication())
-          val sortedRoots = SortUtils.sortFileSystemItems(
-            roots,
-            browserPreferences.folderSortType.get(),
-            browserPreferences.folderSortOrder.get()
-          )
           _unsortedItems.value = roots
-          _items.value = sortedRoots
           _isLoading.value = false
         } else {
           _breadcrumbs.value = MediaFileRepository.getPathComponents(path)
@@ -367,16 +372,10 @@ class FileSystemBrowserViewModel(
               }
 
               // Instantly publish the pre-enriched items so the UI displays immediately with cached metadata
-              val sortedBasicItems = SortUtils.sortFileSystemItems(
-                basicEnrichedItems,
-                browserPreferences.folderSortType.get(),
-                browserPreferences.folderSortOrder.get()
-              )
               _videoFilesWithPlayback.value = basicPlaybackMap
               _newVideoIds.value = basicNewIds
               _watchedVideoIds.value = basicWatchedIds
               _unsortedItems.value = basicEnrichedItems
-              _items.value = sortedBasicItems
               _isLoading.value = false
 
               // 2. Fetch detailed video metadata (MediaInfo) asynchronously in the background for uncached videos or missing durations
@@ -446,17 +445,11 @@ class FileSystemBrowserViewModel(
                     }
                   }
 
-                  val sortedFinalItems = SortUtils.sortFileSystemItems(
-                    finalEnrichedItems,
-                    browserPreferences.folderSortType.get(),
-                    browserPreferences.folderSortOrder.get()
-                  )
                   // Publish the final fully-enriched list
                   _videoFilesWithPlayback.value = finalPlaybackMap
                   _newVideoIds.value = finalNewIds
                   _watchedVideoIds.value = finalWatchedIds
                   _unsortedItems.value = finalEnrichedItems
-                  _items.value = sortedFinalItems
                 }
             }.onFailure { error ->
               _error.value = error.message
