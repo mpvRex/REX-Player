@@ -42,6 +42,10 @@ import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.repository.NetworkRepository
+import xyz.mpv.rex.ui.preferences.PreferencesScreen
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import xyz.mpv.rex.utils.update.UpdateDialog
 import xyz.mpv.rex.utils.update.UpdateViewModel
 import xyz.mpv.rex.ui.browser.MainScreen
@@ -89,6 +93,46 @@ class MainActivity : ComponentActivity() {
     PermissionUtils.handleMediaAccessResult(result.resultCode)
   }
 
+  private val openSettingsRequested = MutableStateFlow(false)
+
+  private fun isSettingsIntent(intent: Intent?): Boolean {
+    if (intent == null) return false
+    return intent.getStringExtra("shortcut") == "settings" ||
+      intent.action == "xyz.mpv.rex.action.SETTINGS" ||
+      intent.action == Intent.ACTION_APPLICATION_PREFERENCES ||
+      intent.hasExtra("open_settings") ||
+      (intent.data?.scheme == "mpvrex" && intent.data?.host == "settings")
+  }
+
+  private fun setupDynamicShortcuts() {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N_MR1) return
+    try {
+      val shortcut = ShortcutInfoCompat.Builder(this, "settings")
+        .setShortLabel(getString(R.string.settings))
+        .setLongLabel(getString(R.string.settings))
+        .setIcon(IconCompat.createWithResource(this, R.drawable.ic_shortcut_settings))
+        .setIntent(
+          Intent(this, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            putExtra("shortcut", "settings")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+          }
+        )
+        .build()
+      ShortcutManagerCompat.setDynamicShortcuts(this, listOf(shortcut))
+    } catch (e: Exception) {
+      Log.w("MainActivity", "Failed to setup dynamic shortcuts", e)
+    }
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    if (isSettingsIntent(intent)) {
+      openSettingsRequested.value = true
+    }
+  }
+
   override fun attachBaseContext(newBase: android.content.Context) {
     super.attachBaseContext(xyz.mpv.rex.utils.locale.LocaleHelper.wrapContext(newBase))
   }
@@ -97,6 +141,11 @@ class MainActivity : ComponentActivity() {
     installSplashScreen()
     super.onCreate(savedInstanceState)
     
+    if (isSettingsIntent(intent)) {
+      openSettingsRequested.value = true
+    }
+    setupDynamicShortcuts()
+
     PermissionUtils.setMediaAccessLauncher(mediaAccessLauncher)
 
     // Register proxy lifecycle observer for network streaming
@@ -177,6 +226,7 @@ class MainActivity : ComponentActivity() {
   fun Navigator() {
     val context = LocalContext.current
     val hasCompletedOnboarding = appearancePreferences.onboardingCompleted.get()
+    val initialOpenSettings = remember { isSettingsIntent(intent) && hasCompletedOnboarding }
     val initialScreen = remember {
       if (hasCompletedOnboarding) {
         MainScreen
@@ -184,10 +234,24 @@ class MainActivity : ComponentActivity() {
         WelcomeScreen
       }
     }
-    val backstack = rememberNavBackStack(initialScreen)
+    val backstack = if (hasCompletedOnboarding && initialOpenSettings) {
+      rememberNavBackStack(MainScreen, PreferencesScreen)
+    } else {
+      rememberNavBackStack(initialScreen)
+    }
 
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
+
+    val shouldOpenSettings by openSettingsRequested.collectAsState()
+    LaunchedEffect(shouldOpenSettings) {
+      if (shouldOpenSettings) {
+        if (hasCompletedOnboarding && typedBackstack.lastOrNull() != PreferencesScreen) {
+          typedBackstack.add(PreferencesScreen)
+        }
+        openSettingsRequested.value = false
+      }
+    }
 
     val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
 

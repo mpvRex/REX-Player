@@ -2,4 +2,5 @@
 <resources>
     <color name="splash_screen_background">#F9F9FF</color>
     <color name="splash_screen_icon_color">#3B82F6</color>
+    <color name="shortcut_icon_tint">#1C1B1F</color>
 </resources>
