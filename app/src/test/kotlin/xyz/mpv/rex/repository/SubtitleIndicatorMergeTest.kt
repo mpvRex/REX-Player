@@ -1,33 +1,33 @@
 package xyz.mpv.rex.repository
 
 import android.net.Uri
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.utils.storage.VideoScanUtils
 import java.io.File
 
 class SubtitleIndicatorMergeTest {
 
+  @get:Rule
+  val tmp = TemporaryFolder()
+
   @Test
   fun discovers_exact_matching_external_subtitles_case_insensitively() {
-    val files = listOf(
-      File("/tmp/subtitle-test/Movie.MP4"),
-      File("/tmp/subtitle-test/movie.SRT"),
-      File("/tmp/subtitle-test/MOVIE.ass"),
-      File("/tmp/subtitle-test/Movie-English.SRT"),
-    )
+    val files = listOf("Movie.MP4", "movie.SRT", "MOVIE.ass", "Movie-English.SRT")
+      .map { tmp.newFile(it) }
 
     val result = VideoScanUtils.buildMatchingExternalSubtitleFormats(files)
 
     assertEquals(listOf("ASS", "SRT"), result["movie"])
     assertEquals(listOf("SRT"), result["movie-english"])
 
-    // The lookup performed for a video named "Movie.MP4" uses the exact base-name key,
-    // so "Movie-English.SRT" is not treated as a match.
-    assertEquals(listOf("ASS", "SRT"), result["movie"])
+    assertEquals(setOf("movie", "movie-english"), result.keys)
   }
 
   @Test
@@ -64,33 +64,26 @@ class SubtitleIndicatorMergeTest {
   }
 
   @Test
-  fun embedded_and_external_can_share_the_same_format() {
-    val resolved = video(
-      hasEmbeddedSubtitles = true,
-      subtitleCodec = "SRT",
-      matchingExternalSubtitleFormats = listOf("SRT"),
-      subtitleIndicatorReady = true,
-    )
+  fun direct_only_and_indexed_only_videos_are_both_kept_and_sorted() {
+    val direct = video(name = "b.mkv", matchingExternalSubtitleFormats = listOf("SRT"))
+    val indexed = video(name = "A.mkv")
 
-    assertTrue(resolved.hasEmbeddedSubtitles)
-    assertEquals("SRT", resolved.subtitleCodec)
-    assertEquals(listOf("SRT"), resolved.matchingExternalSubtitleFormats)
+    val merged = MediaFileRepository.mergeFolderVideos(listOf(direct), listOf(indexed))
+
+    assertEquals(listOf("A.mkv", "b.mkv"), merged.map { it.displayName })
+    assertEquals(listOf("SRT"), merged[1].matchingExternalSubtitleFormats)
   }
 
   @Test
-  fun both_sources_are_ready_in_one_video_state() {
-    val unresolved = video(
-      hasEmbeddedSubtitles = true,
-      subtitleCodec = "PGS",
-      matchingExternalSubtitleFormats = listOf("SRT"),
-      subtitleIndicatorReady = false,
-    )
-    assertFalse(unresolved.subtitleIndicatorReady)
+  fun embedded_metadata_and_ready_flag_merge_from_either_source() {
+    val direct = video(subtitleIndicatorReady = true)
+    val indexed = video(hasEmbeddedSubtitles = true, subtitleCodec = "PGS")
 
-    val resolved = unresolved.copy(subtitleIndicatorReady = true)
-    assertTrue(resolved.subtitleIndicatorReady)
-    assertEquals("PGS", resolved.subtitleCodec)
-    assertEquals(listOf("SRT"), resolved.matchingExternalSubtitleFormats)
+    val merged = MediaFileRepository.mergeFolderVideos(listOf(direct), listOf(indexed)).single()
+
+    assertTrue(merged.hasEmbeddedSubtitles)
+    assertEquals("PGS", merged.subtitleCodec)
+    assertTrue(merged.subtitleIndicatorReady)
   }
 
   private fun video(
@@ -98,12 +91,13 @@ class SubtitleIndicatorMergeTest {
     subtitleCodec: String = "",
     matchingExternalSubtitleFormats: List<String> = emptyList(),
     subtitleIndicatorReady: Boolean = false,
+    name: String = "lala.mkv",
   ): Video = Video(
     id = 1L,
     title = "lala",
-    displayName = "lala.mkv",
-    path = "/tmp/subtitle-test/lala.mkv",
-    uri = Uri.parse("file:///tmp/subtitle-test/lala.mkv"),
+    displayName = name,
+    path = "/tmp/subtitle-test/$name",
+    uri = mockk<Uri>(relaxed = true),
     duration = 60000L,
     durationFormatted = "01:00",
     size = 100L,
