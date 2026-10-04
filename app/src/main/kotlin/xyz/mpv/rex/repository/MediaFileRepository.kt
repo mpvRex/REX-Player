@@ -56,11 +56,50 @@ object MediaFileRepository {
       }.getOrNull()?.takeIf { it.access == VideoScanUtils.FolderAccess.READABLE }?.videos.orEmpty()
       val indexed = koin.get<HybridMediaIndexRepository>().getVideosInFolder(bucketId)
       koin.get<HybridMediaIndexRepository>().enrichFolderMetadata(bucketId)
-      (direct + indexed)
-        .associateBy { video -> video.path.ifBlank { video.uri.toString() } }
-        .values
-        .sortedBy { it.displayName.lowercase() }
+      mergeFolderVideos(direct, indexed)
     }
+
+  /**
+   * Merges direct filesystem/MediaStore results with the persistent index.
+   *
+   * The direct scan may contain derived, non-persisted metadata such as matching
+   * same-folder external subtitle formats. The persistent index does not currently
+   * store that field, so blindly using associateBy(direct + indexed) lets the indexed
+   * copy overwrite the richer direct copy and drops the external subtitle indicators.
+   *
+   * Keep the indexed record as the base for its persisted metadata, but carry over
+   * subtitle-source metadata from the direct scan whenever the same media path exists
+   * in both sources. Embedded subtitle metadata is merged conservatively as well.
+   */
+  internal fun mergeFolderVideos(
+    direct: List<Video>,
+    indexed: List<Video>,
+  ): List<Video> {
+    val merged = indexed
+      .associateBy { video -> video.path.ifBlank { video.uri.toString() } }
+      .toMutableMap()
+
+    direct.forEach { directVideo ->
+      val key = directVideo.path.ifBlank { directVideo.uri.toString() }
+      val indexedVideo = merged[key]
+
+      merged[key] = if (indexedVideo == null) {
+        directVideo
+      } else {
+        indexedVideo.copy(
+          hasEmbeddedSubtitles =
+            directVideo.hasEmbeddedSubtitles || indexedVideo.hasEmbeddedSubtitles,
+          subtitleCodec =
+            directVideo.subtitleCodec.ifBlank { indexedVideo.subtitleCodec },
+          matchingExternalSubtitleFormats = directVideo.matchingExternalSubtitleFormats,
+          subtitleIndicatorReady = directVideo.subtitleIndicatorReady || indexedVideo.subtitleIndicatorReady,
+        )
+      }
+    }
+
+    return merged.values
+      .sortedBy { it.displayName.lowercase() }
+  }
 
   suspend fun getVideosForBuckets(context: Context, bucketIds: Set<String>): List<Video> =
     withContext(Dispatchers.IO) {

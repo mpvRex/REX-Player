@@ -284,18 +284,31 @@ object VideoScanUtils {
 
         val videosMap = mutableMapOf<String, Video>()
         val normalizedFolderPath = normalizePath(folder)
+        val directChildren = folder.listFiles()
 
         scanVideosFromMediaStore(context, normalizedFolderPath, videosMap)
         scanAudioFromMediaStore(context, normalizedFolderPath, videosMap)
 
         // Reconcile with direct filesystem to pick up newly added or unindexed files
         // (e.g. fresh torrent downloads from Flud, browser downloads, or external transfers).
-        val fsSuccess = scanMediaFromFileSystem(folder, videosMap)
+        val fsSuccess = scanMediaFromFileSystem(folder, videosMap, directChildren)
         if (!fsSuccess && videosMap.isEmpty()) {
             return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
         }
 
         // Fast DB cache enrichment for any files that don't have duration yet
+        // Populate matching same-folder external subtitle indicators in one directory scan.
+        // Matching is exact on the video base filename (case-insensitive), not prefix-based.
+        // This is derived metadata only and is never persisted.
+        val matchingSubtitleFormatsByBaseName = buildMatchingExternalSubtitleFormats(
+            directChildren?.asIterable() ?: emptyList()
+        )
+        videosMap.replaceAll { _, video ->
+            val baseName = File(video.path).nameWithoutExtension.trim().lowercase(Locale.ROOT)
+            val formats = matchingSubtitleFormatsByBaseName[baseName].orEmpty()
+            if (formats.isEmpty()) video else video.copy(matchingExternalSubtitleFormats = formats)
+        }
+
         val uncachedDurationPaths = videosMap.values.filter { it.duration <= 0L }.map { it.path }
         if (uncachedDurationPaths.isNotEmpty()) {
             val metadataCache = runCatching {
@@ -316,6 +329,7 @@ object VideoScanUtils {
                             resolution = MediaFormatter.formatResolutionWithFps(meta.width, meta.height, meta.fps),
                             hasEmbeddedSubtitles = meta.hasEmbeddedSubtitles,
                             subtitleCodec = meta.subtitleCodec,
+                            subtitleIndicatorReady = true,
                             artist = if (meta.artist.isNotEmpty()) meta.artist else v.artist,
                             album = if (meta.album.isNotEmpty()) meta.album else v.album,
                         )
@@ -557,9 +571,10 @@ object VideoScanUtils {
     private suspend fun scanMediaFromFileSystem(
         folder: File,
         videosMap: MutableMap<String, Video>,
+        prelistedFiles: Array<File>? = null,
     ): Boolean {
         try {
-            val files = folder.listFiles() ?: return false
+            val files = prelistedFiles ?: folder.listFiles() ?: return false
 
             for (file in files) {
                 currentCoroutineContext().ensureActive()
@@ -613,6 +628,28 @@ object VideoScanUtils {
         } catch (e: Exception) {
             Log.e(TAG, "Filesystem media scan error", e)
             return false
+        }
+    }
+
+    internal fun buildMatchingExternalSubtitleFormats(
+        siblingFiles: Iterable<File>,
+    ): Map<String, List<String>> {
+        val byBaseName = linkedMapOf<String, MutableList<String>>()
+        for (file in siblingFiles) {
+            if (!file.isFile || !FileTypeUtils.isSubtitleFile(file)) continue
+
+            val baseName = file.nameWithoutExtension.trim()
+            if (baseName.isEmpty()) continue
+
+            val extension = file.extension.trim().uppercase(Locale.ROOT)
+            if (extension.isEmpty()) continue
+
+            byBaseName.getOrPut(baseName.lowercase(Locale.ROOT)) { mutableListOf() }
+                .add(extension)
+        }
+
+        return byBaseName.mapValues { (_, formats) ->
+            formats.distinct().sorted()
         }
     }
 

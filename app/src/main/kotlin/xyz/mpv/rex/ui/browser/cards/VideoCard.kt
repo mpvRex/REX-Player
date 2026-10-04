@@ -198,13 +198,28 @@ fun VideoCard(
       }
     },
     chipsContent = {
-      if (showSubtitleIndicator && video.hasEmbeddedSubtitles && video.subtitleCodec.isNotBlank()) {
-        for (codec in video.subtitleCodec.split(" ")) {
-          MediaMetadataChip(
-            text = codec,
-            color = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-          )
+      // Embedded and matching-external subtitle badges form one logical indicator group.
+      // Wait until subtitle metadata resolution is complete so both sources appear together
+      // in the same UI state instead of exposing one badge before the other is ready.
+      if (showSubtitleIndicator && video.subtitleIndicatorReady) {
+        if (video.hasEmbeddedSubtitles && video.subtitleCodec.isNotBlank()) {
+          for (codec in video.subtitleCodec.split(" ").filter { it.isNotBlank() }) {
+            MediaMetadataChip(
+              text = codec,
+              color = MaterialTheme.colorScheme.tertiaryContainer,
+              contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+          }
+        }
+
+        if (!video.isAudio) {
+          for (format in video.matchingExternalSubtitleFormats) {
+            MediaMetadataChip(
+              text = format,
+              color = MaterialTheme.colorScheme.secondaryContainer,
+              contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+          }
         }
       }
       if (uiSettings.showSizeChip && video.sizeFormatted != "0 B" && video.sizeFormatted != "--") {

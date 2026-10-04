@@ -72,7 +72,7 @@ object MetadataRetrieval {
 
         // If video already has metadata (including FPS and subtitle info), return as-is
         if (video.width > 0 && video.height > 0 && video.duration > 0 && video.fps > 0f && video.subtitleCodec.isNotEmpty()) {
-            return@withContext video
+            return@withContext video.copy(subtitleIndicatorReady = true)
         }
 
         // Extract metadata
@@ -92,7 +92,8 @@ object MetadataRetrieval {
                     fps = metadata.fps,
                     resolution = MediaFormatter.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
                     hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-                    subtitleCodec = metadata.subtitleCodec
+                    subtitleCodec = metadata.subtitleCodec,
+                    subtitleIndicatorReady = true,
                 )
             } else {
                 video
@@ -143,6 +144,7 @@ object MetadataRetrieval {
                     ),
                     hasEmbeddedSubtitles = cached.hasEmbeddedSubtitles,
                     subtitleCodec = cached.subtitleCodec,
+                    subtitleIndicatorReady = true,
                     artist = if (cached.artist.isNotEmpty()) cached.artist else video.artist,
                     album = if (cached.album.isNotEmpty()) cached.album else video.album,
                 )
@@ -202,11 +204,14 @@ object MetadataRetrieval {
                     resolution = MediaFormatter.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
                     hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
                     subtitleCodec = metadata.subtitleCodec,
+                    subtitleIndicatorReady = true,
                     artist = if (metadata.artist.isNotEmpty()) metadata.artist else video.artist,
                     album = if (metadata.album.isNotEmpty()) metadata.album else video.album,
                 )
             } else {
-                video
+                // The metadata attempt is complete. Keep the independently discovered external
+                // indicator available even if MediaInfo could not produce embedded metadata.
+                video.copy(subtitleIndicatorReady = true)
             }
         }
     }
@@ -232,7 +237,7 @@ object MetadataRetrieval {
             // If video already has metadata (including FPS and subtitle info), emit as-is
             if (video.width > 0 && video.height > 0 && video.duration > 0 && 
                 video.fps > 0f && video.subtitleCodec.isNotEmpty()) {
-                emit(video)
+                emit(video.copy(subtitleIndicatorReady = true))
                 continue
             }
 
@@ -240,7 +245,7 @@ object MetadataRetrieval {
             try {
                 val file = File(video.path)
                 if (!file.exists()) {
-                    emit(video)
+                    emit(video.copy(subtitleIndicatorReady = true))
                     continue
                 }
 
@@ -255,15 +260,16 @@ object MetadataRetrieval {
                             fps = metadata.fps,
                             resolution = MediaFormatter.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
                             hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-                            subtitleCodec = metadata.subtitleCodec
+                            subtitleCodec = metadata.subtitleCodec,
+                            subtitleIndicatorReady = true,
                         )
                     )
                 } else {
-                    emit(video)
+                    emit(video.copy(subtitleIndicatorReady = true))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error enriching video metadata: ${video.displayName}", e)
-                emit(video)
+                emit(video.copy(subtitleIndicatorReady = true))
             }
         }
     }

@@ -26,6 +26,12 @@ data class Video(
   val resolution: String,
   val hasEmbeddedSubtitles: Boolean = false,
   val subtitleCodec: String = "",
+  val matchingExternalSubtitleFormats: List<String> = emptyList(),
+  /**
+   * True when the subtitle metadata needed by the browser indicator has been resolved.
+   * This covers both embedded-subtitle metadata and same-folder external-subtitle discovery.
+   */
+  val subtitleIndicatorReady: Boolean = false,
   val isAudio: Boolean = false,
   val artist: String = "",
   val album: String = "",
