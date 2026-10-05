@@ -426,6 +426,25 @@ object PermissionUtils {
       }
 
     /**
+     * Removes stale hybrid-index entries after a successful rename.
+     *
+     * Renaming changes the physical MediaStore/filesystem location, but the persistent hybrid
+     * index is keyed by the old location. Purging the old entry before notifying observers keeps
+     * browser reloads from temporarily showing both the old and new names.
+     */
+    private suspend fun removeStaleIndexEntries(paths: List<String>) {
+      if (paths.isEmpty()) return
+      runCatching {
+        val hybridIndex =
+          org.koin.core.context.GlobalContext.get()
+            .getOrNull<xyz.mpv.rex.database.repository.HybridMediaIndexRepository>()
+        hybridIndex?.removeEntries(paths)
+      }.onFailure {
+        Log.w(TAG, "Failed to prune index after rename: ${it.message}")
+      }
+    }
+
+    /**
      * Rename video using direct file operations (requires MANAGE_EXTERNAL_STORAGE on Android 11+)
      */
     suspend fun renameVideo(
@@ -458,6 +477,9 @@ object PermissionUtils {
             // Update history
             RecentlyPlayedOps.onVideoRenamed(oldFile.absolutePath, newFile.absolutePath)
             PlaybackStateOps.onVideoRenamed(oldFile.absolutePath, newFile.absolutePath)
+
+            // Remove the stale pre-rename index entry before observers reload the browser.
+            removeStaleIndexEntries(listOf(oldFile.absolutePath, video.uri.toString()))
 
             // Notify that media library has changed
             MediaLibraryEvents.notifyChanged()
@@ -519,6 +541,9 @@ object PermissionUtils {
 
             RecentlyPlayedOps.onVideoRenamed(oldPath, newPath)
             PlaybackStateOps.onVideoRenamed(oldPath, newPath)
+
+            // Remove the stale pre-rename index entry before observers reload the browser.
+            removeStaleIndexEntries(listOf(oldPath, video.uri.toString()))
             MediaLibraryEvents.notifyChanged()
 
             Log.d(TAG, "✓ Renamed (scoped): ${video.displayName} -> $newDisplayName")

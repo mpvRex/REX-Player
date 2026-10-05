@@ -195,9 +195,10 @@ abstract class BaseBrowserViewModel<T>(
     val oldPath = video.path
     val result = StorageOps.renameVideo(getApplication(), video, newDisplayName)
 
-    // Invalidate cache for old path
+    // Invalidate metadata/cache state tied to the pre-rename location.
     result.onSuccess {
       metadataCache.invalidateVideo(oldPath)
+      MediaFileRepository.clearCache()
     }
 
     return result
