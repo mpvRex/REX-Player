@@ -40,10 +40,19 @@ data class VideoQuality(
         }
 }
 
+data class AudioTrack(
+    val url: String,
+    val lang: String? = null,
+    val codec: String? = null,
+    val bitrate: Long = 0L,
+    val label: String? = null,
+)
+
 data class ResolvedStream(
     val isSuccess: Boolean,
     val videoUrl: String? = null,
     val audioUrl: String? = null,
+    val audioTracks: List<AudioTrack> = emptyList(),
     val title: String? = null,
     val durationSeconds: Int = 0,
     val thumbnailUrl: String? = null,

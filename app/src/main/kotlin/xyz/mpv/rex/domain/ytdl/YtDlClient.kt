@@ -192,6 +192,13 @@ class YtDlClient(
         val service = getService()
             ?: return@withContext ResolvedStream.failure("Could not connect to REX Ytdlp")
 
+        // Interface v2 adds audio_tracks_json. Older addons omit it; the parser defaults
+        // audioTracks to emptyList(), so this is a diagnostic log, not a hard gate.
+        val addonVersion = runCatching { service.addonVersion }.getOrDefault(0)
+        if (addonVersion < 2) {
+            Log.d(TAG, "Add-on interface v$addonVersion: alternate audio tracks unavailable")
+        }
+
         try {
             val optionsBundle = YtdlIpcConverter.toOptionsBundle(options)
             val resultBundle = service.resolveStream(url, optionsBundle)

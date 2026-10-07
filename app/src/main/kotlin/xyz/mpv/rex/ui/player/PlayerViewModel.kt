@@ -301,9 +301,18 @@ class PlayerViewModel(
       .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
   val audioTracks: StateFlow<List<TrackNode>> =
-    observeTracks(json)
-      .map { it.filter { t -> t.isAudio } }
-      .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    combine(
+      observeTracks(json),
+      _trackManager.externalAudioLabels,
+    ) { nodes, labels ->
+      nodes.asSequence()
+        .filter { it.isAudio }
+        .map { n ->
+          val lbl = n.externalFilename?.let { labels[it] }
+          if (lbl.isNullOrBlank()) n else n.copy(title = lbl)
+        }
+        .toList()
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
   val chapters: StateFlow<List<dev.vivvvek.seeker.Segment>> =
     observeChapters(json)
@@ -716,6 +725,9 @@ class PlayerViewModel(
 
   fun addAudio(uri: Uri, select: Boolean = true, silent: Boolean = false) =
     _trackManager.addAudio(uri, select, silent)
+
+  fun addRemoteAudio(url: String, label: String? = null, select: Boolean = false, lang: String? = null) =
+    _trackManager.addRemoteAudio(url, label, select, lang)
 
   fun resetExternalAudioTracks() {
     _trackManager.resetExternalAudioTracks()

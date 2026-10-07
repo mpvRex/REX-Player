@@ -342,6 +342,15 @@ class PlayerActivity :
         if (!subs.isNullOrEmpty()) {
           loadWebSubtitlesAsync(subs)
         }
+
+        val extraAudio = pendingRemoteAudio
+        pendingRemoteAudio = null
+        if (!extraAudio.isNullOrEmpty()) {
+          android.util.Log.i("YtdlIpc", "onFileLoaded drain: extraAudio=${extraAudio.size}")
+          extraAudio.forEach { track ->
+            viewModel.addRemoteAudio(track.url, track.label, select = false, lang = track.lang)
+          }
+        }
       }
 
       override fun onPlaybackRestart() {
@@ -484,6 +493,7 @@ class PlayerActivity :
   private var lastFileLoadedTimeMs = 0L
   internal var startedAtSavedPosition = false
   private var pendingWebSubtitles: Map<String, String>? = null
+  private var pendingRemoteAudio: List<xyz.mpv.rex.domain.ytdl.model.AudioTrack>? = null
   private var currentActiveWebSubtitles: Map<String, String>? = null
   private var currentResolvedStream: ResolvedStream? = null
   private var isQualitySwitching = false
@@ -932,6 +942,11 @@ class PlayerActivity :
         viewModel.setAvailableVideoQualities(resolved.availableQualities, matchedQuality)
 
         Log.d(TAG, "Starting playback of streamToPlay: $streamToPlay (isDASH=${resolved.isDASH})")
+
+        // Defer alternate-audio attach until mpv has loaded the primary file:
+        // audio-add on an idle/unloaded mpv is dropped, so we stash and drain in onFileLoaded().
+        android.util.Log.i("YtdlIpc", "attach point: resolved.audioTracks=${resolved.audioTracks.size}")
+        pendingRemoteAudio = resolved.audioTracks.takeIf { it.isNotEmpty() }
 
         val autoplay = playerPreferences.autoplayOnOpen.get()
         if (!autoplay) {

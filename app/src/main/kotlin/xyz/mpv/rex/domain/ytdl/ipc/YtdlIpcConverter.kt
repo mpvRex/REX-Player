@@ -4,6 +4,7 @@ import android.os.Bundle
 import org.json.JSONArray
 import xyz.mpv.rex.domain.ytdl.model.ResolvedPlaylist
 import xyz.mpv.rex.domain.ytdl.model.ResolvedPlaylistEntry
+import xyz.mpv.rex.domain.ytdl.model.AudioTrack
 import xyz.mpv.rex.domain.ytdl.model.ResolvedStream
 import xyz.mpv.rex.domain.ytdl.model.StreamExtractionOptions
 import xyz.mpv.rex.domain.ytdl.model.VideoQuality
@@ -38,6 +39,7 @@ object YtdlIpcConverter {
     private const val KEY_HTTP_HEADERS = "http_headers"
     private const val KEY_SUBTITLES = "subtitles"
     private const val KEY_VIDEO_QUALITIES_JSON = "video_qualities_json"
+    private const val KEY_AUDIO_TRACKS_JSON = "audio_tracks_json"
     private const val KEY_ERROR_MESSAGE = "error_message"
 
     // Playlist Result Keys
@@ -109,10 +111,33 @@ object YtdlIpcConverter {
             }
         }
 
+        val audioTracks = mutableListOf<AudioTrack>()
+        val audioTracksJson = bundle.getString(KEY_AUDIO_TRACKS_JSON)
+        if (!audioTracksJson.isNullOrBlank()) {
+            runCatching {
+                val arr = JSONArray(audioTracksJson)
+                for (i in 0 until arr.length()) {
+                    val o = arr.getJSONObject(i)
+                    audioTracks.add(
+                        AudioTrack(
+                            url = o.getString("url"),
+                            lang = o.optString("lang").takeIf { it.isNotBlank() && it != "null" },
+                            codec = o.optString("codec").takeIf { it.isNotBlank() && it != "null" },
+                            bitrate = o.optLong("bitrate", 0L),
+                            label = o.optString("label").takeIf { it.isNotBlank() && it != "null" },
+                        )
+                    )
+                }
+            }
+        }
+
+        android.util.Log.i("YtdlIpc", "parseResolvedStream: audioTracks=${audioTracks.size}")
+
         return ResolvedStream(
             isSuccess = bundle.getBoolean(KEY_IS_SUCCESS, false),
             videoUrl = bundle.getString(KEY_VIDEO_URL),
             audioUrl = bundle.getString(KEY_AUDIO_URL),
+            audioTracks = audioTracks,
             title = bundle.getString(KEY_TITLE),
             durationSeconds = bundle.getInt(KEY_DURATION, 0),
             thumbnailUrl = bundle.getString(KEY_THUMBNAIL),
