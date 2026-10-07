@@ -17,6 +17,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -358,7 +359,7 @@ fun RenderPlayerButton(
       Surface(
         shape = itemShape,
         color = if (isSpeedNonOne) activeSurfaceColor else surfaceColor,
-        contentColor = if (isSpeedNonOne) activeContentColor else contentColor,
+        contentColor = if (isSpeedNonOne && !hideBackground) activeContentColor else contentColor,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         border = if (isSpeedNonOne) activeBorderColor else borderColor,
@@ -379,6 +380,7 @@ fun RenderPlayerButton(
             },
           ),
       ) {
+        Box(contentAlignment = Alignment.Center) {
         Row(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.Center,
@@ -390,7 +392,7 @@ fun RenderPlayerButton(
           Icon(
             imageVector = Icons.Default.Speed,
             contentDescription = stringResource(R.string.playback_speed),
-            tint = if (isSpeedNonOne) activeContentColor else contentColor,
+            tint = if (isSpeedNonOne && !hideBackground) activeContentColor else contentColor,
             modifier = Modifier.size(24.dp),
           )
           AnimatedVisibility(
@@ -405,6 +407,17 @@ fun RenderPlayerButton(
               modifier = Modifier.padding(start = 4.dp),
             )
           }
+        }
+        if (hideBackground && isSpeedNonOne) {
+          Box(
+            modifier = Modifier
+              .align(Alignment.BottomCenter)
+              .padding(bottom = 3.dp)
+              .size(width = 12.dp, height = 2.dp)
+              .clip(androidx.compose.foundation.shape.CircleShape)
+              .background(contentColor),
+          )
+        }
         }
       }
     }
@@ -643,12 +656,13 @@ fun RenderPlayerButton(
         Surface(
           shape = itemShape,
           color = if (isZoomed) activeSurfaceColor else surfaceColor,
-          contentColor = if (isZoomed) activeContentColor else contentColor,
+          contentColor = if (isZoomed && !hideBackground) activeContentColor else contentColor,
           tonalElevation = 0.dp,
           shadowElevation = 0.dp,
           border = if (isZoomed) activeBorderColor else borderColor,
           modifier = Modifier
             .height(buttonSize)
+            .animateContentSize()
             .clip(itemShape)
             .combinedClickable(
               interactionSource = remember { MutableInteractionSource() },
@@ -663,26 +677,39 @@ fun RenderPlayerButton(
               },
             ),
         ) {
+         Box(contentAlignment = Alignment.Center) {
           Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+            horizontalArrangement = Arrangement.Center,
             modifier = Modifier.padding(
-              horizontal = MaterialTheme.spacing.small,
-              vertical = MaterialTheme.spacing.small,
+              horizontal = MaterialTheme.spacing.smaller,
+              vertical = MaterialTheme.spacing.smaller,
             ),
           ) {
             Icon(
               imageVector = Icons.Default.ZoomIn,
               contentDescription = stringResource(R.string.video_zoom),
-              tint = if (isZoomed) activeContentColor else contentColor,
+              tint = if (isZoomed && !hideBackground) activeContentColor else contentColor,
               modifier = Modifier.size(24.dp),
             )
             Text(
               text = String.format("%.0f%%", currentZoom * 100),
               maxLines = 1,
               style = MaterialTheme.typography.bodyMedium,
+              modifier = Modifier.padding(start = 4.dp),
             )
           }
+          if (hideBackground && isZoomed) {
+            Box(
+              modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 3.dp)
+                .size(width = 12.dp, height = 2.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(contentColor),
+            )
+          }
+         }
         }
       } else {
         ControlsButton(
@@ -1079,7 +1106,7 @@ fun RenderPlayerButton(
           Surface(
             shape = itemShape,
             color = if (isVerticalFlipped) activeSurfaceColor else surfaceColor,
-            contentColor = if (isVerticalFlipped) activeContentColor else contentColor,
+            contentColor = if (isVerticalFlipped && !hideBackground) activeContentColor else contentColor,
             border = if (isVerticalFlipped) activeBorderColor else borderColor,
             modifier = Modifier
               .size(buttonSize)
@@ -1090,12 +1117,22 @@ fun RenderPlayerButton(
               Icon(
                 imageVector = Icons.Default.Flip,
                 contentDescription = stringResource(R.string.flip_vertical_desc),
-                tint = if (isVerticalFlipped) activeContentColor else contentColor,
+                tint = if (isVerticalFlipped && !hideBackground) activeContentColor else contentColor,
                 modifier = Modifier
                   .padding(MaterialTheme.spacing.smaller)
                   .size(24.dp)
                   .rotate(90f),
               )
+              if (hideBackground && isVerticalFlipped) {
+                Box(
+                  modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 3.dp)
+                    .size(width = 12.dp, height = 2.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(contentColor),
+                )
+              }
             }
           }
       }
@@ -1153,8 +1190,18 @@ fun RenderPlayerButton(
               text = stringResource(R.string.ab_loop_short),
               style = MaterialTheme.typography.labelLarge,
               fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-              color = if (isActive) activeContentColor else contentColor,
+              color = if (isActive && !hideBackground) activeContentColor else contentColor,
             )
+            if (hideBackground && isActive) {
+              Box(
+                modifier = Modifier
+                  .align(Alignment.BottomCenter)
+                  .padding(bottom = 3.dp)
+                  .size(width = 12.dp, height = 2.dp)
+                  .clip(androidx.compose.foundation.shape.CircleShape)
+                  .background(contentColor),
+              )
+            }
           }
         }
       }

@@ -190,7 +190,7 @@ fun ControlsButton(
               .padding(bottom = 3.dp)
               .size(width = 12.dp, height = 2.dp)
               .clip(CircleShape)
-              .background(contentColor),
+              .background(normalContentColor),
         )
       }
     }
