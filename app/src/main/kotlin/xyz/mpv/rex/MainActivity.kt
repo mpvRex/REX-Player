@@ -198,6 +198,7 @@ class MainActivity : ComponentActivity() {
       null
     }
     val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
+    val companionUpdateState by (updateViewModel?.companionUpdateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
     val isDownloading by (updateViewModel?.isDownloading ?: MutableStateFlow(false)).collectAsState()
     val downloadProgress by (updateViewModel?.downloadProgress ?: MutableStateFlow(0f)).collectAsState()
     val miniPlayerState by miniPlayerStateManager.state.collectAsState()
@@ -330,6 +331,37 @@ class MainActivity : ComponentActivity() {
                 // updateViewModel.installUpdate(release) // Kept in code but disabled for now
               },
               onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
+            )
+          }
+          else -> {}
+        }
+      }
+
+      // Companion (REX-Ytdlp APK) update dialog — only when addon is installed.
+      // Guarded so an active app-update dialog always wins; companion shows after it's dismissed.
+      if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null &&
+          updateState !is UpdateViewModel.UpdateState.Available &&
+          updateState !is UpdateViewModel.UpdateState.ReadyToInstall) {
+        when (companionUpdateState) {
+          is UpdateViewModel.UpdateState.Available -> {
+            val release = (companionUpdateState as UpdateViewModel.UpdateState.Available).release
+            UpdateDialog(
+              release = release,
+              isDownloading = false,
+              progress = 0f,
+              actionLabel = "Download",
+              currentVersion = updateViewModel.ytdlpInstalledVersion() ?: "",
+              titleOverride = "REX-Ytdlp Update Available",
+              onDismiss = { updateViewModel.dismissCompanionNoUpdate() },
+              onAction = {
+                context.startActivity(
+                  Intent(
+                    Intent.ACTION_VIEW,
+                    (release.htmlUrl ?: "https://github.com/mpvRex/REX-Ytdlp/releases/latest").toUri()
+                  )
+                )
+              },
+              onIgnore = { updateViewModel.ignoreYtdlpVersion(release.tagName.removePrefix("v")) }
             )
           }
           else -> {}

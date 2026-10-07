@@ -2,11 +2,14 @@ package xyz.mpv.rex.ui.player.controls.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -167,15 +170,30 @@ fun ControlsButton(
     shadowElevation = 0.dp,
     border = border,
   ) {
-    Icon(
-      imageVector = icon,
-      contentDescription = title,
-      tint = contentColor,
-      modifier =
-        Modifier
-          .padding(MaterialTheme.spacing.smaller)
-          .size(24.dp),
-    )
+    Box(modifier = Modifier.fillMaxSize()) {
+      Icon(
+        imageVector = icon,
+        contentDescription = title,
+        tint = if (hideBackground && isActive) normalContentColor else contentColor,
+        modifier =
+          Modifier
+            .padding(MaterialTheme.spacing.smaller)
+            .size(24.dp)
+            .align(Alignment.Center),
+      )
+
+      if (hideBackground && isActive) {
+        androidx.compose.foundation.layout.Box(
+          modifier =
+            Modifier
+              .align(Alignment.BottomCenter)
+              .padding(bottom = 3.dp)
+              .size(width = 12.dp, height = 2.dp)
+              .clip(CircleShape)
+              .background(contentColor),
+        )
+      }
+    }
   }
 }
 

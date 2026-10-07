@@ -1018,6 +1018,7 @@
 
     <!-- Update features -->
     <string name="pref_category_updates">Updates</string>
+    <string name="pref_category_ytdlp_updates">REX Ytdlp Updates</string>
     <string name="pref_about_auto_check_updates">Auto Check for Updates</string>
     <string name="pref_about_auto_check_updates_summary">Check for new versions on startup</string>
     <string name="pref_about_check_updates">Check for Updates</string>
