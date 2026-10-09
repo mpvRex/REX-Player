@@ -16,6 +16,11 @@
   <img src="https://img.shields.io/github/stars/mpvRex/REX-Player?style=flat&logo=github" />
 </p>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/65794?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-65794" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/65794/daily?language=Kotlin" alt="mpvRex%2FREX-Player | Trendshift" width="250" height="55"/></a>
+</p>
+
+
 > [!NOTE]
 > **Repository moved**: from `sfsakhawat999/mpvRex` to [mpvRex/REX-Player](https://github.com/mpvRex/REX-Player). Old links will redirect automatically.
 
