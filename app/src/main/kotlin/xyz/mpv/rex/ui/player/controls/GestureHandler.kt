@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -139,6 +140,7 @@ fun GestureHandler(
   val horizontalSwipeToSeek by playerPreferences.horizontalSwipeToSeek.collectAsState()
   val swipeToSubtitleSeek by playerPreferences.swipeToSubtitleSeek.collectAsState()
   val moveSubtitleByDragging by playerPreferences.moveSubtitleByDragging.collectAsState()
+  val pinchToResizeSubtitle by playerPreferences.pinchToResizeSubtitle.collectAsState()
   val horizontalSwipeSensitivity by playerPreferences.horizontalSwipeSensitivity.collectAsState()
   var isLongPressing by remember { mutableStateOf(false) }
   var isDynamicSpeedControlActive by remember { mutableStateOf(false) }
@@ -155,6 +157,38 @@ fun GestureHandler(
   val volumeBoostingCap = audioPreferences.volumeBoostCap.get()
   val haptics = LocalHapticFeedback.current
   val coroutineScope = rememberCoroutineScope()
+
+  // Subtitle touches (drag to reposition / pinch to resize / "grabbed" marker) are owned by ONE
+  // recognizer, see SubtitleTouch.kt. A touch that starts on a subtitle belongs to it until the last
+  // finger is lifted; every other recognizer below checks the gate and steps aside for that touch.
+  val subtitleGate = remember { SubtitleTouchGate() }
+  val subtitleHighlight = remember { SubtitleGrabHighlight(subtitlesPreferences) }
+  DisposableEffect(subtitleHighlight) {
+    onDispose { subtitleHighlight.release() }
+  }
+  val subtitleUi = remember(viewModel, haptics, playerTutorialManager) {
+    object : SubtitleTouchUi {
+      override fun showText(text: String) {
+        viewModel.playerUpdate.update { PlayerUpdates.ShowText(text) }
+      }
+
+      override fun clearText() {
+        viewModel.playerUpdate.update { PlayerUpdates.None }
+      }
+
+      override fun onDragCompleted() {
+        playerTutorialManager.markSubtitleDragCompleted()
+      }
+
+      override fun hapticDragStart() {
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+      }
+
+      override fun hapticPinchStart() {
+        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+      }
+    }
+  }
 
   // Isolated double-tap state tracking
   var tapCount by remember { mutableStateOf(0) }
@@ -229,12 +263,25 @@ fun GestureHandler(
   Box(
     modifier = modifier
       .fillMaxSize()
+      // The subtitle recognizer must sit BEFORE the padding below. The hit
+      // boxes are estimated against mpv's full-window height; behind the padding the touch
+      // coordinates (and the height) were 16.dp off, which shifted every estimated box.
+      .subtitleTouchOwner(
+        gate = subtitleGate,
+        enabled = !areControlsLocked && (panelShown == Panels.None || allowGesturesInPanels),
+        dragEnabled = moveSubtitleByDragging,
+        pinchEnabled = pinchToResizeSubtitle,
+        prefs = subtitlesPreferences,
+        highlight = subtitleHighlight,
+        ui = subtitleUi,
+      )
       .padding(horizontal = 16.dp, vertical = 16.dp)
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
         // Isolated double-tap detection that doesn't interfere with other gestures
         if (isVerticalGestureActive) return@pointerInput
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
+          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val downPosition = down.position
           val downTime = System.currentTimeMillis()
 
@@ -399,11 +446,12 @@ fun GestureHandler(
           } while (event.changes.any { it.pressed })
         }
       }
-      .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture, moveSubtitleByDragging) {
-        if ((!brightnessGesture && !volumeGesture && multipleSpeedGesture <= 0f && !moveSubtitleByDragging) || areControlsLocked) return@pointerInput
+      .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture) {
+        if ((!brightnessGesture && !volumeGesture && multipleSpeedGesture <= 0f) || areControlsLocked) return@pointerInput
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
+          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val startPosition = down.position
 
           // Reset long press tracking at the start of each gesture
@@ -421,11 +469,6 @@ fun GestureHandler(
           val brightnessGestureSens = 0.0022f
           val volumeGestureSens = (viewModel.maxVolume * brightnessGestureSens).coerceAtLeast(0.001f)
           val mpvVolumeGestureSens = (volumeBoostingCap.coerceAtLeast(1) * brightnessGestureSens).coerceAtLeast(0.001f)
-
-          // State for subtitle-position drag (touch on the subtitle, drag up/down)
-          var subPosOriginal = 0
-          var subPosDragStartY = 0f
-          var lastSubPosValue = 0
 
           // Original speed for long press
           var originalSpeed = playbackSpeed ?: 1f
@@ -513,52 +556,7 @@ fun GestureHandler(
                         dynamicSpeedStartValue = MPVLib.getPropertyFloat("speed") ?: multipleSpeedGesture
                       }
                       "vertical" -> {
-                        // If the drag started on the subtitle, reposition it instead of
-                        // adjusting brightness/volume (XPlayer-style "grab the subtitle").
-                        val subtitleActive = (MPVLib.getPropertyInt("sid") ?: 0) > 0
-                        val secondarySubtitleActive = (MPVLib.getPropertyInt("secondary-sid") ?: 0) > 0
-                        val curSubPos = (MPVLib.getPropertyInt("sub-pos") ?: subtitlesPreferences.subPos.get())
-                          .coerceIn(0, 150)
-                        val curSecSubPos = (MPVLib.getPropertyInt("secondary-sub-pos") ?: subtitlesPreferences.secondarySubPos.get())
-                          .coerceIn(0, 150)
-
-                        // sub-pos is the subtitle's vertical anchor as a % of height (100 = bottom).
-                        // The text sits above that line, so bias the hit-band upward.
-                        val subAnchorY = (curSubPos.coerceIn(0, 100) / 100f) * size.height
-                        val secSubAnchorY = (curSecSubPos.coerceIn(0, 100) / 100f) * size.height
-
-                        // Subtitles are horizontally centered, so only grab them in the centre
-                        // band. This keeps brightness (far left) / volume (far right) swipes free
-                        // even when they start low or high on the screen.
-                        val startedOnSecondarySubtitle = moveSubtitleByDragging && secondarySubtitleActive && !isLongPressing &&
-                          startPosition.y >= secSubAnchorY - size.height * 0.06f &&
-                          startPosition.y <= secSubAnchorY + size.height * 0.22f &&
-                          startPosition.x >= size.width * 0.2f &&
-                          startPosition.x <= size.width * 0.8f
-
-                        val startedOnPrimarySubtitle = moveSubtitleByDragging && subtitleActive && !isLongPressing &&
-                          startPosition.y >= subAnchorY - size.height * 0.22f &&
-                          startPosition.y <= subAnchorY + size.height * 0.06f &&
-                          startPosition.x >= size.width * 0.2f &&
-                          startPosition.x <= size.width * 0.8f
-
-                        if (startedOnSecondarySubtitle) {
-                          gestureType = "secondary_subtitle_pos"
-                          subPosOriginal = curSecSubPos
-                          lastSubPosValue = curSecSubPos
-                          subPosDragStartY = startPosition.y
-                          isVerticalGestureActive = true
-                          viewModel.isVerticalGestureActive.value = true
-                          haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        } else if (startedOnPrimarySubtitle) {
-                          gestureType = "subtitle_pos"
-                          subPosOriginal = curSubPos
-                          lastSubPosValue = curSubPos
-                          subPosDragStartY = startPosition.y
-                          isVerticalGestureActive = true
-                          viewModel.isVerticalGestureActive.value = true
-                          haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        } else if ((brightnessGesture || volumeGesture) && !isLongPressing) {
+                        if ((brightnessGesture || volumeGesture) && !isLongPressing) {
                           // Exclude system gestures from edges for volume and brightness adjustments
                           val edgeExcludePx = 24.dp.toPx()
                           val isNearEdge = startPosition.x < edgeExcludePx ||
@@ -656,34 +654,6 @@ fun GestureHandler(
                             }
                         }
                       }
-                    }
-                    "subtitle_pos" -> {
-                      // Move the subtitle 1:1 with the finger. Dragging up lowers sub-pos
-                      // (subtitle moves up); dragging down raises it (subtitle moves down).
-                      val deltaY = currentPosition.y - subPosDragStartY
-                      val newSubPos = (subPosOriginal + (deltaY / size.height * 100f))
-                        .toInt()
-                        .coerceIn(0, 150)
-                      if (newSubPos != lastSubPosValue) {
-                        MPVLib.setPropertyInt("sub-pos", newSubPos)
-                        lastSubPosValue = newSubPos
-                        playerTutorialManager.markSubtitleDragCompleted()
-                        viewModel.playerUpdate.update { PlayerUpdates.ShowText("Sub position: $newSubPos") }
-                      }
-                      change.consume()
-                    }
-                    "secondary_subtitle_pos" -> {
-                      val deltaY = currentPosition.y - subPosDragStartY
-                      val newSubPos = (subPosOriginal + (deltaY / size.height * 100f))
-                        .toInt()
-                        .coerceIn(0, 150)
-                      if (newSubPos != lastSubPosValue) {
-                        MPVLib.setPropertyInt("secondary-sub-pos", newSubPos)
-                        lastSubPosValue = newSubPos
-                        playerTutorialManager.markSubtitleDragCompleted()
-                        viewModel.playerUpdate.update { PlayerUpdates.ShowText("Secondary sub position: $newSubPos") }
-                      }
-                      change.consume()
                     }
                     "vertical" -> {
                       if ((brightnessGesture || volumeGesture) && !isLongPressing) {
@@ -788,18 +758,6 @@ fun GestureHandler(
                       lastBrightnessValue = currentBrightness
                     }
                   }
-                  "subtitle_pos" -> {
-                    isVerticalGestureActive = false
-                    viewModel.isVerticalGestureActive.value = false
-                    subtitlesPreferences.subPos.set(lastSubPosValue)
-                    viewModel.playerUpdate.update { PlayerUpdates.None }
-                  }
-                  "secondary_subtitle_pos" -> {
-                    isVerticalGestureActive = false
-                    viewModel.isVerticalGestureActive.value = false
-                    subtitlesPreferences.secondarySubPos.set(lastSubPosValue)
-                    viewModel.playerUpdate.update { PlayerUpdates.None }
-                  }
                 }
                 gestureType = null
               }
@@ -851,19 +809,6 @@ fun GestureHandler(
                 lastBrightnessValue = currentBrightness
               }
             }
-            "subtitle_pos" -> {
-              isVerticalGestureActive = false
-              viewModel.isVerticalGestureActive.value = false
-              // Persist the final position so it carries across videos.
-              subtitlesPreferences.subPos.set(lastSubPosValue)
-              viewModel.playerUpdate.update { PlayerUpdates.None }
-            }
-            "secondary_subtitle_pos" -> {
-              isVerticalGestureActive = false
-              viewModel.isVerticalGestureActive.value = false
-              subtitlesPreferences.secondarySubPos.set(lastSubPosValue)
-              viewModel.playerUpdate.update { PlayerUpdates.None }
-            }
           }
         }
       }
@@ -884,6 +829,7 @@ fun GestureHandler(
           var bh = 0f
 
           awaitFirstDown(requireUnconsumed = false)
+          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
 
           do {
             val event = awaitPointerEvent()
@@ -955,6 +901,7 @@ fun GestureHandler(
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
+          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           var panning = false
           var prevX = down.position.x
           var prevY = down.position.y
@@ -1040,6 +987,7 @@ fun GestureHandler(
 
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
+          if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val startPosition = down.position
           val startTime = System.currentTimeMillis()
           
