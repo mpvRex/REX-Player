@@ -31,6 +31,7 @@ class PlayerPreferences(
   val horizontalSwipeToSeek = preferenceStore.getBoolean("horizontal_swipe_to_seek", true)
   val swipeToSubtitleSeek = preferenceStore.getBoolean("swipe_to_subtitle_seek", true)
   val moveSubtitleByDragging = preferenceStore.getBoolean("move_subtitle_by_dragging", true)
+  val pinchToResizeSubtitle = preferenceStore.getBoolean("pinch_to_resize_subtitle", true)
   val horizontalSwipeSensitivity = preferenceStore.getFloat("horizontal_swipe_sensitivity", 0.05f)
 
   val customAspectRatios = preferenceStore.getStringSet("custom_aspect_ratios", emptySet())
