@@ -3,12 +3,10 @@ package xyz.mpv.rex.utils.media
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import xyz.mpv.rex.domain.network.NetworkConnection
+import xyz.mpv.rex.domain.network.NetworkProtocol
 import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 
-/**
- * The `real_path` extra external file managers hand us is not a valid URI string, so
- * [FolderPlaylistOps.parseSmbPath] splits it by hand. These cases guard that.
- */
 class SmbPathParseTest {
   @Test
   fun `parses the raw unencoded path MiXplorer sends`() {
@@ -111,5 +109,25 @@ class SmbPathParseTest {
     assertNull(
       NetworkStreamingProxy.getInstance().extractStreamId("content://media/external/video/1"),
     )
+  }
+
+  @Test
+  fun `unregisterStream removes stream and executes asynchronously without error`() {
+    val proxy = NetworkStreamingProxy.getInstance()
+    val connection = NetworkConnection(
+      id = 99L,
+      name = "TestSMB",
+      protocol = NetworkProtocol.SMB,
+      host = "127.0.0.1",
+      port = 445,
+      path = "Share",
+    )
+    val streamId = "test_stream_123"
+    val url = proxy.registerStream(streamId, connection, "/test.mp4")
+    assertEquals(streamId, proxy.extractStreamId(url))
+
+    proxy.unregisterStream(streamId)
+    proxy.unregisterStream(streamId)
+    proxy.unregisterStream("unknown_stream_id")
   }
 }

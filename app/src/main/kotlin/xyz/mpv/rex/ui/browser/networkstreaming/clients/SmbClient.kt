@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Log
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.domain.network.NetworkFile
+import xyz.mpv.rex.utils.storage.FileTypeUtils
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
@@ -36,6 +37,9 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
 
     companion object {
         private const val TAG = "SmbClient"
+        private const val FILE_ATTRIBUTE_HIDDEN = 0x00000002L
+        private const val FILE_ATTRIBUTE_SYSTEM = 0x00000004L
+        private const val FILE_ATTRIBUTE_DIRECTORY = 0x00000010L
     }
 
     /**
@@ -154,14 +158,19 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
                         val fileName = info.fileName
                         val filePath = if (path.isEmpty() || path == "/") fileName 
                         else "${path.trimEnd('/')}/$fileName"
+                        val isDirectory = info.fileAttributes and FILE_ATTRIBUTE_DIRECTORY != 0L
+                        val isHidden = fileName.startsWith(".") ||
+                            (info.fileAttributes and FILE_ATTRIBUTE_HIDDEN != 0L) ||
+                            (info.fileAttributes and FILE_ATTRIBUTE_SYSTEM != 0L)
 
                         NetworkFile(
                             name = fileName,
                             path = filePath,
-                            isDirectory = info.fileAttributes and 0x10L != 0L,
+                            isDirectory = isDirectory,
                             size = info.endOfFile,
                             lastModified = info.changeTime.toEpoch(TimeUnit.MILLISECONDS),
-                            mimeType = if (info.fileAttributes and 0x10L != 0L) null else getMimeType(fileName)
+                            mimeType = if (isDirectory) null else getMimeType(fileName),
+                            isHidden = isHidden,
                         )
                     }
             }
@@ -226,18 +235,7 @@ class SmbClient(connection: NetworkConnection) : BaseNetworkClient(connection) {
 
     private fun getMimeType(fileName: String): String? {
         val extension = fileName.substringAfterLast('.', "").lowercase()
-        return when (extension) {
-            "mp4", "m4v" -> "video/mp4"
-            "mkv" -> "video/x-matroska"
-            "avi" -> "video/x-msvideo"
-            "mov" -> "video/quicktime"
-            "wmv" -> "video/x-ms-wmv"
-            "flv" -> "video/x-flv"
-            "webm" -> "video/webm"
-            "mpeg", "mpg" -> "video/mpeg"
-            "3gp" -> "video/3gpp"
-            "ts" -> "video/mp2t"
-            else -> null
-        }
+        val mime = FileTypeUtils.getMimeTypeFromExtension(extension)
+        return mime.takeIf { it != "*/*" }
     }
 }

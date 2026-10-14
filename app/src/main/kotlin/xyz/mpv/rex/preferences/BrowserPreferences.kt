@@ -80,6 +80,8 @@ class BrowserPreferences(
   // Network sorting preferences
   val networkSortType = preferenceStore.getEnum("network_sort_type", FolderSortType.Title)
   val networkSortOrder = preferenceStore.getEnum("network_sort_order", SortOrder.Ascending)
+  val networkViewMode = preferenceStore.getEnum("network_view_mode", NetworkViewMode.LIST)
+  val networkShowHiddenFiles = preferenceStore.getBoolean("network_show_hidden_files", false)
   val networkSortOrderTitle = preferenceStore.getEnum("network_sort_order_title", SortOrder.Ascending)
   val networkSortOrderDate = preferenceStore.getEnum("network_sort_order_date", SortOrder.Descending)
   val networkSortOrderSize = preferenceStore.getEnum("network_sort_order_size", SortOrder.Descending)
@@ -256,5 +258,18 @@ enum class MediaLayoutMode(
 ) {
   LIST(R.string.layout_mode_list),
   GRID(R.string.layout_mode_grid),
+  ;
+}
+
+/**
+ * View modes for SMB network browser
+ */
+enum class NetworkViewMode(
+  @StringRes val stringRes: Int,
+) {
+  GALLERY(R.string.view_mode_gallery),
+  GRID(R.string.view_mode_grid),
+  LIST(R.string.view_mode_list),
+  DETAIL(R.string.view_mode_detail),
   ;
 }

@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.browser.networkstreaming.clients
 import android.net.Uri
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.domain.network.NetworkFile
+import xyz.mpv.rex.utils.storage.FileTypeUtils
 import com.thegrizzlylabs.sardineandroid.Sardine
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
 import com.thegrizzlylabs.sardineandroid.DavResource
@@ -60,7 +61,8 @@ class WebDavClient(connection: NetworkConnection) : BaseNetworkClient(connection
                 isDirectory = resource.isDirectory,
                 size = resource.contentLength ?: 0,
                 lastModified = resource.modified?.time ?: 0,
-                mimeType = if (resource.isDirectory) null else getMimeType(resourceName)
+                mimeType = if (resource.isDirectory) null else getMimeType(resourceName),
+                isHidden = resourceName.startsWith("."),
             )
         }
     }
@@ -97,18 +99,7 @@ class WebDavClient(connection: NetworkConnection) : BaseNetworkClient(connection
 
     private fun getMimeType(fileName: String): String? {
         val extension = fileName.substringAfterLast('.', "").lowercase()
-        return when (extension) {
-            "mp4", "m4v" -> "video/mp4"
-            "mkv" -> "video/x-matroska"
-            "avi" -> "video/x-msvideo"
-            "mov" -> "video/quicktime"
-            "wmv" -> "video/x-ms-wmv"
-            "flv" -> "video/x-flv"
-            "webm" -> "video/webm"
-            "mpeg", "mpg" -> "video/mpeg"
-            "3gp" -> "video/3gpp"
-            "ts" -> "video/mp2t"
-            else -> null
-        }
+        val mime = FileTypeUtils.getMimeTypeFromExtension(extension)
+        return mime.takeIf { it != "*/*" }
     }
 }

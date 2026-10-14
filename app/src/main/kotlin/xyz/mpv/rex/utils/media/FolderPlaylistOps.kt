@@ -17,6 +17,7 @@ import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import xyz.mpv.rex.utils.sort.SortUtils
 import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
+import xyz.mpv.rex.utils.storage.NetworkFileFilter
 import xyz.mpv.rex.utils.storage.MediaScanPolicy
 import xyz.mpv.rex.utils.storage.VideoScanUtils
 import java.io.File
@@ -353,16 +354,12 @@ object FolderPlaylistOps : KoinComponent {
    * the filename. Name is also the tie-break, keeping the browser and the playlist in lockstep when
    * sizes or timestamps collide.
    */
-  fun networkFileComparator(): Comparator<NetworkFile> {
-    val byName = Comparator<NetworkFile> { a, b ->
-      SortUtils.NaturalOrderComparator.DEFAULT.compare(a.name, b.name)
-    }
-    val base = when (browserPreferences.networkSortType.get()) {
-      FolderSortType.Date -> compareBy<NetworkFile> { it.lastModified }.then(byName)
-      FolderSortType.Size -> compareBy<NetworkFile> { it.size }.then(byName)
-      else -> byName
-    }
-    return if (browserPreferences.networkSortOrder.get().isAscending) base else base.reversed()
+  fun networkFileComparator(foldersFirst: Boolean = false): Comparator<NetworkFile> {
+    return NetworkFileComparator.create(
+      sortType = browserPreferences.networkSortType.get(),
+      sortOrder = browserPreferences.networkSortOrder.get(),
+      foldersFirst = foldersFirst,
+    )
   }
 
   /**
@@ -378,11 +375,10 @@ object FolderPlaylistOps : KoinComponent {
     val files = networkRepository.listFiles(connection, parentPath)
       .getOrElse { return Result.failure(it) }
 
-    val siblings = files
+    val showHidden = browserPreferences.networkShowHiddenFiles.get()
+    val siblings = NetworkFileFilter.filter(files, showHidden)
       .filter {
-        !it.isDirectory &&
-          FileTypeUtils.isMediaFile(File(it.name)) &&
-          !FileFilterUtils.shouldSkipFile(File(it.name))
+        !it.isDirectory && FileTypeUtils.isMediaFile(File(it.name))
       }
       .sortedWith(networkFileComparator())
 

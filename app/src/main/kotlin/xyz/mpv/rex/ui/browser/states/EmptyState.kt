@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,8 +37,9 @@ fun EmptyState(
   title: String,
   message: String,
   modifier: Modifier = Modifier,
+  actionLabel: String? = null,
+  onAction: (() -> Unit)? = null,
 ) {
-  // Animated alpha for subtle pulsing effect
   val infiniteTransition = rememberInfiniteTransition(label = "empty_state")
   val alpha by infiniteTransition.animateFloat(
     initialValue = 0.6f,
@@ -58,11 +60,10 @@ fun EmptyState(
       modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 48.dp)
-        .padding(bottom = 80.dp), // Account for bottom navigation bar
+        .padding(bottom = 80.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center,
     ) {
-      // Icon with Surface
       Surface(
         modifier =
           Modifier
@@ -82,7 +83,6 @@ fun EmptyState(
 
       Spacer(modifier = Modifier.height(24.dp))
 
-      // Title
       Text(
         text = title,
         style = MaterialTheme.typography.titleLarge,
@@ -93,7 +93,6 @@ fun EmptyState(
 
       Spacer(modifier = Modifier.height(8.dp))
 
-      // Message
       Text(
         text = message,
         style = MaterialTheme.typography.bodyMedium,
@@ -101,6 +100,15 @@ fun EmptyState(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
       )
+
+      if (actionLabel != null && onAction != null) {
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+          onClick = onAction,
+        ) {
+          Text(text = actionLabel)
+        }
+      }
     }
   }
 }

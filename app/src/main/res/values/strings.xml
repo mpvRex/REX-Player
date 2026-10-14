@@ -1192,6 +1192,10 @@
     <string name="network_recent_links">Recent Links</string>
     <string name="network_local_network">Local Network</string>
     <string name="network_share_unreachable">Can\'t reach the network share.</string>
+    <string name="network_auth_failed">Authentication failed. Check your username and password.</string>
+    <string name="network_access_denied">Access denied to the network share.</string>
+    <string name="network_connection_not_found">Connection not found.</string>
+    <string name="network_error_generic">Unable to access the network share.</string>
     <string name="network_empty_title">No network connections</string>
     <string name="network_empty_description">Add SMB, FTP, or WebDAV connections to browse network files</string>
     <string name="network_remove_link_action">Remove Link</string>
@@ -1455,6 +1459,20 @@
     <string name="view_mode_tree">Tree</string>
     <string name="view_mode_library">Library</string>
 
+    <!-- Network View Modes -->
+    <string name="view_mode_gallery">Gallery</string>
+    <string name="view_mode_grid">Grid</string>
+    <string name="view_mode_list">List</string>
+    <string name="view_mode_detail">Detail</string>
+    <string name="network_section_folders">Folders</string>
+    <string name="network_section_media">Media</string>
+    <string name="network_section_files">Files</string>
+    <string name="network_badge_folder">Folder</string>
+    <string name="network_badge_hidden">Hidden</string>
+    <string name="network_error_loading">Error loading files</string>
+    <string name="network_not_playable">%1$s is not a playable media file</string>
+    <string name="retry">Retry</string>
+
     <!-- Layout Selector -->
     <string name="layout">Layout</string>
     <string name="layout_mode_list">List</string>
@@ -1473,6 +1491,7 @@
     <string name="filters">Filters</string>
     <string name="filter_audio_files">Audio Files</string>
     <string name="filter_show_nomedia_folders">Show .nomedia Folders</string>
+    <string name="filter_show_hidden_files">Show hidden files</string>
 
     <!-- Visibility Field Toggles -->
     <string name="fields">Fields</string>

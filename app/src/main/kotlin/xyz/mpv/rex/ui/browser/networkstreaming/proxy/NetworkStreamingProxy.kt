@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.browser.networkstreaming.proxy
 import android.util.Log
 import java.net.URI
 import xyz.mpv.rex.domain.network.NetworkConnection
+import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.ui.browser.networkstreaming.clients.NetworkClient
 import xyz.mpv.rex.ui.browser.networkstreaming.clients.NetworkClientFactory
 import xyz.mpv.rex.ui.browser.networkstreaming.clients.SmbClient
@@ -16,6 +17,10 @@ import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import fi.iki.elonen.NanoHTTPD
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.BufferedInputStream
 import java.io.InputStream
@@ -57,6 +62,8 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
     }
   }
 
+  private val proxyScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
   // Store active connections and their clients
   private val activeStreams = ConcurrentHashMap<String, StreamInfo>()
 
@@ -77,7 +84,7 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
     connection: NetworkConnection,
     filePath: String,
     fileSize: Long = -1L,
-    mimeType: String = "video/mp4",
+    mimeType: String = FileTypeUtils.getMimeTypeFromExtension(java.io.File(filePath).extension).takeIf { it != "*/*" } ?: "video/mp4",
   ): String {
     val client = NetworkClientFactory.createClient(connection)
 
@@ -99,12 +106,10 @@ class NetworkStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
    */
   fun unregisterStream(streamId: String) {
     activeStreams.remove(streamId)?.let { streamInfo ->
-      runBlocking {
+      proxyScope.launch {
         try {
           streamInfo.client.disconnect()
-        } catch (e: Exception) {
-          // Ignore disconnect errors
-        }
+        } catch (_: Exception) {}
       }
     }
   }

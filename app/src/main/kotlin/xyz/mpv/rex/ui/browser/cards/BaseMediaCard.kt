@@ -83,6 +83,7 @@ fun BaseMediaCard(
     isWatched: Boolean = false,
     isGridMode: Boolean = false,
     gridColumns: Int = 1,
+    isDetailMode: Boolean = false,
     progressPercentage: Float? = null,
     maxTitleLines: Int = 2,
     titleTextAlign: TextAlign = TextAlign.Start,
@@ -119,7 +120,11 @@ fun BaseMediaCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            .then(
+                if (isGridMode && gridColumns > 1) Modifier
+                else if (isDetailMode) Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                else Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            )
             .graphicsLayer {
                 scaleX = selectionScale
                 scaleY = selectionScale
@@ -270,6 +275,117 @@ fun BaseMediaCard(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         chipsContent()
+                    }
+                }
+            }
+        } else if (isDetailMode) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val detailThumbShape = RoundedCornerShape(8.dp)
+                Box(
+                    modifier = if (showThumbnailBackground) {
+                        Modifier
+                            .size(thumbnailSize)
+                            .clip(detailThumbShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .then(
+                                if (onThumbClick != null) {
+                                    Modifier.combinedClickable(
+                                        onClick = { onThumbClick() },
+                                        onLongClick = onLongClick
+                                    )
+                                } else Modifier
+                            )
+                    } else {
+                        if (onThumbClick != null) {
+                            Modifier
+                                .size(thumbnailSize)
+                                .combinedClickable(
+                                    interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null,
+                                    onLongClick = onLongClick,
+                                    onClick = { onThumbClick() }
+                                )
+                        } else {
+                            Modifier.size(thumbnailSize)
+                        }
+                    },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (thumbnail != null) {
+                        Image(
+                            bitmap = thumbnail,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (thumbnailIcon != null) {
+                        thumbnailIcon()
+                    } else {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.secondary,
+                        )
+                    }
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isSelected,
+                        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                        exit = scaleOut(spring(stiffness = Spring.StiffnessMedium)) + fadeOut(),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .zIndex(1f),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(2.dp)
+                                .size(16.dp),
+                            shadowElevation = 2.dp,
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(2.dp),
+                            )
+                        }
+                    }
+                    overlayContent?.invoke(this)
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    val shouldHighlight = isRecentlyPlayed && !isWatched
+                    Text(
+                        text = title,
+                        style = listTitleStyle ?: MaterialTheme.typography.bodyMedium,
+                        color = when {
+                            shouldHighlight -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            isWatched -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (shouldHighlight) FontWeight.Black else FontWeight.SemiBold,
+                    )
+
+                    if (infoContent != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            infoContent()
+                        }
                     }
                 }
             }

@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Surface
+import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material.icons.filled.TableRows
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.FolderSortType
@@ -43,6 +45,7 @@ import xyz.mpv.rex.preferences.VideoSortType
 import xyz.mpv.rex.preferences.SortOrder
 import xyz.mpv.rex.preferences.FolderViewMode
 import xyz.mpv.rex.preferences.MediaLayoutMode
+import xyz.mpv.rex.preferences.NetworkViewMode
 import xyz.mpv.rex.preferences.preference.collectAsState
 import org.koin.compose.koinInject
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -1448,10 +1451,13 @@ fun FileSystemSortDialog(
 fun NetworkSortDialog(
   isOpen: Boolean,
   onDismiss: () -> Unit,
+  modifier: Modifier = Modifier,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val sortType by browserPreferences.networkSortType.collectAsState()
   val sortOrder by browserPreferences.networkSortOrder.collectAsState()
+  val networkViewMode by browserPreferences.networkViewMode.collectAsState()
+  val showHiddenFiles by browserPreferences.networkShowHiddenFiles.collectAsState()
 
   SortDialog(
     isOpen = isOpen,
@@ -1481,7 +1487,44 @@ fun NetworkSortDialog(
       Icons.Filled.SwapVert,
     ),
     showSortOptions = true,
-    enableViewModeOptions = false,
+    viewModeSelector = MultiViewModeSelector(
+      label = stringResource(R.string.view_mode),
+      options = listOf(
+        ViewModeOption(
+          label = stringResource(R.string.view_mode_gallery),
+          icon = Icons.Filled.Collections,
+          isSelected = networkViewMode == NetworkViewMode.GALLERY,
+          onClick = { browserPreferences.networkViewMode.set(NetworkViewMode.GALLERY) },
+        ),
+        ViewModeOption(
+          label = stringResource(R.string.view_mode_grid),
+          icon = Icons.Filled.GridView,
+          isSelected = networkViewMode == NetworkViewMode.GRID,
+          onClick = { browserPreferences.networkViewMode.set(NetworkViewMode.GRID) },
+        ),
+        ViewModeOption(
+          label = stringResource(R.string.view_mode_list),
+          icon = Icons.AutoMirrored.Filled.ViewList,
+          isSelected = networkViewMode == NetworkViewMode.LIST,
+          onClick = { browserPreferences.networkViewMode.set(NetworkViewMode.LIST) },
+        ),
+        ViewModeOption(
+          label = stringResource(R.string.view_mode_detail),
+          icon = Icons.Filled.TableRows,
+          isSelected = networkViewMode == NetworkViewMode.DETAIL,
+          onClick = { browserPreferences.networkViewMode.set(NetworkViewMode.DETAIL) },
+        ),
+      ),
+    ),
+    enableViewModeOptions = true,
     enableLayoutModeOptions = false,
+    contentToggles = listOf(
+      ContentToggle(
+        label = stringResource(R.string.filter_show_hidden_files),
+        checked = showHiddenFiles,
+        onCheckedChange = { browserPreferences.networkShowHiddenFiles.set(it) },
+      ),
+    ),
+    modifier = modifier,
   )
 }
