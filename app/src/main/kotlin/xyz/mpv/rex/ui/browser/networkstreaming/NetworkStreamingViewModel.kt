@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.domain.network.ConnectionStatus
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.repository.NetworkRepository
@@ -16,19 +17,15 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-/**
- * ViewModel for managing network connections
- * Follows MVVM pattern with proper separation of concerns
- */
 class NetworkStreamingViewModel(
   application: Application,
 ) : AndroidViewModel(application),
   KoinComponent {
   private val repository: NetworkRepository by inject()
+  private val thumbnailRepository: ThumbnailRepository? get() = runCatching {
+    org.koin.java.KoinJavaComponent.get<ThumbnailRepository>(ThumbnailRepository::class.java)
+  }.getOrNull()
 
-  /**
-   * Observable list of all saved network connections
-   */
   val connections: StateFlow<List<NetworkConnection>> =
     repository
       .getAllConnections()
@@ -38,50 +35,33 @@ class NetworkStreamingViewModel(
         initialValue = emptyList(),
       )
 
-  /**
-   * Observable connection statuses
-   */
   val connectionStatuses: StateFlow<Map<Long, ConnectionStatus>> = repository.connectionStatuses
 
-  /**
-   * Add a new network connection
-   */
   fun addConnection(connection: NetworkConnection) {
     viewModelScope.launch {
       repository.addConnection(connection)
     }
   }
 
-  /**
-   * Update an existing connection
-   */
   fun updateConnection(connection: NetworkConnection) {
     viewModelScope.launch {
       repository.updateConnection(connection)
     }
   }
 
-  /**
-   * Delete a connection
-   */
   fun deleteConnection(connection: NetworkConnection) {
     viewModelScope.launch {
       repository.deleteConnection(connection)
+      thumbnailRepository?.clearConnectionThumbnailCache(connection.id)
     }
   }
 
-  /**
-   * Connect to a network share
-   */
   fun connect(connection: NetworkConnection) {
     viewModelScope.launch {
       repository.connect(connection)
     }
   }
 
-  /**
-   * Disconnect from a network share
-   */
   fun disconnect(connection: NetworkConnection) {
     viewModelScope.launch {
       repository.disconnect(connection)
@@ -90,7 +70,6 @@ class NetworkStreamingViewModel(
 
   override fun onCleared() {
     super.onCleared()
-    // Clean up all connections when ViewModel is destroyed
     viewModelScope.launch {
       repository.disconnectAll()
     }
