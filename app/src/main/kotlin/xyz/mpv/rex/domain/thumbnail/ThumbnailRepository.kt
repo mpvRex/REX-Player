@@ -379,7 +379,8 @@ class ThumbnailRepository(
       return "$base|network"
     }
     
-    return "${video.size}|${video.dateModified}|${video.duration}"
+    val identity = video.path.ifBlank { video.uri.toString() }
+    return "$identity|${video.size}|${video.dateModified}|${video.duration}"
   }
 
   private fun keyToFileName(key: String): String {
