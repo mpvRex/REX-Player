@@ -233,6 +233,8 @@
     <string name="pref_gesture_reverse_double_tap_summary">Swap the left and right double/single tap gestures</string>
     <string name="pref_gesture_double_tap_chapter_skip_title">Double tap chapter to skip</string>
     <string name="pref_gesture_double_tap_chapter_skip_summary">Double tap the chapter button to jump to the next chapter</string>
+    <string name="pref_gesture_dont_show_seekbar_on_double_tap_title">Don\'t show seekbar while double tapping</string>
+    <string name="pref_gesture_dont_show_seekbar_on_double_tap_summary">Do not display the seekbar when double tapping to seek</string>
     <string name="pref_gesture_double_tap_play">Play/Pause</string>
     <string name="pref_gesture_double_tap_custom">Custom</string>
     <string name="pref_gesture_double_tap_left_title">Double tap (left)</string>

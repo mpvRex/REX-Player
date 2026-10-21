@@ -65,7 +65,7 @@ class PlayerGestureManager(
     }
     _isSeekingForwards.value = false
     onSeekBy(-doubleTapToSeekDuration)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) onShowSeekBar()
+    if (playerPreferences.showSeekBarWhenSeeking.get() && !gesturePreferences.dontShowSeekBarOnDoubleTap.get()) onShowSeekBar()
   }
 
   fun rightSeek() {
@@ -77,7 +77,7 @@ class PlayerGestureManager(
     }
     _isSeekingForwards.value = true
     onSeekBy(doubleTapToSeekDuration)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) onShowSeekBar()
+    if (playerPreferences.showSeekBarWhenSeeking.get() && !gesturePreferences.dontShowSeekBarOnDoubleTap.get()) onShowSeekBar()
   }
 
   fun leftSubSeek() {
@@ -90,7 +90,7 @@ class PlayerGestureManager(
       },
       onFallback = { leftSeek() },
     )
-    if (playerPreferences.showSeekBarWhenSeeking.get()) onShowSeekBar()
+    if (playerPreferences.showSeekBarWhenSeeking.get() && !gesturePreferences.dontShowSeekBarOnDoubleTap.get()) onShowSeekBar()
   }
 
   fun rightSubSeek() {
@@ -103,7 +103,7 @@ class PlayerGestureManager(
       },
       onFallback = { rightSeek() },
     )
-    if (playerPreferences.showSeekBarWhenSeeking.get()) onShowSeekBar()
+    if (playerPreferences.showSeekBarWhenSeeking.get() && !gesturePreferences.dontShowSeekBarOnDoubleTap.get()) onShowSeekBar()
   }
 
   fun updateSeekAmount(amount: Int) {

@@ -109,6 +109,7 @@ object GesturePreferencesScreen : Screen {
             val seekAreaValues = listOf(20, 25, 30, 35, 40, 45)
             val reverseDoubleTap by preferences.reverseDoubleTap.collectAsState()
             val doubleTapChapterToSkip by preferences.doubleTapChapterToSkip.collectAsState()
+            val dontShowSeekBarOnDoubleTap by preferences.dontShowSeekBarOnDoubleTap.collectAsState()
             val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
             val centerDoubleTap by preferences.centerSingleActionGesture.collectAsState()
             val rightDoubleTap by preferences.rightSingleActionGesture.collectAsState()
@@ -195,6 +196,18 @@ object GesturePreferencesScreen : Screen {
                   onValueChange = { preferences.doubleTapChapterToSkip.set(it) },
                   title = { Text(text = stringResource(id = R.string.pref_gesture_double_tap_chapter_skip_title)) },
                   summary = { Text(text = stringResource(id = R.string.pref_gesture_double_tap_chapter_skip_summary)) },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_gesture_dont_show_seekbar_on_double_tap_title,
+              ) {
+                SwitchPreference(
+                  value = dontShowSeekBarOnDoubleTap,
+                  onValueChange = { preferences.dontShowSeekBarOnDoubleTap.set(it) },
+                  title = { Text(text = stringResource(id = R.string.pref_gesture_dont_show_seekbar_on_double_tap_title)) },
+                  summary = { Text(text = stringResource(id = R.string.pref_gesture_dont_show_seekbar_on_double_tap_summary)) },
                 )
               }
 

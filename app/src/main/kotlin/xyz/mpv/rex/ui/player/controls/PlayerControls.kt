@@ -188,6 +188,7 @@ fun PlayerControls(
   val gesturePreferences = koinInject<GesturePreferences>()
   val playerTutorialManager = koinInject<PlayerTutorialManager>()
   val enableReleaseToCancel by gesturePreferences.enableReleaseToCancel.collectAsState()
+  val dontShowSeekBarOnDoubleTap by gesturePreferences.dontShowSeekBarOnDoubleTap.collectAsState()
   val showSystemStatusBar by playerPreferences.showSystemStatusBar.collectAsState()
   val showSystemNavigationBar by playerPreferences.showSystemNavigationBar.collectAsState()
   val playerGradientOpacity by playerPreferences.playerGradientOpacity.collectAsState()
@@ -1378,7 +1379,7 @@ fun PlayerControls(
         }
 
         AnimatedVisibility(
-          visible = (controlsShown || seekBarShown) && !areControlsLocked,
+          visible = (controlsShown || seekBarShown) && !areControlsLocked && !(dontShowSeekBarOnDoubleTap && doubleTapSeekAmount != 0),
           enter =
             if (!reduceMotion) {
               slideInVertically(playerControlsEnterAnimationSpec()) { it } +
