@@ -118,6 +118,19 @@ fun GestureHandler(
   val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
   val reverseDoubleTap by gesturePreferences.reverseDoubleTap.collectAsState()
   val doubleTapSeekAreaWidth by gesturePreferences.doubleTapSeekAreaWidth.collectAsState()
+  val twoFingerTapToSkipChapter by gesturePreferences.twoFingerTapToSkipChapter.collectAsState()
+  val twoFingerDoubleTapToSkip by gesturePreferences.twoFingerDoubleTapToSkip.collectAsState()
+  var twoFingerTapCount by remember { mutableStateOf(0) }
+  var lastTwoFingerTapTime by remember { mutableStateOf(0L) }
+  var lastTwoFingerTapSide by remember { mutableStateOf<String?>(null) }
+  val twoFingerTapTimeout = 400L
+  LaunchedEffect(twoFingerTapCount) {
+    if (twoFingerTapCount > 0) {
+      delay(twoFingerTapTimeout)
+      twoFingerTapCount = 0
+      lastTwoFingerTapSide = null
+    }
+  }
   var isDoubleTapSeeking by remember { mutableStateOf(false) }
   var longPressStartTime by remember { mutableStateOf(0L) }
   LaunchedEffect(seekAmount) {
@@ -284,6 +297,96 @@ fun GestureHandler(
         ui = subtitleUi,
       )
       .padding(horizontal = 16.dp, vertical = 16.dp)
+      .pointerInput(twoFingerTapToSkipChapter, twoFingerDoubleTapToSkip, reverseDoubleTap, areControlsLocked, panelShown, allowGesturesInPanels) {
+        if (!twoFingerTapToSkipChapter || areControlsLocked || (panelShown != Panels.None && !allowGesturesInPanels)) return@pointerInput
+
+        awaitEachGesture {
+          val firstDown = awaitFirstDown(requireUnconsumed = false)
+          if (subtitleGate.isActive) return@awaitEachGesture
+          val firstDownTime = System.currentTimeMillis()
+          var maxPointers = 1
+          var firstFingerMoved = false
+          var secondFingerMoved = false
+          val firstPos = firstDown.position
+          var secondPos = androidx.compose.ui.geometry.Offset.Zero
+          var secondDownTime = 0L
+          var twoFingersSimultaneous = false
+          val touchSlopSq = 40f * 40f
+
+          do {
+            val event = awaitPointerEvent()
+            val pressed = event.changes.filter { it.pressed }
+            val pressedCount = pressed.size
+
+            if (pressedCount > maxPointers) {
+              maxPointers = pressedCount
+            }
+
+            if (pressedCount == 2) {
+              twoFingersSimultaneous = true
+              if (secondDownTime == 0L) {
+                secondDownTime = System.currentTimeMillis()
+                val other = pressed.firstOrNull { it.id != firstDown.id } ?: pressed[1]
+                secondPos = other.position
+              }
+            }
+
+            for (change in event.changes) {
+              if (change.id == firstDown.id) {
+                val dx = change.position.x - firstPos.x
+                val dy = change.position.y - firstPos.y
+                if (dx * dx + dy * dy > touchSlopSq) firstFingerMoved = true
+              } else if (secondDownTime != 0L) {
+                val dx = change.position.x - secondPos.x
+                val dy = change.position.y - secondPos.y
+                if (dx * dx + dy * dy > touchSlopSq) secondFingerMoved = true
+              }
+            }
+
+            if (maxPointers > 2 || firstFingerMoved || secondFingerMoved) {
+              break
+            }
+          } while (event.changes.any { it.pressed })
+
+          val totalDuration = System.currentTimeMillis() - firstDownTime
+          val isValidTwoFingerTap = twoFingersSimultaneous &&
+            maxPointers == 2 &&
+            !firstFingerMoved &&
+            !secondFingerMoved &&
+            totalDuration in 30L..350L
+
+          if (isValidTwoFingerTap) {
+            val midX = if (secondPos != androidx.compose.ui.geometry.Offset.Zero) {
+              (firstPos.x + secondPos.x) / 2f
+            } else {
+              firstPos.x
+            }
+            val isRightSide = midX >= size.width / 2f
+            val side = if (isRightSide) "right" else "left"
+            val now = System.currentTimeMillis()
+
+            if (twoFingerDoubleTapToSkip) {
+              val timeSinceLast = now - lastTwoFingerTapTime
+              if (twoFingerTapCount == 1 && timeSinceLast < twoFingerTapTimeout && lastTwoFingerTapSide == side) {
+                twoFingerTapCount = 0
+                lastTwoFingerTapTime = 0L
+                lastTwoFingerTapSide = null
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                val isForward = (side == "right") xor reverseDoubleTap
+                viewModel.skipChapter(forward = isForward)
+              } else {
+                twoFingerTapCount = 1
+                lastTwoFingerTapTime = now
+                lastTwoFingerTapSide = side
+              }
+            } else {
+              haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+              val isForward = (side == "right") xor reverseDoubleTap
+              viewModel.skipChapter(forward = isForward)
+            }
+          }
+        }
+      }
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap, useSingleTapForLeftRight, useSingleTapForCenter) {
         // Isolated double-tap detection that doesn't interfere with other gestures
         if (isVerticalGestureActive) return@pointerInput
@@ -308,9 +411,13 @@ fun GestureHandler(
           // Track for potential drag
           var isDrag = false
           var wasConsumedByTapGesture = false
+          var isMultiTouch = false
 
           do {
             val event = awaitPointerEvent()
+            if (event.changes.count { it.pressed } >= 2) {
+              isMultiTouch = true
+            }
             val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
 
             // The touch started on the subtitle and has now become a real drag/pinch: abandon the
@@ -329,6 +436,13 @@ fun GestureHandler(
             }
 
             if (!pointer.pressed) {
+              if (isMultiTouch) {
+                pendingSingleTapRegion = null
+                pendingSingleTapPosition = null
+                tapCount = 0
+                lastTapRegion = null
+                break
+              }
               // Pointer lifted - this is a tap if it wasn't a drag
               if (!isDrag && !wasConsumedByTapGesture) {
                 val timeSinceLastTap = downTime - lastTapTime
@@ -538,6 +652,9 @@ fun GestureHandler(
           do {
             val event = awaitPointerEvent()
             val pointerCount = event.changes.count { it.pressed }
+            if (pointerCount > 1) {
+              longPressJob.cancel()
+            }
 
             if (pointerCount == 1) {
               event.changes.forEach { change ->
@@ -874,7 +991,7 @@ fun GestureHandler(
                 prevMidY = midY
               } else {
                 // Activate on significant pinch movement
-                if (!gestureStarted && abs(dist - prevDist) > 5f) {
+                if (!gestureStarted && abs(dist - prevDist) > 20f) {
                   gestureStarted = true
                   viewModel.playerUpdate.update { PlayerUpdates.VideoZoom }
                 }
@@ -903,7 +1020,9 @@ fun GestureHandler(
                 prevMidY = midY
               }
 
-              pressed.forEach { it.consume() }
+              if (gestureStarted) {
+                pressed.forEach { it.consume() }
+              }
             } else if (pressed.size < 2 && prevDist != 0f) {
               break
             }

@@ -30,6 +30,7 @@ class PlayerGestureManager(
   private val onPauseUnpause: () -> Unit,
   private val onPlayNext: () -> Unit,
   private val onPlayPrevious: () -> Unit,
+  private val onSkipChapter: (forward: Boolean) -> Unit = {},
 ) {
   val doubleTapToSeekDuration: Int
     get() = gesturePreferences.doubleTapToSeekDuration.get()
@@ -208,5 +209,9 @@ class PlayerGestureManager(
 
   fun handleMediaPrevious() {
     executeGestureAction(gesturePreferences.mediaPreviousGesture.get(), isLeft = true)
+  }
+
+  fun skipChapter(forward: Boolean) {
+    onSkipChapter(forward)
   }
 }

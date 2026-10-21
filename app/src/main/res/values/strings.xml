@@ -235,6 +235,15 @@
     <string name="pref_gesture_double_tap_chapter_skip_summary">Double tap the chapter button to jump to the next chapter</string>
     <string name="pref_gesture_dont_show_seekbar_on_double_tap_title">Don\'t show seekbar while double tapping</string>
     <string name="pref_gesture_dont_show_seekbar_on_double_tap_summary">Do not display the seekbar when double tapping to seek</string>
+    <string name="pref_gesture_two_finger_tap_chapter_skip_title">Two-finger tap to skip chapters</string>
+    <string name="pref_gesture_two_finger_tap_chapter_skip_summary">Tap with two fingers on the left or right to skip chapters</string>
+    <string name="pref_gesture_two_finger_double_tap_to_skip_title">Require two-finger double tap</string>
+    <string name="pref_gesture_two_finger_double_tap_to_skip_summary">Double tap with two fingers to skip chapters instead of a single tap</string>
+    <string name="player_osd_no_chapters">No chapters</string>
+    <string name="player_osd_first_chapter">First chapter</string>
+    <string name="player_osd_last_chapter">Last chapter</string>
+    <string name="player_osd_next_chapter">Next: %s</string>
+    <string name="player_osd_prev_chapter">Previous: %s</string>
     <string name="pref_gesture_double_tap_play">Play/Pause</string>
     <string name="pref_gesture_double_tap_custom">Custom</string>
     <string name="pref_gesture_double_tap_left_title">Double tap (left)</string>

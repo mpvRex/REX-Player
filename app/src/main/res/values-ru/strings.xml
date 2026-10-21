@@ -193,6 +193,15 @@
 	<string name="pref_gesture_double_tap_subseek">Переход по субтитрам</string>
 	<string name="pref_gesture_reverse_double_tap_title">Поменять местами жесты влево/вправо</string>
 	<string name="pref_gesture_reverse_double_tap_summary">Поменять местами жесты двойного/одинарного касания слева и справа</string>
+	<string name="pref_gesture_two_finger_tap_chapter_skip_title">Переключение глав двумя пальцами</string>
+	<string name="pref_gesture_two_finger_tap_chapter_skip_summary">Нажмите двумя пальцами слева или справа для переключения глав</string>
+	<string name="pref_gesture_two_finger_double_tap_to_skip_title">Требовать двойное касание двумя пальцами</string>
+	<string name="pref_gesture_two_finger_double_tap_to_skip_summary">Двойное касание двумя пальцами для переключения глав вместо одиночного</string>
+	<string name="player_osd_no_chapters">Нет глав</string>
+	<string name="player_osd_first_chapter">Первая глава</string>
+	<string name="player_osd_last_chapter">Последняя глава</string>
+	<string name="player_osd_next_chapter">Следующая: %s</string>
+	<string name="player_osd_prev_chapter">Предыдущая: %s</string>
 	<string name="pref_gesture_double_tap_play">Воспроизведение/Пауза</string>
 	<string name="pref_gesture_double_tap_custom">Пользовательское</string>
 	<string name="pref_gesture_double_tap_left_title">Двойное касание (слева)</string>

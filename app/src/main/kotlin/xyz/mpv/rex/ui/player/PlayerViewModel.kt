@@ -200,6 +200,7 @@ class PlayerViewModel(
       onPauseUnpause = { pauseUnpause() },
       onPlayNext = { playNext() },
       onPlayPrevious = { playPrevious() },
+      onSkipChapter = { skipChapter(it) },
     )
   }
   val gestureManager: PlayerGestureManager get() = _gestureManager
@@ -924,6 +925,68 @@ class PlayerViewModel(
       scope = viewModelScope,
       onRequestAudioFocus = { host.requestAudioFocus() }
     )
+  }
+
+  fun skipChapter(forward: Boolean) {
+    val chapterList = chapters.value
+    if (chapterList.isEmpty()) {
+      val noChaptersText = appContext.getString(R.string.player_osd_no_chapters)
+      playerUpdate.value = PlayerUpdates.ShowText(noChaptersText)
+      viewModelScope.launch {
+        delay(1500)
+        if (playerUpdate.value is PlayerUpdates.ShowText) {
+          val currentText = (playerUpdate.value as PlayerUpdates.ShowText).value
+          if (currentText == noChaptersText) {
+            playerUpdate.value = PlayerUpdates.None
+          }
+        }
+      }
+      return
+    }
+
+    val currentChapterIndex = MPVLib.getPropertyInt("chapter") ?: 0
+    val msg: String
+
+    if (forward) {
+      val targetIndex = currentChapterIndex + 1
+      if (targetIndex < chapterList.size) {
+        MPVLib.setPropertyInt("chapter", targetIndex)
+        val chapter = chapterList.getOrNull(targetIndex)
+        val name = chapter?.name?.ifBlank { "Chapter ${targetIndex + 1}" } ?: "Chapter ${targetIndex + 1}"
+        msg = appContext.getString(R.string.player_osd_next_chapter, name)
+      } else {
+        msg = appContext.getString(R.string.player_osd_last_chapter)
+      }
+    } else {
+      val currentTime = MPVLib.getPropertyInt("time-pos") ?: 0
+      val currentChapterStart = chapterList.getOrNull(currentChapterIndex)?.start?.toInt() ?: 0
+      if (currentTime > currentChapterStart + 3 && currentChapterIndex in chapterList.indices) {
+        seekTo(currentChapterStart)
+        val chapter = chapterList.getOrNull(currentChapterIndex)
+        val name = chapter?.name?.ifBlank { "Chapter ${currentChapterIndex + 1}" } ?: "Chapter ${currentChapterIndex + 1}"
+        msg = name
+      } else if (currentChapterIndex > 0) {
+        val targetIndex = currentChapterIndex - 1
+        MPVLib.setPropertyInt("chapter", targetIndex)
+        val chapter = chapterList.getOrNull(targetIndex)
+        val name = chapter?.name?.ifBlank { "Chapter ${targetIndex + 1}" } ?: "Chapter ${targetIndex + 1}"
+        msg = appContext.getString(R.string.player_osd_prev_chapter, name)
+      } else {
+        seekTo(0)
+        msg = appContext.getString(R.string.player_osd_first_chapter)
+      }
+    }
+
+    playerUpdate.value = PlayerUpdates.ShowText(msg)
+    viewModelScope.launch {
+      delay(1500)
+      if (playerUpdate.value is PlayerUpdates.ShowText) {
+        val currentText = (playerUpdate.value as PlayerUpdates.ShowText).value
+        if (currentText == msg) {
+          playerUpdate.value = PlayerUpdates.None
+        }
+      }
+    }
   }
 
   // ==================== UI Control ====================

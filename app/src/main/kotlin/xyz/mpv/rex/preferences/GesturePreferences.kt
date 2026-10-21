@@ -22,6 +22,8 @@ class GesturePreferences(
   val reverseDoubleTap = preferenceStore.getBoolean("reverse_double_tap", false)
   val doubleTapChapterToSkip = preferenceStore.getBoolean("double_tap_chapter_to_skip", false)
   val dontShowSeekBarOnDoubleTap = preferenceStore.getBoolean("dont_show_seekbar_on_double_tap", true)
+  val twoFingerTapToSkipChapter = preferenceStore.getBoolean("two_finger_tap_to_skip_chapter", true)
+  val twoFingerDoubleTapToSkip = preferenceStore.getBoolean("two_finger_double_tap_to_skip", true)
   val mediaPreviousGesture = preferenceStore.getEnum("media_previous_gesture", SingleActionGesture.PlaylistPrev)
   val mediaPlayGesture = preferenceStore.getEnum("media_play_gesture", SingleActionGesture.PlayPause)
   val mediaNextGesture = preferenceStore.getEnum("media_next_gesture", SingleActionGesture.PlaylistNext)

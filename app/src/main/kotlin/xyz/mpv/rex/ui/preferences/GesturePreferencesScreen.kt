@@ -110,6 +110,8 @@ object GesturePreferencesScreen : Screen {
             val reverseDoubleTap by preferences.reverseDoubleTap.collectAsState()
             val doubleTapChapterToSkip by preferences.doubleTapChapterToSkip.collectAsState()
             val dontShowSeekBarOnDoubleTap by preferences.dontShowSeekBarOnDoubleTap.collectAsState()
+            val twoFingerTapToSkipChapter by preferences.twoFingerTapToSkipChapter.collectAsState()
+            val twoFingerDoubleTapToSkip by preferences.twoFingerDoubleTapToSkip.collectAsState()
             val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
             val centerDoubleTap by preferences.centerSingleActionGesture.collectAsState()
             val rightDoubleTap by preferences.rightSingleActionGesture.collectAsState()
@@ -209,6 +211,32 @@ object GesturePreferencesScreen : Screen {
                   title = { Text(text = stringResource(id = R.string.pref_gesture_dont_show_seekbar_on_double_tap_title)) },
                   summary = { Text(text = stringResource(id = R.string.pref_gesture_dont_show_seekbar_on_double_tap_summary)) },
                 )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_gesture_two_finger_tap_chapter_skip_title,
+              ) {
+                SwitchPreference(
+                  value = twoFingerTapToSkipChapter,
+                  onValueChange = { preferences.twoFingerTapToSkipChapter.set(it) },
+                  title = { Text(text = stringResource(id = R.string.pref_gesture_two_finger_tap_chapter_skip_title)) },
+                  summary = { Text(text = stringResource(id = R.string.pref_gesture_two_finger_tap_chapter_skip_summary)) },
+                )
+              }
+
+              if (twoFingerTapToSkipChapter) {
+                GroupedPreferenceCard(
+                  position = GroupPosition.MIDDLE,
+                  highlightKey = R.string.pref_gesture_two_finger_double_tap_to_skip_title,
+                ) {
+                  SwitchPreference(
+                    value = twoFingerDoubleTapToSkip,
+                    onValueChange = { preferences.twoFingerDoubleTapToSkip.set(it) },
+                    title = { Text(text = stringResource(id = R.string.pref_gesture_two_finger_double_tap_to_skip_title)) },
+                    summary = { Text(text = stringResource(id = R.string.pref_gesture_two_finger_double_tap_to_skip_summary)) },
+                  )
+                }
               }
 
               GroupedPreferenceCard(
