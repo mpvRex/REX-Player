@@ -3,12 +3,15 @@ package xyz.mpv.rex.ui.preferences
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import xyz.mpv.rex.utils.media.OpenDocumentTreeContract
+import xyz.mpv.rex.utils.media.FontClearResult
+import xyz.mpv.rex.utils.media.clearFontFiles
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -729,23 +732,26 @@ object AdvancedPreferencesScreen : Screen {
                   },
                   onClick = {
                     scope.launch(Dispatchers.IO) {
-                      val fontsDir = File(context.filesDir.path + "/fonts")
-                      if (fontsDir.exists()) {
-                        fontsDir.listFiles()?.forEach { file ->
-                          if (file.isFile &&
-                            file.name
-                              .lowercase()
-                              .matches(".*\\.[ot]tf$".toRegex())
-                          ) {
-                            file.delete()
+                      // Under the shared fonts lock, so it can't interleave with "Add Font File" or a folder copy.
+                      // Keeps fonts added with "Add Font File"; deletes nothing if that can't be determined safely.
+                      val cleared =
+                        when (val result = clearFontFiles(File(context.filesDir, "fonts"))) {
+                          is FontClearResult.Cleared -> {
+                            if (result.failed > 0) Log.w("AdvancedPreferences", "${result.failed} cached font(s) could not be deleted")
+                            result.failed == 0
+                          }
+                          is FontClearResult.Unavailable -> {
+                            Log.e("AdvancedPreferences", "Could not clear cached fonts", result.cause)
+                            false
                           }
                         }
-                      }
                       withContext(Dispatchers.Main) {
                         Toast
                           .makeText(
                             context,
-                            context.getString(R.string.pref_advanced_cleared_fonts_cache),
+                            context.getString(
+                              if (cleared) R.string.pref_advanced_cleared_fonts_cache else R.string.pref_advanced_clear_fonts_failed,
+                            ),
                             Toast.LENGTH_SHORT,
                           ).show()
                       }

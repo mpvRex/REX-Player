@@ -48,6 +48,7 @@ class SubtitlesPreferences(
   val defaultSubSpeed = preferenceStore.getFloat("sub_default_speed", 1f)
   
   val pickerPath = preferenceStore.getString("sub_picker_path")
+  val fontPickerPath = preferenceStore.getString("sub_font_picker_path")
   val customSubtitleFolder = preferenceStore.getString("sub_custom_folder", "")
   val openPickerAtVideoLocation = preferenceStore.getBoolean("sub_open_at_video_location", false)
   
