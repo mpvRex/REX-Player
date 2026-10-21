@@ -1,6 +1,7 @@
 package xyz.mpv.rex.ui.player.controls.components.panels
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +52,8 @@ import xyz.mpv.rex.presentation.components.SliderItem
 import xyz.mpv.rex.ui.player.controls.CARDS_MAX_WIDTH
 import xyz.mpv.rex.ui.player.controls.panelCardsColors
 import xyz.mpv.rex.ui.theme.spacing
+import xyz.mpv.rex.utils.media.equivalentFontsDir
+import xyz.mpv.rex.utils.media.needsRendererRebuild
 import com.github.k1rakishou.fsaf.FileManager
 import com.yubyf.truetypeparser.TTFFile
 import `is`.xyz.mpv.MPVLib
@@ -205,10 +208,12 @@ fun SubtitleSettingsTypographyCard(modifier: Modifier = Modifier) {
           onValueChangedEvent = {
             val actualFont = if (it == "Default") "" else it
             preferences.font.set(actualFont)
-            MPVLib.setPropertyString("sub-font", actualFont)
-            MPVLib.setPropertyString("secondary-sub-font", actualFont)
+            setSubtitleFont(actualFont)
           },
           leadingIcon = fontsLoadingIndicator,
+          optionIcon = painterResource(R.drawable.outline_match_case_24),
+          emphasizedOptionIcon = painterResource(R.drawable.outline_match_case_bold_24),
+          emphasizedOption = "Default",
         )
       }
       SliderItem(
@@ -267,13 +272,59 @@ fun SubtitleSettingsTypographyCard(modifier: Modifier = Modifier) {
   }
 }
 
+/**
+ * Applies [font] to the primary and secondary subtitles ("" = Default).
+ *
+ * `sub-font` is also the family libass falls back to when a requested family is empty or unknown, and libass reads it
+ * only when its renderer is created. Writing "" while a custom font is active therefore leaves the custom font on
+ * screen when the renderer was built with it selected. Both `sub-font` and `secondary-sub-font` are read beforehand;
+ * if either still holds a custom font, the renderer is rebuilt right after the write (see [rebuildSubtitleRenderer]).
+ * Every other font change is just the property write, exactly as before.
+ */
+fun setSubtitleFont(font: String) {
+  val previousFont = MPVLib.getPropertyString("sub-font")
+  val previousSecondaryFont = MPVLib.getPropertyString("secondary-sub-font")
+  MPVLib.setPropertyString("sub-font", font)
+  MPVLib.setPropertyString("secondary-sub-font", font)
+  if (needsRendererRebuild(previousFont, previousSecondaryFont, font)) rebuildSubtitleRenderer()
+}
+
+/**
+ * Makes a font that was just imported with "Add Font File" the active subtitle font, through the same path as a manual
+ * pick in the list (preference + `sub-font` / `secondary-sub-font`), then rebuilds the renderer: libass scans the fonts
+ * directory only when its renderer is created, so without the rebuild a font added during playback would be selected
+ * but not yet found (this also covers embedded tracks, which `sub-reload` cannot refresh).
+ */
+fun applyImportedSubtitleFont(
+  preferences: SubtitlesPreferences,
+  family: String,
+) {
+  preferences.font.set(family)
+  setSubtitleFont(family)
+  rebuildSubtitleRenderer()
+}
+
+/**
+ * Makes mpv rebuild its subtitle renderer without touching the track selection, subtitle visibility, override mode
+ * or playback: re-writes `sub-fonts-dir` (an UPDATE_SUB_HARD option) with an equivalent spelling of the same
+ * directory. The rebuilt renderer re-reads `sub-font` and re-scans the fonts directory. Works for external and
+ * embedded tracks alike; the current track id is unchanged.
+ */
+internal fun rebuildSubtitleRenderer() {
+  val alternative = equivalentFontsDir(MPVLib.getPropertyString("sub-fonts-dir"))
+  if (alternative == null) {
+    Log.w("SubtitleFont", "sub-fonts-dir unavailable; subtitle renderer not rebuilt")
+    return
+  }
+  MPVLib.setPropertyString("sub-fonts-dir", alternative)
+}
+
 fun resetTypography(preferences: SubtitlesPreferences) {
   MPVLib.setPropertyBoolean("sub-bold", preferences.bold.deleteAndGet())
   MPVLib.setPropertyBoolean("sub-italic", preferences.italic.deleteAndGet())
   MPVLib.setPropertyBoolean("sub-ass-justify", false)
   MPVLib.setPropertyString("sub-justify", preferences.justification.deleteAndGet().value)
-  MPVLib.setPropertyString("sub-font", preferences.font.deleteAndGet())
-  MPVLib.setPropertyString("secondary-sub-font", preferences.font.get())
+  setSubtitleFont(preferences.font.deleteAndGet())
   MPVLib.setPropertyInt("sub-font-size", preferences.fontSize.deleteAndGet())
   MPVLib.setPropertyInt("sub-border-size", preferences.borderSize.deleteAndGet())
   MPVLib.setPropertyInt("sub-shadow-offset", preferences.shadowOffset.deleteAndGet())
