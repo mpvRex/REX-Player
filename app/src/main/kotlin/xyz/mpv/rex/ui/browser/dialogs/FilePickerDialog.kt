@@ -8,9 +8,12 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +27,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -40,6 +44,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -90,8 +96,14 @@ fun FilePickerDialog(
 
     // Fallback / raw text
     "txt"
-  )
+  ),
 
+  // Multi-select mode (opt-in, used by "Add Font File"): tapping a file toggles its selection instead of choosing it
+  // right away, and nothing is returned until the user confirms with the import button. With the default
+  // (false) the dialog behaves exactly as before and [onFilesSelected] is never used. Declared last so the
+  // position of every older parameter is unchanged.
+  multiSelect: Boolean = false,
+  onFilesSelected: ((List<String>) -> Unit)? = null,
 ) {
   if (!isOpen) return
 
@@ -115,6 +127,12 @@ fun FilePickerDialog(
     }
     mutableStateOf(initialPath)
   }
+
+  // Selected files (multi-select mode only), in selection order; kept while browsing between folders.
+  var selectedFiles by remember(isOpen) { mutableStateOf(emptyList<String>()) }
+  // Set by the first confirmation: the import button (and the selection) are inert from then on, so a double tap can
+  // never confirm the same batch twice while the parent is still closing the dialog.
+  var confirmed by remember(isOpen) { mutableStateOf(false) }
 
   // Notify parent when path changes for state persistence
   LaunchedEffect(selectedPath) {
@@ -253,15 +271,27 @@ fun FilePickerDialog(
 
               // Content Section
               Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                  if (multiSelect) {
+                    // The header and the footer (with the Import button) are measured first; the list gets what is
+                    // left, up to the usual 400.dp. A fixed 400.dp list pushed the footer out of the window on
+                    // landscape / short screens, so the confirmation button could not be seen or tapped.
+                    Modifier.fillMaxWidth().weight(1f).heightIn(max = 400.dp)
+                  } else {
+                    Modifier.fillMaxWidth()
+                  },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
               ) {
                 // Folder/Volume/File list
                 LazyColumn(
                   modifier =
-                    Modifier
-                      .fillMaxWidth()
-                      .height(400.dp),
+                    if (multiSelect) {
+                      Modifier.fillMaxSize()
+                    } else {
+                      Modifier
+                        .fillMaxWidth()
+                        .height(400.dp)
+                    },
                   verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                   if (showStorageRoot) {
@@ -294,7 +324,18 @@ fun FilePickerDialog(
                     items(files) { file ->
                         FileItem(
                             file = file,
-                            onClick = { onFileSelected(file.absolutePath) }
+                            selectionMode = multiSelect,
+                            selected = file.absolutePath in selectedFiles,
+                            onClick = {
+                              if (multiSelect) {
+                                if (!confirmed) {
+                                  val path = file.absolutePath
+                                  selectedFiles = if (path in selectedFiles) selectedFiles - path else selectedFiles + path
+                                }
+                              } else {
+                                onFileSelected(file.absolutePath)
+                              }
+                            }
                         )
                     }
                     if (folders.isEmpty() && files.isEmpty()) {
@@ -307,17 +348,57 @@ fun FilePickerDialog(
               }
 
               // Footer Section (Analyze padding here)
-              Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.End
-              ) {
-                  TextButton(
-                    onClick = onDismiss,
-                    shape = MaterialTheme.shapes.extraLarge,
-                    // Reduced padding for the button itself if needed, or rely on Row padding
-                  ) {
-                    Text(stringResource(R.string.generic_cancel), fontWeight = FontWeight.Medium)
-                  }
+              if (multiSelect) {
+                // Three actions may not fit side by side on a narrow screen or with longer (e.g. Arabic) labels, so
+                // they wrap onto a second line instead of overlapping or leaving the dialog.
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (selectedFiles.isNotEmpty()) {
+                      TextButton(
+                        onClick = { selectedFiles = emptyList() },
+                        shape = MaterialTheme.shapes.extraLarge,
+                      ) {
+                        Text(stringResource(R.string.file_picker_clear_selection), fontWeight = FontWeight.Medium)
+                      }
+                    }
+                    TextButton(
+                      onClick = onDismiss,
+                      shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                      Text(stringResource(R.string.generic_cancel), fontWeight = FontWeight.Medium)
+                    }
+                    Button(
+                      onClick = {
+                        if (!confirmed) {
+                          confirmed = true
+                          onFilesSelected?.invoke(selectedFiles)
+                        }
+                      },
+                      enabled = !confirmed && selectedFiles.isNotEmpty() && onFilesSelected != null,
+                      shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                      Text(
+                        stringResource(R.string.file_picker_import_selected, selectedFiles.size),
+                        fontWeight = FontWeight.Medium,
+                      )
+                    }
+                }
+              } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                      onClick = onDismiss,
+                      shape = MaterialTheme.shapes.extraLarge,
+                      // Reduced padding for the button itself if needed, or rely on Row padding
+                    ) {
+                      Text(stringResource(R.string.generic_cancel), fontWeight = FontWeight.Medium)
+                    }
+                }
               }
           }
       }
@@ -420,16 +501,29 @@ private fun FileItem(
   file: File,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
+  selectionMode: Boolean = false,
+  selected: Boolean = false,
 ) {
   Row(
     modifier =
       modifier
         .fillMaxWidth()
+        .then(
+          if (selected) {
+            Modifier.clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.secondaryContainer)
+          } else {
+            Modifier
+          },
+        )
         .clickable(onClick = onClick)
         .padding(horizontal = 12.dp, vertical = 8.dp),
     horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
+    if (selectionMode) {
+      // Visual indicator only: the whole row toggles the selection.
+      Checkbox(checked = selected, onCheckedChange = null)
+    }
     Icon(
       imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
       contentDescription = null,

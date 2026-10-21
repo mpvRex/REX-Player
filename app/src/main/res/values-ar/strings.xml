@@ -295,6 +295,7 @@
     <string name="pref_advanced_cleared_playback_history">مُسح سجل التشغيل</string>
     <string name="pref_advanced_clear_fonts_cache">مسح الخطوط المخزَّنة مؤقتاً</string>
     <string name="pref_advanced_cleared_fonts_cache">مُسحت الخطوط المخزَّنة مؤقتاً</string>
+    <string name="pref_advanced_clear_fonts_failed">تعذّر مسح الخطوط المخزَّنة مؤقتاً</string>
     <string name="pref_advanced_enable_recently_played_title">المشغَّل مؤخراً</string>
     <string name="pref_advanced_enable_recently_played_summary">تتبع وعرض الفيديوهات وقوائم التشغيل المشغَّلة مؤخراً</string>
 
@@ -362,6 +363,13 @@
     <string name="player_sheets_sub_position">الموضع</string>
     <string name="player_sheets_sub_typography_card_title">التنسيق</string>
     <string name="player_sheets_sub_typography_font">الخط</string>
+    <string name="player_sheets_sub_typography_add_font_file">إضافة ملف خط</string>
+    <string name="fonts_result_added">تمت إضافة %1$d</string>
+    <string name="fonts_result_existing">%1$d موجود مسبقًا</string>
+    <string name="fonts_result_failed">تعذّرت إضافة %1$d (ملف غير صالح أو خطأ في التخزين)</string>
+    <string name="file_picker_import_selected">استيراد (%1$d)</string>
+    <string name="file_picker_clear_selection">مسح التحديد</string>
+    <string name="fonts_result_limit">تم تخطي %1$d (تجاوز الحد الأقصى لحجم الدفعة)</string>
     <string name="player_sheets_sub_typography_font_size">حجم الخط</string>
     <string name="player_sheets_sub_typography_border_size">حجم الحدود</string>
     <string name="player_sheets_sub_colors_card_title">الألوان</string>
