@@ -112,6 +112,8 @@ object GesturePreferencesScreen : Screen {
             val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
             val centerDoubleTap by preferences.centerSingleActionGesture.collectAsState()
             val rightDoubleTap by preferences.rightSingleActionGesture.collectAsState()
+            val leftSingleTap by preferences.leftSingleTapGesture.collectAsState()
+            val rightSingleTap by preferences.rightSingleTapGesture.collectAsState()
             val preventSeekbarTap by preferences.preventSeekbarTap.collectAsState()
             val useRelativeSeeking by preferences.useRelativeSeeking.collectAsState()
             val enableReleaseToCancel by preferences.enableReleaseToCancel.collectAsState()
@@ -198,21 +200,14 @@ object GesturePreferencesScreen : Screen {
 
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
-                highlightKey = listOf(R.string.pref_gesture_double_tap_left_title, R.string.pref_gesture_single_tap_left_title),
+                highlightKey = R.string.pref_gesture_double_tap_left_title,
               ) {
                 ListPreference(
                   value = leftDoubleTap,
                   onValueChange = { preferences.leftSingleActionGesture.set(it) },
                   values = SingleActionGesture.entries,
                   valueToText = { AnnotatedString(context.getString(it.titleRes)) },
-                  title = {  
-                    Text(
-                      text =
-                        stringResource(
-                          if (useSingleTapForLeftRight) R.string.pref_gesture_single_tap_left_title else R.string.pref_gesture_double_tap_left_title,
-                        ),
-                    )
-                  },
+                  title = { Text(text = stringResource(R.string.pref_gesture_double_tap_left_title)) },
                   summary = { Text(
                     text = stringResource(leftDoubleTap.titleRes),
                     color = MaterialTheme.colorScheme.outline,
@@ -251,21 +246,14 @@ object GesturePreferencesScreen : Screen {
 
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
-                highlightKey = listOf(R.string.pref_gesture_double_tap_right_title, R.string.pref_gesture_single_tap_right_title),
+                highlightKey = R.string.pref_gesture_double_tap_right_title,
               ) {
                 ListPreference(
                   value = rightDoubleTap,
                   onValueChange = { preferences.rightSingleActionGesture.set(it) },
                   values = SingleActionGesture.entries,
                   valueToText = { AnnotatedString(context.getString(it.titleRes)) },
-                  title = {  
-                    Text(
-                      text =
-                        stringResource(
-                          if (useSingleTapForLeftRight) R.string.pref_gesture_single_tap_right_title else R.string.pref_gesture_double_tap_right_title,
-                        ),
-                    )
-                  },
+                  title = { Text(text = stringResource(R.string.pref_gesture_double_tap_right_title)) },
                   summary = { Text(
                     text = stringResource(rightDoubleTap.titleRes),
                     color = MaterialTheme.colorScheme.outline,
@@ -312,6 +300,42 @@ object GesturePreferencesScreen : Screen {
                     )
                   },
                 )
+              }
+
+              if (useSingleTapForLeftRight) {
+                GroupedPreferenceCard(
+                  position = GroupPosition.MIDDLE,
+                  highlightKey = R.string.pref_gesture_single_tap_left_title,
+                ) {
+                  ListPreference(
+                    value = leftSingleTap,
+                    onValueChange = { preferences.leftSingleTapGesture.set(it) },
+                    values = SingleActionGesture.entries,
+                    valueToText = { AnnotatedString(context.getString(it.titleRes)) },
+                    title = { Text(text = stringResource(R.string.pref_gesture_single_tap_left_title)) },
+                    summary = { Text(
+                      text = stringResource(leftSingleTap.titleRes),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) },
+                  )
+                }
+
+                GroupedPreferenceCard(
+                  position = GroupPosition.MIDDLE,
+                  highlightKey = R.string.pref_gesture_single_tap_right_title,
+                ) {
+                  ListPreference(
+                    value = rightSingleTap,
+                    onValueChange = { preferences.rightSingleTapGesture.set(it) },
+                    values = SingleActionGesture.entries,
+                    valueToText = { AnnotatedString(context.getString(it.titleRes)) },
+                    title = { Text(text = stringResource(R.string.pref_gesture_single_tap_right_title)) },
+                    summary = { Text(
+                      text = stringResource(rightSingleTap.titleRes),
+                      color = MaterialTheme.colorScheme.outline,
+                    ) },
+                  )
+                }
               }
 
               GroupedPreferenceCard(

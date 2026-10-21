@@ -249,6 +249,12 @@ fun GestureHandler(
         isDoubleTapSeeking = false
         viewModel.updateSeekAmount(0)
       }
+    } else if (tapCount >= 2) {
+      delay(multiTapContinueWindow)
+      if (!isDoubleTapSeeking) {
+        tapCount = 0
+        lastTapRegion = null
+      }
     }
   }
 
@@ -257,6 +263,8 @@ fun GestureHandler(
     if (seekAmount == 0) {
       delay(100)
       isDoubleTapSeeking = false
+      tapCount = 0
+      lastTapRegion = null
     }
   }
 
@@ -276,7 +284,7 @@ fun GestureHandler(
         ui = subtitleUi,
       )
       .padding(horizontal = 16.dp, vertical = 16.dp)
-      .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
+      .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap, useSingleTapForLeftRight, useSingleTapForCenter) {
         // Isolated double-tap detection that doesn't interfere with other gestures
         if (isVerticalGestureActive) return@pointerInput
         awaitEachGesture {
@@ -418,19 +426,22 @@ fun GestureHandler(
                   wasConsumedByTapGesture = true
                   pointer.consume()
                   
-                  // Instant single tap for center if enabled and not in exclusion zones
-                  // Instant single tap logic
-                  val isCenterImmediate = region == "center" && useSingleTapForCenter
-                  val isLeftImmediate = region == "left" && useSingleTapForLeftRight
-                  val isRightImmediate = region == "right" && useSingleTapForLeftRight
+                  val exclusionZoneHeight = size.height * 0.25f // 25% from top and bottom
+                  val inExclusionZone = downPosition.y < exclusionZoneHeight || 
+                                        downPosition.y > size.height - exclusionZoneHeight
+                  
+                  pendingTapInExclusionZone = inExclusionZone // Store for delayed execution check
+
+                  // Instant single tap logic only when double-tap is disabled for that region
+                  val hasCenterDoubleTap = gesturePreferences.centerSingleActionGesture.get() != SingleActionGesture.None
+                  val hasLeftDoubleTap = gesturePreferences.leftSingleActionGesture.get() != SingleActionGesture.None
+                  val hasRightDoubleTap = gesturePreferences.rightSingleActionGesture.get() != SingleActionGesture.None
+
+                  val isCenterImmediate = region == "center" && useSingleTapForCenter && !hasCenterDoubleTap
+                  val isLeftImmediate = region == "left" && useSingleTapForLeftRight && !hasLeftDoubleTap
+                  val isRightImmediate = region == "right" && useSingleTapForLeftRight && !hasRightDoubleTap
 
                   if ((isCenterImmediate || isLeftImmediate || isRightImmediate) && !longPressTriggeredDuringTouch) {
-                    val exclusionZoneHeight = size.height * 0.25f // 25% from top and bottom
-                    val inExclusionZone = downPosition.y < exclusionZoneHeight || 
-                                          downPosition.y > size.height - exclusionZoneHeight
-                    
-                    pendingTapInExclusionZone = inExclusionZone // Store for delayed execution check
-
                     if (!inExclusionZone) {
                        if (areControlsLocked) {
                            viewModel.showControls()
@@ -442,8 +453,6 @@ fun GestureHandler(
                        
                        pendingSingleTapRegion = null 
                     }
-                  } else {
-                    pendingTapInExclusionZone = false
                   }
                 }
               }

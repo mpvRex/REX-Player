@@ -1,10 +1,14 @@
 name: CI/CD Build
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,6 +35,33 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew assembleRelease
+
+      - name: Sign APKs with Debug Keystore
+        run: |
+          set -e
+          keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          echo "Using apksigner: $APKSIGNER"
+          for abi in arm64-v8a armeabi-v7a universal x86 x86_64; do
+            src="app/build/outputs/apk/release/app-${abi}-release-unsigned.apk"
+            signed="app/build/outputs/apk/release/app-${abi}-release.apk"
+            if [ -f "$src" ]; then
+              $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android --out "$signed" "$src"
+              $APKSIGNER verify "$signed"
+            fi
+          done
+
+      - name: Upload app-arm64-v8a Signed Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: REX-Player-arm64-v8a-release-${{ env.SHORT_SHA }}
+          path: app/build/outputs/apk/release/app-arm64-v8a-release.apk
+
+      - name: Upload app-universal Signed Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: REX-Player-universal-release-${{ env.SHORT_SHA }}
+          path: app/build/outputs/apk/release/app-universal-release.apk
 
       - name: Upload app-arm64-v8a Artifact
         uses: actions/upload-artifact@v4

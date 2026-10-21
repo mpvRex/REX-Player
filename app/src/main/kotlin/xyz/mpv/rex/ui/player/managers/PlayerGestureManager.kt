@@ -187,11 +187,11 @@ class PlayerGestureManager(
   }
 
   fun handleLeftSingleTap() {
-    executeGestureAction(gesturePreferences.leftSingleActionGesture.get(), isLeft = true)
+    executeGestureAction(gesturePreferences.leftSingleTapGesture.get(), isLeft = true)
   }
 
   fun handleRightSingleTap() {
-    executeGestureAction(gesturePreferences.rightSingleActionGesture.get(), isRight = true)
+    executeGestureAction(gesturePreferences.rightSingleTapGesture.get(), isRight = true)
   }
 
   fun handleRightDoubleTap() {
