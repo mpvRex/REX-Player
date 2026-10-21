@@ -67,7 +67,7 @@ object MediaThumbnailUtils : KoinComponent {
 
   /**
    * Reads an already-generated thumbnail from ThumbnailRepository without starting extraction.
-   * Looking up the queue path first preserves the same Video identity/cache key used by Explorer.
+   * Looking up the queue path first preserves the same Video identity/cache key used by browser.
    */
   suspend fun getCachedThumbnailForPath(
     context: Context,
