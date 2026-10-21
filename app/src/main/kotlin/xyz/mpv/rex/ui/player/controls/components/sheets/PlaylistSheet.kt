@@ -514,10 +514,12 @@ fun PlaylistTrackListItem(
   // Load thumbnail asynchronously using ThumbnailRepository / folder browser thumbnails
   // Skip thumbnail loading for M3U playlists (network streams)
   LaunchedEffect(videoPath) {
-    if (!skipThumbnail && !thumbnailCache.containsKey(videoPath)) {
-      val bmp = MediaThumbnailUtils.extractThumbnailOrCoverArt(context, item.uri)
+    if (!skipThumbnail && thumbnailCache[videoPath] == null) {
+      val bmp = MediaThumbnailUtils.getCachedThumbnailForPath(context, videoPath, item.uri)
       thumbnail = bmp
-      thumbnailCache[videoPath] = bmp
+      if (bmp != null) {
+        thumbnailCache[videoPath] = bmp
+      }
     }
   }
 

@@ -65,6 +65,33 @@ object MediaThumbnailUtils : KoinComponent {
     null
   }
 
+  /**
+   * Reads an already-generated thumbnail from ThumbnailRepository without starting extraction.
+   * Looking up the queue path first preserves the same Video identity/cache key used by browser.
+   */
+  suspend fun getCachedThumbnailForPath(
+    context: Context,
+    path: String,
+    uri: Uri,
+  ): Bitmap? = withContext(Dispatchers.IO) {
+    runCatching {
+      val candidates = buildList {
+        if (path.isNotBlank()) add(path)
+        if (path.startsWith("/")) {
+          runCatching { File(path).canonicalPath }.getOrNull()?.let(::add)
+        }
+        add(uri.toString())
+      }.distinct()
+
+      val indexedVideo = candidates.firstNotNullOfOrNull { candidate ->
+        runCatching {
+          hybridMediaIndexRepository.getVideoByLocation(candidate)
+        }.getOrNull()
+      } ?: createVideoForUri(context, uri)
+
+      thumbnailRepository.getCachedThumbnail(indexedVideo, 256, 256)
+    }.getOrNull()
+  }
   suspend fun createVideoForUri(context: Context, uri: Uri): Video = withContext(Dispatchers.IO) {
     val path = when (uri.scheme) {
       "file" -> uri.path ?: uri.toString()
@@ -83,9 +110,13 @@ object MediaThumbnailUtils : KoinComponent {
     }
 
     // 1. First check if HybridMediaIndexRepository already has the indexed Video from the folder browser
-    val indexedVideo = runCatching {
-      hybridMediaIndexRepository.getVideoByLocation(path)
-    }.getOrNull()
+    val indexedVideo = listOf(uri.toString(), path)
+      .distinct()
+      .firstNotNullOfOrNull { candidate ->
+        runCatching {
+          hybridMediaIndexRepository.getVideoByLocation(candidate)
+        }.getOrNull()
+      }
     if (indexedVideo != null) {
       return@withContext indexedVideo
     }
