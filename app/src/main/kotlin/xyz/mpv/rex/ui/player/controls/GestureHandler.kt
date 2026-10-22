@@ -78,6 +78,7 @@ import xyz.mpv.rex.presentation.components.LeftSideOvalShape
 import xyz.mpv.rex.presentation.components.RightSideOvalShape
 import xyz.mpv.rex.ui.player.Panels
 import xyz.mpv.rex.ui.player.PlayerUpdates
+import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
 import xyz.mpv.rex.ui.player.PlayerViewModel
 import xyz.mpv.rex.ui.player.PlayerTutorialManager
 import xyz.mpv.rex.ui.player.SingleActionGesture
@@ -129,7 +130,8 @@ fun GestureHandler(
     viewModel.hideSeekBar()
   }
   val multipleSpeedGesture by playerPreferences.holdForMultipleSpeed.collectAsState()
-  val rememberLongPressSpeed by playerPreferences.rememberLongPressSpeed.collectAsState()
+  val longPressSpeedMemoryMode by playerPreferences.longPressSpeedMemoryMode.collectAsState()
+  val mediaIdentifier by viewModel.mediaIdentifier.collectAsState()
   val showDynamicSpeedOverlay by playerPreferences.showDynamicSpeedOverlay.collectAsState()
   val brightnessGesture by playerPreferences.brightnessGesture.collectAsState()
   val volumeGesture by playerPreferences.volumeGesture.collectAsState()
@@ -452,7 +454,7 @@ fun GestureHandler(
           } while (event.changes.any { it.pressed })
         }
       }
-      .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture) {
+      .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture, longPressSpeedMemoryMode, mediaIdentifier) {
         if ((!brightnessGesture && !volumeGesture && multipleSpeedGesture <= 0f) || areControlsLocked) return@pointerInput
 
         awaitEachGesture {
@@ -497,9 +499,16 @@ fun GestureHandler(
                 longPressTriggeredDuringTouch = true
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 originalSpeed = playbackSpeed ?: 1f
+                val targetSpeed = when (longPressSpeedMemoryMode) {
+                  LongPressSpeedMemoryMode.Reset -> 2f
+                  LongPressSpeedMemoryMode.Global -> multipleSpeedGesture
+                  LongPressSpeedMemoryMode.PerVideo ->
+                    mediaIdentifier.takeIf { it.isNotBlank() }?.let {
+                      playerPreferences.longPressSpeedForVideo(it).get()
+                    } ?: 2f
+                }
                 // Ramp speed up incrementally to avoid audio filter stutter
                 val startSpeed = originalSpeed
-                val targetSpeed = multipleSpeedGesture
                 val steps = 5
                 val stepDelay = 16L // ~one frame per step
                 for (i in 1..steps) {
@@ -514,9 +523,9 @@ fun GestureHandler(
                   hasSwipedEnough = false
                   hasIncrementedSpeedLockHint = false
                   dynamicSpeedStartX = startPosition.x
-                  dynamicSpeedStartValue = multipleSpeedGesture
-                  lastAppliedSpeed = multipleSpeedGesture
-                  viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(multipleSpeedGesture, false) }
+                  dynamicSpeedStartValue = targetSpeed
+                  lastAppliedSpeed = targetSpeed
+                  viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(targetSpeed, false) }
                 } else {
                   viewModel.playerUpdate.update { PlayerUpdates.MultipleSpeed }
                 }
@@ -559,7 +568,7 @@ fun GestureHandler(
                     when (gestureType) {
                       "speed_control" -> {
                         dynamicSpeedStartX = currentPosition.x
-                        dynamicSpeedStartValue = MPVLib.getPropertyFloat("speed") ?: multipleSpeedGesture
+                        dynamicSpeedStartValue = MPVLib.getPropertyFloat("speed") ?: lastAppliedSpeed
                       }
                       "vertical" -> {
                         if ((brightnessGesture || volumeGesture) && !isLongPressing) {
@@ -775,8 +784,17 @@ fun GestureHandler(
           longPressJob.cancel()
 
           if (isLongPressing) {
-            if (hasSwipedEnough && rememberLongPressSpeed && lastAppliedSpeed > 0f) {
-              playerPreferences.holdForMultipleSpeed.set(lastAppliedSpeed)
+            if (hasSwipedEnough && lastAppliedSpeed > 0f) {
+              when (longPressSpeedMemoryMode) {
+                LongPressSpeedMemoryMode.Reset -> Unit
+                LongPressSpeedMemoryMode.Global ->
+                  playerPreferences.holdForMultipleSpeed.set(lastAppliedSpeed)
+                LongPressSpeedMemoryMode.PerVideo -> {
+                  if (mediaIdentifier.isNotBlank()) {
+                    playerPreferences.longPressSpeedForVideo(mediaIdentifier).set(lastAppliedSpeed)
+                  }
+                }
+              }
             }
             isLongPressing = false
             isDynamicSpeedControlActive = false
