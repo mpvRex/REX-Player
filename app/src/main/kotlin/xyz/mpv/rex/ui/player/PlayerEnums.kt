@@ -36,6 +36,14 @@ enum class BackgroundPlaybackMode(
   Never(R.string.pref_background_playback_never),
 }
 
+enum class LongPressSpeedMemoryMode(
+  @StringRes val titleRes: Int,
+) {
+  Global(R.string.pref_player_remember_long_press_speed_global),
+  PerVideo(R.string.pref_player_remember_long_press_speed_per_video),
+  Reset(R.string.pref_player_remember_long_press_speed_reset),
+}
+
 enum class ResumePlaybackMode(
   @StringRes val titleRes: Int,
   @StringRes val summaryRes: Int,
