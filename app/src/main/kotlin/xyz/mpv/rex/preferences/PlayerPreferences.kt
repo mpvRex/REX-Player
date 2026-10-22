@@ -1,9 +1,12 @@
 
 package xyz.mpv.rex.preferences
 
+import xyz.mpv.rex.preferences.preference.Preference
 import xyz.mpv.rex.preferences.preference.PreferenceStore
 import xyz.mpv.rex.preferences.preference.getEnum
 import xyz.mpv.rex.ui.player.BackgroundPlaybackMode
+import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
+import java.security.MessageDigest
 import xyz.mpv.rex.ui.player.PlaybackControlsPosition
 import xyz.mpv.rex.ui.player.PlayerOrientation
 import xyz.mpv.rex.ui.player.RepeatMode
@@ -11,13 +14,39 @@ import xyz.mpv.rex.ui.player.ResumePlaybackMode
 import xyz.mpv.rex.ui.player.VideoAspect
 
 class PlayerPreferences(
-  preferenceStore: PreferenceStore,
+  private val preferenceStore: PreferenceStore,
 ) {
   val orientation = preferenceStore.getEnum("player_orientation", PlayerOrientation.Video)
   val backgroundPlayback = preferenceStore.getEnum("background_playback_mode", BackgroundPlaybackMode.AudioOnly)
   val invertDuration = preferenceStore.getBoolean("invert_duration")
   val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 2f)
-  val rememberLongPressSpeed = preferenceStore.getBoolean("remember_long_press_speed", true)
+  private val legacyRememberLongPressSpeed = preferenceStore.getBoolean("remember_long_press_speed", true)
+  val longPressSpeedMemoryMode =
+    preferenceStore.getEnum("long_press_speed_memory_mode", LongPressSpeedMemoryMode.Reset)
+  private val longPressSpeedModeMigrated = preferenceStore.getBoolean("long_press_speed_mode_migrated", false)
+
+  init {
+    if (!longPressSpeedModeMigrated.get()) {
+      if (!longPressSpeedMemoryMode.isSet()) {
+        val migratedMode = when {
+          legacyRememberLongPressSpeed.isSet() && legacyRememberLongPressSpeed.get() -> LongPressSpeedMemoryMode.Global
+          legacyRememberLongPressSpeed.isSet() -> LongPressSpeedMemoryMode.Reset
+          holdForMultipleSpeed.isSet() -> LongPressSpeedMemoryMode.Global
+          else -> LongPressSpeedMemoryMode.Reset
+        }
+        longPressSpeedMemoryMode.set(migratedMode)
+      }
+      longPressSpeedModeMigrated.set(true)
+    }
+  }
+
+  fun longPressSpeedForVideo(mediaIdentifier: String): Preference<Float> {
+    val identifierHash =
+      MessageDigest.getInstance("SHA-256")
+        .digest(mediaIdentifier.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    return preferenceStore.getFloat("long_press_speed_video_$identifierHash", 2f)
+  }
   val showDynamicSpeedOverlay = preferenceStore.getBoolean("show_dynamic_speed_overlay", true)
   val showSpeedIndicatorOverlay = preferenceStore.getBoolean("show_speed_indicator_overlay", true)
   val showDoubleTapOvals = preferenceStore.getBoolean("show_double_tap_ovals", true)
