@@ -134,7 +134,7 @@ fun <T> UnifiedExplorerContent(
     Box(
       modifier = modifier
         .fillMaxSize()
-        .padding(bottom = 80.dp),
+        .padding(bottom = 64.dp),
       contentAlignment = Alignment.Center,
     ) {
       CircularProgressIndicator(

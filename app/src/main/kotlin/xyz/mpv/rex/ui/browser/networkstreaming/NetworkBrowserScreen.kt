@@ -181,7 +181,7 @@ private fun NetworkBrowserContent(
       Box(
         modifier = modifier
           .fillMaxSize()
-          .padding(bottom = 80.dp), // Account for bottom navigation bar
+          .padding(bottom = 64.dp), // Account for bottom navigation bar
         contentAlignment = Alignment.Center,
       ) {
         CircularProgressIndicator(

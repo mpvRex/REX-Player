@@ -146,7 +146,7 @@
     <string name="pref_layout_portrait_bottom_controls">Portrait Bottom Controls</string>
 
     <string name="pref_player">Player</string>
-    <string name="pref_player_summary">Orientation, gestures and controls</string>
+    <string name="pref_player_summary">Orientation, playback and display</string>
     <string name="pref_player_orientation">Orientation</string>
     <string name="pref_player_orientation_free">Free</string>
     <string name="pref_player_orientation_video">Video</string>
@@ -227,8 +227,9 @@
     <string name="pref_player_display_panel_transparency_summary" translatable="false">%d%%</string>
 
     <string name="pref_gesture">Gestures</string>
-    <string name="pref_gesture_summary">Double tap, media controls</string>
+    <string name="pref_gesture_summary">Screen gestures, double tap, media controls</string>
     <string name="pref_gesture_double_tap_title">Double tap</string>
+    <string name="pref_gesture_screen_gestures_title">Screen gestures</string>
     <string name="pref_gesture_double_tap_none">None</string>
     <string name="pref_gesture_double_tap_seek">Seek</string>
     <string name="pref_gesture_double_tap_subseek">Seek Subtitle</string>
@@ -357,6 +358,7 @@
     <string name="pref_advanced_cleared_playback_history">Cleared playback history</string>
     <string name="pref_advanced_clear_fonts_cache">Clear cached fonts</string>
     <string name="pref_advanced_cleared_fonts_cache">Cleared cached fonts</string>
+    <string name="pref_advanced_clear_fonts_failed">Couldn\'t clear cached fonts</string>
     <string name="pref_advanced_enable_recently_played_title">Recently Played</string>
     <string name="pref_advanced_enable_recently_played_summary">Track and display recently played videos and playlists</string>
     <string name="pref_advanced_history_auto_remove_deleted_title">Auto-remove deleted files</string>
@@ -442,6 +444,13 @@
     <string name="player_sheets_secondary_sub_scale">Secondary subtitle scale</string>
     <string name="player_sheets_sub_typography_card_title">Typography</string>
     <string name="player_sheets_sub_typography_font">Font</string>
+    <string name="player_sheets_sub_typography_add_font_file">Add Font File</string>
+    <string name="fonts_result_added">%1$d added</string>
+    <string name="fonts_result_existing">%1$d already installed</string>
+    <string name="fonts_result_failed">%1$d couldn\'t be added (invalid font or storage error)</string>
+    <string name="file_picker_import_selected">Import (%1$d)</string>
+    <string name="file_picker_clear_selection">Clear</string>
+    <string name="fonts_result_limit">%1$d skipped (batch size limit reached)</string>
     <string name="player_sheets_sub_typography_font_size">Font size</string>
     <string name="player_sheets_sub_typography_border_size">Border size</string>
     <string name="player_sheets_sub_colors_card_title">Colors</string>
@@ -1308,6 +1317,7 @@
     <string name="pref_advanced_tap_to_edit_configuration">Tap to edit configuration</string>
     <string name="pref_advanced_mpv_directory_ready">MPV directory ready ✓</string>
     <string name="pref_advanced_lua_set_storage_first">Set storage location and enable Lua scripts first</string>
+    <string name="pref_custom_lua_disabled_toast">Enable Lua scripts in Advanced first</string>
     <string name="pref_advanced_no_scripts_enabled">No scripts enabled</string>
     <string name="pref_advanced_custom_lua_summary">Create and manage custom Lua buttons</string>
     <string name="pref_advanced_config_cache_cleared">Config cache cleared</string>

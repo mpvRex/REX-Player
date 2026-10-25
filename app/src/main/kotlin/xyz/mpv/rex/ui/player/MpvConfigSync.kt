@@ -8,6 +8,10 @@ import xyz.mpv.rex.domain.hdr.HdrToysManager
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.DecoderPreferences
 import xyz.mpv.rex.preferences.SubtitlesPreferences
+import xyz.mpv.rex.utils.media.FolderFile
+import xyz.mpv.rex.utils.media.MPV_SYNC_FONT_EXTENSIONS
+import xyz.mpv.rex.utils.media.copyFontIfAbsent
+import xyz.mpv.rex.utils.media.syncFolderFonts
 import com.github.k1rakishou.fsaf.FileManager
 import `is`.xyz.mpv.Utils
 import java.io.File
@@ -256,28 +260,25 @@ object MpvConfigSync : KoinComponent {
 
     val fontsSubdir = findSubdirCaseInsensitive(tree, "fonts")
     val sourceDir = fontsSubdir ?: tree
-    val fontExtensions = setOf("ttf", "otf", "ttc", "woff", "woff2")
+    val fontExtensions = MPV_SYNC_FONT_EXTENSIONS
     var count = 0
 
     sourceDir.listFiles().forEach { file ->
       if (!file.isFile) return@forEach
       val name = file.name ?: return@forEach
-      val ext = name.substringAfterLast('.', "").lowercase()
-      if (ext !in fontExtensions) return@forEach
-
-      val target = File(internalFontsDir, name)
-      if (target.exists()) return@forEach
-
-      runCatching {
-        context.contentResolver.openInputStream(file.uri)?.use { input ->
-          target.outputStream().use { output ->
-            input.copyTo(output)
-          }
-          count++
-          Log.d(TAG, "Synced font: $name")
-        }
-      }.onFailure { e ->
-        Log.e(TAG, "Error syncing font: $name", e)
+      // As before: only fonts that are not installed yet (so never one added with "Add Font File"), only the
+      // extensions listed above; takes the shared fonts lock.
+      val copied =
+        copyFontIfAbsent(
+          fontsDir = internalFontsDir,
+          fileName = name,
+          allowedExtensions = fontExtensions,
+          open = { context.contentResolver.openInputStream(file.uri) },
+          onError = { e -> Log.e(TAG, "Error syncing font: $name", e) },
+        )
+      if (copied) {
+        count++
+        Log.d(TAG, "Synced font: $name")
       }
     }
 
@@ -285,13 +286,23 @@ object MpvConfigSync : KoinComponent {
     runCatching {
       val fontsFolderUri = subtitlesPreferences.fontsFolder.get()
       if (fontsFolderUri.isNotBlank()) {
-        val destDir = fileManager.fromPath("${context.filesDir.path}/fonts")
-        if (!fileManager.exists(destDir)) {
-          fileManager.createDir(fileManager.fromPath(context.filesDir.path), "fonts")
-        }
         val fontsDir = fileManager.fromUri(fontsFolderUri.toUri())
         if (fontsDir != null && fileManager.exists(fontsDir)) {
-          fileManager.copyDirectoryWithContent(fontsDir, destDir, false)
+          // The Font Folder keeps its refresh behaviour (a changed font replaces the old copy) and never replaces a
+          // font added with "Add Font File". The original copied every file of the folder; now only font files are
+          // copied (same extensions as the config directory above, so .ttc/.woff/.woff2 still work), not TXT, ZIP, etc.
+          // Non-recursive, as copyDirectoryWithContent(.., false).
+          val folderFiles =
+            fileManager
+              .listFiles(fontsDir)
+              .filter { fileManager.isFile(it) }
+              .map { folderFile -> FolderFile(fileManager.getName(folderFile)) { fileManager.getInputStream(folderFile) } }
+          syncFolderFonts(
+            fontsDir = internalFontsDir,
+            files = folderFiles,
+            allowedExtensions = fontExtensions,
+            onError = { e -> Log.e(TAG, "Error syncing subtitle font", e) },
+          )
         }
       }
     }.onFailure { e ->

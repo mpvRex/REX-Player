@@ -136,9 +136,6 @@ object AboutScreen : Screen {
       val colorPrimary = cs.primaryContainer
       val colorSecondary = cs.secondaryContainer
       val isAutoUpdateEnabled by (updateViewModel?.isAutoUpdateEnabled ?: MutableStateFlow(false)).collectAsState()
-    val isCompanionInstalled by (updateViewModel?.isCompanionInstalled ?: MutableStateFlow(false)).collectAsState()
-    val companionUpdateState by (updateViewModel?.companionUpdateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
-    val isYtdlpAutoUpdateEnabled by (updateViewModel?.isYtdlpAutoUpdateEnabled ?: MutableStateFlow(false)).collectAsState()
       val transition = rememberInfiniteTransition()
       val fraction by transition.animateFloat(
         initialValue = 0f,
@@ -315,31 +312,6 @@ object AboutScreen : Screen {
 
           Spacer(Modifier.height(8.dp))
 
-          PreferenceSectionHeader(title = stringResource(R.string.pref_decoder_codec_info_title))
-          GroupedListColumn {
-            GroupedPreferenceCard(position = GroupPosition.ONLY) {
-              Preference(
-                title = { Text(text = stringResource(R.string.pref_decoder_codec_info_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_decoder_codec_info_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                icon = {
-                  Icon(
-                    imageVector = Icons.Default.Memory,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                  )
-                },
-                onClick = { backstack.add(CodecInformationScreen) },
-              )
-            }
-          }
-
-          Spacer(Modifier.height(8.dp))
-
           PreferenceSectionHeader(title = stringResource(id = R.string.pref_about_telegram_title))
           GroupedListColumn {
             GroupedPreferenceCard(position = GroupPosition.FIRST) {
@@ -451,61 +423,6 @@ object AboutScreen : Screen {
               }
             }
           }
-
-          // REX Ytdlp companion updates — only when the addon is installed.
-          if (BuildConfig.ENABLE_UPDATE_FEATURE && isCompanionInstalled) {
-            Spacer(Modifier.height(8.dp))
-            PreferenceSectionHeader(title = stringResource(R.string.pref_category_ytdlp_updates))
-            GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
-                SwitchPreference(
-                  value = isYtdlpAutoUpdateEnabled,
-                  onValueChange = { updateViewModel?.toggleYtdlpAutoUpdate(it) },
-                  title = { Text(stringResource(R.string.pref_about_auto_check_updates)) },
-                  summary = {
-                    Text(
-                      stringResource(R.string.pref_about_auto_check_updates_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  icon = {
-                    Icon(
-                      imageVector = Icons.Default.SystemUpdate,
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary
-                    )
-                  }
-                )
-              }
-
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
-                Preference(
-                  title = { Text(stringResource(R.string.pref_about_check_updates)) },
-                  summary = {
-                    if (companionUpdateState is UpdateViewModel.UpdateState.Loading) {
-                      Text(stringResource(R.string.pref_about_checking), color = MaterialTheme.colorScheme.primary)
-                    } else {
-                      Text(stringResource(R.string.pref_about_check_updates_summary), color = MaterialTheme.colorScheme.outline)
-                    }
-                  },
-                  icon = {
-                    if (companionUpdateState is UpdateViewModel.UpdateState.Loading) {
-                      CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                    } else {
-                      Icon(
-                        imageVector = Icons.Default.SystemUpdate,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                      )
-                    }
-                  },
-                  onClick = { updateViewModel?.checkCompanionUpdate(manual = true) },
-                  enabled = companionUpdateState !is UpdateViewModel.UpdateState.Loading
-                )
-              }
-            }
-          }
-
           Spacer(Modifier.height(xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current + 16.dp))
         }
       }

@@ -1,8 +1,16 @@
 package xyz.mpv.rex.ui.player.controls.components.panels
 
 import android.annotation.SuppressLint
+import android.os.Environment
+import android.util.Log
+import android.widget.Toast
+import android.app.Activity
+import android.content.Context
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -51,6 +59,7 @@ import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -70,6 +79,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,14 +92,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.github.k1rakishou.fsaf.FileManager
-import com.yubyf.truetypeparser.TTFFile
 import `is`.xyz.mpv.MPVLib
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.ListPreferenceType
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
@@ -103,10 +112,20 @@ import xyz.mpv.rex.preferences.preference.deleteAndGet
 import xyz.mpv.rex.presentation.components.ExposedTextDropDownMenu
 import xyz.mpv.rex.presentation.components.PlayerSheet
 import xyz.mpv.rex.presentation.components.SliderItem
+import xyz.mpv.rex.ui.browser.dialogs.FilePickerDialog
+import xyz.mpv.rex.ui.player.MPVLifecycleLock
+import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.ui.theme.spacing
 import xyz.mpv.rex.utils.media.SubtitleEncodingUtils
+import xyz.mpv.rex.utils.media.FontImportReport
+import xyz.mpv.rex.utils.media.SUPPORTED_FONT_EXTENSIONS
+import xyz.mpv.rex.utils.media.importFontFromPath
+import xyz.mpv.rex.utils.media.importFontsFromPaths
+import xyz.mpv.rex.utils.media.launchFontImport
+import xyz.mpv.rex.utils.media.importFontsFromUris
+import xyz.mpv.rex.utils.media.loadCustomFontEntries
 
 @Composable
 fun SubtitleSettingsPanel(
@@ -285,14 +304,97 @@ private fun SubtitleSettingsContent(
   }
 }
 
+/**
+ * Returns a check that is true only while the player session this panel belongs to is still the live one: the
+ * PlayerActivity instance that hosts the panel is not finishing/destroyed and its mpv instance is initialised, not
+ * exiting and not being torn down (the same conditions [xyz.mpv.rex.ui.player.MPVView] uses before touching mpv). The
+ * activity is captured by identity, so after the player was closed (even if a new player opened meanwhile) it stays
+ * false. Outside a PlayerActivity it falls back to the lifecycle owner not being destroyed.
+ */
+@Composable
+private fun rememberPlayerSessionCheck(
+  activity: Activity?,
+  lifecycle: Lifecycle,
+): () -> Boolean =
+  remember(activity, lifecycle) {
+    val player = activity as? PlayerActivity
+    val check: () -> Boolean = {
+      runCatching {
+        if (player != null) {
+          !player.isDestroyed &&
+            !player.isFinishing &&
+            !player.player.isExiting &&
+            player.mpvInitialized &&
+            MPVLifecycleLock.isNativeInitialized &&
+            !MPVLifecycleLock.isTearingDown.value
+        } else {
+          lifecycle.currentState != Lifecycle.State.DESTROYED
+        }
+      }.getOrDefault(false)
+    }
+    check
+  }
+
+/**
+ * Outcome of an "Add Font File" import, handled on the main thread. The files are already on disk by now, so the
+ * result is always reported and the list can be refreshed. The player itself (mpv, preferences) is touched only while
+ * its session is alive: after it ended nothing is applied and no mpv command is sent.
+ */
+private suspend fun finishFontImport(
+  context: Context,
+  preferences: SubtitlesPreferences,
+  report: FontImportReport,
+  isSessionAlive: () -> Boolean,
+  onFontsAdded: () -> Unit,
+) {
+  val result = report.result
+  if (result.added > 0) onFontsAdded()
+
+  if (isSessionAlive()) {
+    if (result.added > 0) {
+      // libass only scans the fonts directory when a subtitle renderer is created, so a font added during
+      // playback is not seen until the renderer is rebuilt. "sub-reload" re-adds an EXTERNAL subtitle file (mpv
+      // rejects it for an embedded track; that is swallowed below). It is kept as before, and is followed by the
+      // renderer rebuild already used by the Default fix ([rebuildSubtitleRenderer]: an equivalent re-write of
+      // `sub-fonts-dir`), which works for embedded and external tracks alike without touching the track selection.
+      runCatching { MPVLib.command("sub-reload") }
+    }
+    // Exactly one font accepted (even if other picked files failed): apply it, but only once the font list really
+    // contains its family. Two or more accepted fonts, or none: the active font and its preference stay as they are.
+    var rebuilt = false
+    report.familyToApply?.let { family ->
+      val listed = runCatching { loadCustomFontEntries(context).any { it.familyName == family } }.getOrDefault(false)
+      if (listed && isSessionAlive()) {
+        applyImportedSubtitleFont(preferences, family) // also rebuilds the renderer
+        rebuilt = true
+      }
+    }
+    // New fonts that were not applied (several accepted, or the family was not listed) must still be found by libass
+    // when the user picks one from the list later, so the renderer is rebuilt for them as well.
+    if (result.added > 0 && !rebuilt && isSessionAlive()) rebuildSubtitleRenderer()
+  }
+
+  val parts =
+    buildList {
+      if (result.added > 0) add(context.getString(R.string.fonts_result_added, result.added))
+      if (result.alreadyPresent > 0) add(context.getString(R.string.fonts_result_existing, result.alreadyPresent))
+      if (result.skippedBatchLimit > 0) add(context.getString(R.string.fonts_result_limit, result.skippedBatchLimit))
+      if (result.failed > 0) add(context.getString(R.string.fonts_result_failed, result.failed))
+    }
+  if (parts.isNotEmpty()) {
+    Toast.makeText(context, parts.joinToString(", "), Toast.LENGTH_SHORT).show()
+  }
+}
+
 @SuppressLint("MutableCollectionMutableState")
 @Composable
 private fun SubtitleTypographySection(
   preferences: SubtitlesPreferences,
 ) {
   val context = LocalContext.current
-  val fileManager = koinInject<FileManager>()
-  val fonts by remember { mutableStateOf(mutableListOf("Default")) }
+  var fonts by remember { mutableStateOf(listOf("Default")) }
+  // Bumped after fonts are added so the list below is re-read from the internal fonts directory.
+  var fontsReloadTrigger by remember { mutableIntStateOf(0) }
   var fontsLoadingIndicator: (@Composable () -> Unit)? by remember {
     val indicator: (@Composable () -> Unit) = {
       CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -300,23 +402,91 @@ private fun SubtitleTypographySection(
     mutableStateOf(indicator)
   }
 
-  LaunchedEffect(Unit) {
-    withContext(Dispatchers.IO) {
-      val fontsDir = fileManager.fromPath(context.filesDir.path + "/fonts")
-      if (fileManager.exists(fontsDir)) {
-        fonts.addAll(
-          fileManager
-            .listFiles(fontsDir)
-            .filter { fileManager.isFile(it) && fileManager.getName(it).lowercase().matches(".*\\.[ot]tf$".toRegex()) }
-            .mapNotNull {
-              runCatching {
-                TTFFile.open(fileManager.getInputStream(it) ?: return@mapNotNull null).families.values.first()
-              }.getOrNull()
-            }.distinct(),
-        )
-      }
+  LaunchedEffect(fontsReloadTrigger) {
+    try {
+      // Same loader as the Subtitles settings screen: reads on Dispatchers.IO, skips unreadable fonts one by one,
+      // de-duplicates by family and sorts them, so the order is stable. State is updated here, on the UI context.
+      fonts = listOf("Default") + loadCustomFontEntries(context).map { it.familyName }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Log.e("SubtitleSettingsPanel", "Failed to load custom fonts", e)
+    } finally {
       fontsLoadingIndicator = null
     }
+  }
+
+  // ---- "Add Font File": pick one or several .ttf / .otf files and copy them to the internal fonts dir ----
+  var showFontFilePicker by remember { mutableStateOf(false) }
+
+  val appContext = context.applicationContext
+  // The player session this panel belongs to is the PlayerActivity instance (and its mpv instance). It is captured
+  // now, so a result can only ever be applied to the session that started the import, never to a later one.
+  val isSessionAlive = rememberPlayerSessionCheck(LocalActivity.current, androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle)
+
+  // Runs a confirmed import on [fontImportScope] (one batch at a time), so closing this panel mid-way does not cancel
+  // it; the outcome is then handled on the main thread by [finishFontImport], which only touches the player while
+  // its session is alive.
+  val startFontImport: (suspend () -> FontImportReport) -> Unit = { block ->
+    launchFontImport {
+      try {
+        val report = block()
+        withContext(Dispatchers.Main) {
+          finishFontImport(
+            context = appContext,
+            preferences = preferences,
+            report = report,
+            isSessionAlive = isSessionAlive,
+            // A state write of a panel that is already gone is harmless; one that is still open reloads its list.
+            onFontsAdded = { fontsReloadTrigger++ },
+          )
+        }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.e("SubtitleSettingsPanel", "Font import follow-up failed", e)
+      }
+    }
+  }
+
+  // System document picker (multi-select). Reached only through the in-app picker's "system picker" button.
+  val fontFilesPicker =
+    rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+      if (uris.isEmpty()) return@rememberLauncherForActivityResult
+      startFontImport { importFontsFromUris(appContext, uris) }
+    }
+
+  if (showFontFilePicker) {
+    val initialFontPickerPath =
+      remember {
+        preferences.fontPickerPath.get().ifBlank { Environment.getExternalStorageDirectory().absolutePath }
+      }
+    // The in-app file manager, in multi-select mode: tapping a .ttf / .otf toggles it, and nothing is imported until
+    // the user confirms with the import button (Cancel closes it without importing).
+    FilePickerDialog(
+      isOpen = true,
+      title = stringResource(R.string.player_sheets_sub_typography_add_font_file),
+      currentPath = initialFontPickerPath,
+      allowedExtensions = SUPPORTED_FONT_EXTENSIONS.map { ".$it" },
+      onDismiss = { showFontFilePicker = false },
+      onPathChanged = { path ->
+        if (path != null) preferences.fontPickerPath.set(path)
+      },
+      onFileSelected = { path ->
+        // Not reached in multi-select mode; kept so the dialog contract is unchanged.
+        showFontFilePicker = false
+        startFontImport { importFontFromPath(appContext, path) }
+      },
+      multiSelect = true,
+      onFilesSelected = { paths ->
+        showFontFilePicker = false
+        startFontImport { importFontsFromPaths(appContext, paths) }
+      },
+      onSystemPickerRequest = {
+        showFontFilePicker = false
+        fontFilesPicker.launch(arrayOf("*/*"))
+      },
+    )
   }
 
   val isBold by MPVLib.propBoolean["sub-bold"].collectAsState()
@@ -430,11 +600,15 @@ private fun SubtitleTypographySection(
         onValueChangedEvent = {
           val actualFont = if (it == "Default") "" else it
           preferences.font.set(actualFont)
-          MPVLib.setPropertyString("sub-font", actualFont)
-          MPVLib.setPropertyString("secondary-sub-font", actualFont)
+          setSubtitleFont(actualFont)
         },
         modifier = Modifier.weight(1f),
         leadingIcon = fontsLoadingIndicator,
+        actionLabel = stringResource(R.string.player_sheets_sub_typography_add_font_file),
+        actionIcon = Icons.AutoMirrored.Outlined.NoteAdd,
+        actionIconTint = MaterialTheme.colorScheme.primary,
+        optionIcon = matchCaseIcon,
+        onActionClick = { showFontFilePicker = true },
       )
     }
 

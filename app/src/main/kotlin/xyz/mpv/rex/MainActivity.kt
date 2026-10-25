@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
     val isWelcomeScreen = currentRoute == WelcomeScreen
     
     val targetBottomPadding = if (isMainScreen && !hideNavigationBar) {
-      if (miniPlayerState.isExpanded) 8.dp else 88.dp
+      if (miniPlayerState.isExpanded) 8.dp else 72.dp
     } else 8.dp
     val animatedBottomPadding by androidx.compose.animation.core.animateDpAsState(
       targetValue = targetBottomPadding,
@@ -230,7 +230,7 @@ class MainActivity : ComponentActivity() {
       animationSpec = tween(220),
       label = "miniPlayerHeight"
     )
-    val navBarHeight = if (isMainScreen && !hideNavigationBar) 80.dp else 0.dp
+    val navBarHeight = if (isMainScreen && !hideNavigationBar) 64.dp else 0.dp
     val totalNavigationBarHeight = navBarHeight + miniPlayerHeight
 
     BackHandler(enabled = isMainScreen || isWelcomeScreen) {

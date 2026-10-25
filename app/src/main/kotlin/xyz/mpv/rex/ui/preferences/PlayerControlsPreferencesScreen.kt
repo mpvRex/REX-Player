@@ -1,6 +1,7 @@
 package xyz.mpv.rex.ui.preferences
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AppearancePreferences
+import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.PlayerButton
 import xyz.mpv.rex.preferences.allPlayerButtons
 import xyz.mpv.rex.preferences.PlayerPreferences
@@ -58,6 +60,7 @@ import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
+import me.zhanghai.compose.preference.Preference
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import me.zhanghai.compose.preference.SliderPreference
@@ -84,6 +87,7 @@ object PlayerControlsPreferencesScreen : Screen {
         val backstack = LocalBackStack.current
         val appearancePrefs = koinInject<AppearancePreferences>()
         val playerPrefs = koinInject<PlayerPreferences>()
+        val advancedPrefs = koinInject<AdvancedPreferences>()
 
         val topRState by appearancePrefs.topRightControls.collectAsState()
         val bottomRState by appearancePrefs.bottomRightControls.collectAsState()
@@ -349,6 +353,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         val bottomControlsBelowSeekbar by playerPrefs.bottomControlsBelowSeekbar.collectAsState()
                         val playbackControlsPosition by playerPrefs.playbackControlsPosition.collectAsState()
+                        val swapVolumeAndBrightness by playerPrefs.swapVolumeAndBrightness.collectAsState()
                         GroupedListColumn {
                             GroupedPreferenceCard(
                                 position = GroupPosition.FIRST,
@@ -365,6 +370,17 @@ object PlayerControlsPreferencesScreen : Screen {
                                     summary = {
                                         Text(text = stringResource(playbackControlsPosition.titleRes))
                                     },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.swap_the_volume_and_brightness_slider,
+                            ) {
+                                SwitchPreference(
+                                    value = swapVolumeAndBrightness,
+                                    onValueChange = { playerPrefs.swapVolumeAndBrightness.set(it) },
+                                    title = { Text(stringResource(R.string.swap_the_volume_and_brightness_slider)) },
                                 )
                             }
 
@@ -399,6 +415,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     }
                     item {
                         val enableBounceAnimation by appearancePrefs.enableBounceAnimation.collectAsState()
+                        val matchPlayerControlsToTheme by appearancePrefs.matchPlayerControlsToTheme.collectAsState()
                         val hidePlayerButtonsBackground by appearancePrefs.hidePlayerButtonsBackground.collectAsState()
                         val showNextPreviousButtons by appearancePrefs.showNextPreviousButtons.collectAsState()
                         val enableGlassPlayerControls by appearancePrefs.enableGlassPlayerControls.collectAsState()
@@ -413,6 +430,8 @@ object PlayerControlsPreferencesScreen : Screen {
                         var customTimeValue by remember { mutableStateOf("") }
                         val showControlsOnPlay by playerPrefs.showControlsOnPlay.collectAsState()
                         val playerGradientOpacity by playerPrefs.playerGradientOpacity.collectAsState()
+                        val showLoadingCircle by playerPrefs.showLoadingCircle.collectAsState()
+                        val reduceMotion by playerPrefs.reduceMotion.collectAsState()
 
                         GroupedListColumn {
                             GroupedPreferenceCard(
@@ -432,6 +451,18 @@ object PlayerControlsPreferencesScreen : Screen {
                                             text = stringResource(id = R.string.pref_appearance_enable_bounce_animation_summary)
                                         )
                                     },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_appearance_match_player_controls_to_theme_title,
+                            ) {
+                                SwitchPreference(
+                                    value = matchPlayerControlsToTheme,
+                                    onValueChange = { appearancePrefs.matchPlayerControlsToTheme.set(it) },
+                                    title = { Text(text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_title)) },
+                                    summary = { Text(text = stringResource(id = R.string.pref_appearance_match_player_controls_to_theme_summary)) },
                                 )
                             }
 
@@ -471,6 +502,19 @@ object PlayerControlsPreferencesScreen : Screen {
                                         Text(
                                             text = stringResource(id = R.string.pref_appearance_show_next_previous_buttons_summary),
                                         )
+                                    },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_player_controls_show_loading_circle,
+                            ) {
+                                SwitchPreference(
+                                    value = showLoadingCircle,
+                                    onValueChange = { playerPrefs.showLoadingCircle.set(it) },
+                                    title = {
+                                        Text(text = stringResource(R.string.pref_player_controls_show_loading_circle))
                                     },
                                 )
                             }
@@ -581,6 +625,19 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                                position = GroupPosition.MIDDLE,
+                                highlightKey = R.string.pref_player_display_reduce_player_animation,
+                            ) {
+                                SwitchPreference(
+                                    value = reduceMotion,
+                                    onValueChange = { playerPrefs.reduceMotion.set(it) },
+                                    title = {
+                                        Text(text = stringResource(R.string.pref_player_display_reduce_player_animation))
+                                    },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_player_display_hide_player_control_time,
                             ) {
@@ -670,6 +727,55 @@ object PlayerControlsPreferencesScreen : Screen {
                                     }
                                 },
                             )
+                        }
+                    }
+
+                    // Custom Lua Buttons Section
+                    item {
+                        PreferenceSectionHeader(title = stringResource(R.string.pref_custom_lua_title))
+                    }
+                    item {
+                        val enableLuaScriptsForButtons by advancedPrefs.enableLuaScripts.collectAsState()
+                        GroupedListColumn {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = R.string.pref_custom_lua_title,
+                            ) {
+                                Box {
+                                    Preference(
+                                        title = { Text(stringResource(R.string.pref_custom_lua_title)) },
+                                        summary = {
+                                            Text(
+                                                stringResource(R.string.pref_advanced_custom_lua_summary),
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        },
+                                        onClick = {
+                                            backstack.add(CustomButtonScreen)
+                                        },
+                                        enabled = enableLuaScriptsForButtons,
+                                    )
+                                    if (!enableLuaScriptsForButtons) {
+                                        // Disabled: intercept taps to explain why the entry is inert
+                                        Box(
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null,
+                                                    onClick = {
+                                                        Toast
+                                                            .makeText(
+                                                                context,
+                                                                context.getString(R.string.pref_custom_lua_disabled_toast),
+                                                                Toast.LENGTH_SHORT,
+                                                            ).show()
+                                                    }
+                                                )
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

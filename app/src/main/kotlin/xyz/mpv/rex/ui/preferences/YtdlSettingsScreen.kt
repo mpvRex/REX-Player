@@ -227,6 +227,28 @@ object YtdlSettingsScreen : Screen {
                         }
                     }
 
+                    // Section 1b: Add-on Update Channel
+                    item {
+                        PreferenceSectionHeader(title = stringResource(R.string.pref_category_ytdlp_updates))
+                    }
+
+                    item {
+                        val preferNightly by preferences.preferNightly.collectAsState()
+                        GroupedListColumn {
+                            GroupedPreferenceCard(
+                                position = GroupPosition.ONLY,
+                                highlightKey = "Prefer Nightly Channel",
+                            ) {
+                                SwitchPreference(
+                                    value = preferNightly,
+                                    onValueChange = { preferences.preferNightly.set(it) },
+                                    title = { Text("Prefer Nightly Channel") },
+                                    summary = { Text("Receive cutting-edge yt-dlp nightly extractor fixes", color = MaterialTheme.colorScheme.outline) },
+                                )
+                            }
+                        }
+                    }
+
                     // Section 2: Quality & Codec Preferences
                     item {
                         PreferenceSectionHeader(title = "Stream Quality")
@@ -235,7 +257,6 @@ object YtdlSettingsScreen : Screen {
                     item {
                         val quality by preferences.qualityPreference.collectAsState()
                         val geoBypass by preferences.geoBypass.collectAsState()
-                        val preferNightly by preferences.preferNightly.collectAsState()
 
                         GroupedListColumn {
                             GroupedPreferenceCard(
@@ -276,7 +297,7 @@ object YtdlSettingsScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
-                                position = GroupPosition.MIDDLE,
+                                position = GroupPosition.LAST,
                                 highlightKey = "Geo-Bypass",
                             ) {
                                 SwitchPreference(
@@ -284,18 +305,6 @@ object YtdlSettingsScreen : Screen {
                                     onValueChange = { preferences.geoBypass.set(it) },
                                     title = { Text("Geo-Bypass") },
                                     summary = { Text("Bypass geographic video restrictions where possible", color = MaterialTheme.colorScheme.outline) },
-                                )
-                            }
-
-                            GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
-                                highlightKey = "Prefer Nightly Channel",
-                            ) {
-                                SwitchPreference(
-                                    value = preferNightly,
-                                    onValueChange = { preferences.preferNightly.set(it) },
-                                    title = { Text("Prefer Nightly Channel") },
-                                    summary = { Text("Receive cutting-edge yt-dlp nightly extractor fixes", color = MaterialTheme.colorScheme.outline) },
                                 )
                             }
                         }

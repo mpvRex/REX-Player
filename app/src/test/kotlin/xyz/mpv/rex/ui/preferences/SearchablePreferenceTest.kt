@@ -230,7 +230,7 @@ class SearchablePreferenceTest {
         val first = results.first()
         assertEquals(R.string.pref_gesture_use_relative_seeking_title, first.titleRes)
         assertEquals(GesturePreferencesScreen, first.screen)
-        assertEquals(1, first.targetIndex)
+        assertEquals(3, first.targetIndex)
     }
 
     @Test

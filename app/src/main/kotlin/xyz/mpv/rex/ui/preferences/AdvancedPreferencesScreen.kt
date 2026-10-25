@@ -3,12 +3,15 @@ package xyz.mpv.rex.ui.preferences
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import xyz.mpv.rex.utils.media.OpenDocumentTreeContract
+import xyz.mpv.rex.utils.media.FontClearResult
+import xyz.mpv.rex.utils.media.clearFontFiles
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -46,7 +49,6 @@ import androidx.compose.ui.util.fastJoinToString
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import xyz.mpv.rex.R
-import xyz.mpv.rex.database.MpvExDatabase
 import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.SettingsManager
@@ -57,7 +59,6 @@ import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.presentation.crash.CrashActivity
 import xyz.mpv.rex.ui.utils.LocalBackStack
-import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -461,7 +462,7 @@ object AdvancedPreferencesScreen : Screen {
               }
               
               GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
+                position = GroupPosition.LAST,
                 highlightKey = R.string.pref_manage_lua_scripts_title,
               ) {
                 Preference(
@@ -493,142 +494,9 @@ object AdvancedPreferencesScreen : Screen {
                 )
               }
 
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_custom_lua_title,
-              ) {
-                Preference(
-                  title = { Text(stringResource(R.string.pref_custom_lua_title)) },
-                  summary = {
-                    Text(
-                      stringResource(R.string.pref_advanced_custom_lua_summary),
-                      color = MaterialTheme.colorScheme.outline
-                    )
-                  },
-                  onClick = {
-                    backStack.add(xyz.mpv.rex.ui.preferences.CustomButtonScreen)
-                  },
-                  enabled = enableLuaScripts,
-                )
-              }
             }
           }
           
-          // History Section
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_advanced_section_history))
-          }
-          
-          item {
-            var isConfirmDialogShown by remember { mutableStateOf(false) }
-            val mpvexDatabase = koinInject<MpvExDatabase>()
-            val enableRecentlyPlayed by preferences.enableRecentlyPlayed.collectAsState()
-            val autoRemoveDeleted by preferences.autoRemoveDeletedFromHistory.collectAsState()
-            val excludeExternal by preferences.excludeExternalPlaybackFromHistory.collectAsState()
-            
-            GroupedListColumn {
-              GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_advanced_enable_recently_played_title,
-              ) {
-                SwitchPreference(
-                  value = enableRecentlyPlayed,
-                  onValueChange = preferences.enableRecentlyPlayed::set,
-                  title = { Text(stringResource(R.string.pref_advanced_enable_recently_played_title)) },
-                  summary = { 
-                    Text(
-                      stringResource(R.string.pref_advanced_enable_recently_played_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    ) 
-                  },
-                )
-              }
-              
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_advanced_history_auto_remove_deleted_title,
-              ) {
-                SwitchPreference(
-                  value = autoRemoveDeleted,
-                  onValueChange = preferences.autoRemoveDeletedFromHistory::set,
-                  enabled = enableRecentlyPlayed,
-                  title = { Text(stringResource(R.string.pref_advanced_history_auto_remove_deleted_title)) },
-                  summary = { 
-                    Text(
-                      stringResource(R.string.pref_advanced_history_auto_remove_deleted_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    ) 
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_advanced_history_exclude_external_title,
-              ) {
-                SwitchPreference(
-                  value = excludeExternal,
-                  onValueChange = preferences.excludeExternalPlaybackFromHistory::set,
-                  enabled = enableRecentlyPlayed,
-                  title = { Text(stringResource(R.string.pref_advanced_history_exclude_external_title)) },
-                  summary = { 
-                    Text(
-                      stringResource(R.string.pref_advanced_history_exclude_external_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    ) 
-                  },
-                )
-              }
-              
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_advanced_clear_playback_history,
-              ) {
-                Column {
-                  Preference(
-                    title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
-                    onClick = { isConfirmDialogShown = true },
-                  )
-                  
-                  if (isConfirmDialogShown) {
-                    ConfirmDialog(
-                      stringResource(R.string.pref_advanced_clear_playback_history_confirm_title),
-                      stringResource(R.string.pref_advanced_clear_playback_history_confirm_subtitle),
-                      onConfirm = {
-                        scope.launch(Dispatchers.IO) {
-                          runCatching {
-                            mpvexDatabase.videoDataDao().clearAllPlaybackStates()
-                            RecentlyPlayedOps.clearAll()
-                          }.onSuccess {
-                            withContext(Dispatchers.Main) {
-                              isConfirmDialogShown = false
-                              Toast
-                                .makeText(
-                                  context,
-                                  context.getString(R.string.pref_advanced_cleared_playback_history),
-                                  Toast.LENGTH_SHORT,
-                                ).show()
-                            }
-                          }.onFailure { error ->
-                            withContext(Dispatchers.Main) {
-                              isConfirmDialogShown = false
-                              Toast
-                                .makeText(
-                                  context,
-                                  context.getString(R.string.clear_failed, error.message),
-                                  Toast.LENGTH_LONG,
-                                ).show()
-                            }
-                          }
-                        }
-                      },
-                      onCancel = { isConfirmDialogShown = false },
-                    )
-                  }
-                }
-              }
-            }
-          }
           
           // Cache Section
           item {
@@ -729,23 +597,26 @@ object AdvancedPreferencesScreen : Screen {
                   },
                   onClick = {
                     scope.launch(Dispatchers.IO) {
-                      val fontsDir = File(context.filesDir.path + "/fonts")
-                      if (fontsDir.exists()) {
-                        fontsDir.listFiles()?.forEach { file ->
-                          if (file.isFile &&
-                            file.name
-                              .lowercase()
-                              .matches(".*\\.[ot]tf$".toRegex())
-                          ) {
-                            file.delete()
+                      // Under the shared fonts lock, so it can't interleave with "Add Font File" or a folder copy.
+                      // Keeps fonts added with "Add Font File"; deletes nothing if that can't be determined safely.
+                      val cleared =
+                        when (val result = clearFontFiles(File(context.filesDir, "fonts"))) {
+                          is FontClearResult.Cleared -> {
+                            if (result.failed > 0) Log.w("AdvancedPreferences", "${result.failed} cached font(s) could not be deleted")
+                            result.failed == 0
+                          }
+                          is FontClearResult.Unavailable -> {
+                            Log.e("AdvancedPreferences", "Could not clear cached fonts", result.cause)
+                            false
                           }
                         }
-                      }
                       withContext(Dispatchers.Main) {
                         Toast
                           .makeText(
                             context,
-                            context.getString(R.string.pref_advanced_cleared_fonts_cache),
+                            context.getString(
+                              if (cleared) R.string.pref_advanced_cleared_fonts_cache else R.string.pref_advanced_clear_fonts_failed,
+                            ),
                             Toast.LENGTH_SHORT,
                           ).show()
                       }

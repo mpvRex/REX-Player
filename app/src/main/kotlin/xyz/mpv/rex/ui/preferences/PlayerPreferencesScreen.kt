@@ -27,11 +27,9 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.player.BackgroundPlaybackMode
-import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
 import xyz.mpv.rex.ui.player.PlayerOrientation
 import xyz.mpv.rex.ui.player.ResumePlaybackMode
 import xyz.mpv.rex.ui.player.VideoAspect
-import xyz.mpv.rex.ui.player.controls.components.sheets.toFixed
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
@@ -365,52 +363,14 @@ object PlayerPreferencesScreen : Screen {
           }
 
           item {
-            val showDoubleTapOvals by preferences.showDoubleTapOvals.collectAsState()
-            val showCircularDoubleTapSeek by preferences.showCircularDoubleTapSeek.collectAsState()
-            val showSeekTimeWhileSeeking by preferences.showSeekTimeWhileSeeking.collectAsState()
             val usePreciseSeeking by preferences.usePreciseSeeking.collectAsState()
             val showSeekBarWhenSeeking by preferences.showSeekBarWhenSeeking.collectAsState()
-            val whiteSeekBar by preferences.whiteSeekBar.collectAsState()
             val hideOsdText by preferences.hideOsdText.collectAsState()
             val customSkipDuration by preferences.customSkipDuration.collectAsState()
 
             GroupedListColumn {
               GroupedPreferenceCard(
                 position = GroupPosition.FIRST,
-                highlightKey = R.string.show_splash_ovals_on_double_tap_to_seek,
-              ) {
-                SwitchPreference(
-                  value = showDoubleTapOvals,
-                  onValueChange = preferences.showDoubleTapOvals::set,
-                  title = { Text(stringResource(R.string.show_splash_ovals_on_double_tap_to_seek)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_show_circular_double_tap_seek_title,
-              ) {
-                SwitchPreference(
-                  value = showCircularDoubleTapSeek,
-                  onValueChange = preferences.showCircularDoubleTapSeek::set,
-                  title = { Text(stringResource(R.string.pref_player_show_circular_double_tap_seek_title)) },
-                  summary = { Text(stringResource(R.string.pref_player_show_circular_double_tap_seek_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.show_time_on_double_tap_to_seek,
-              ) {
-                SwitchPreference(
-                  value = showSeekTimeWhileSeeking,
-                  onValueChange = preferences.showSeekTimeWhileSeeking::set,
-                  title = { Text(stringResource(R.string.show_time_on_double_tap_to_seek)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_use_precise_seeking,
               ) {
                 SwitchPreference(
@@ -429,18 +389,6 @@ object PlayerPreferencesScreen : Screen {
                   onValueChange = preferences.showSeekBarWhenSeeking::set,
                   title = { Text(stringResource(R.string.pref_player_show_seekbar_when_seeking_title)) },
                   summary = { Text(stringResource(R.string.pref_player_show_seekbar_when_seeking_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_white_seekbar_title,
-              ) {
-                SwitchPreference(
-                  value = whiteSeekBar,
-                  onValueChange = preferences.whiteSeekBar::set,
-                  title = { Text(stringResource(R.string.pref_player_white_seekbar_title)) },
-                  summary = { Text(stringResource(R.string.pref_player_white_seekbar_summary)) },
                 )
               }
 
@@ -479,287 +427,6 @@ object PlayerPreferencesScreen : Screen {
             }
           }
 
-          // Gestures Section
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_player_gestures))
-          }
-
-          item {
-            val brightnessGesture by preferences.brightnessGesture.collectAsState()
-            val volumeGesture by preferences.volumeGesture.collectAsState()
-            val pinchToZoomGesture by preferences.pinchToZoomGesture.collectAsState()
-            val panAndZoomEnabled by preferences.panAndZoomEnabled.collectAsState()
-            val horizontalSwipeToSeek by preferences.horizontalSwipeToSeek.collectAsState()
-            val swipeToSubtitleSeek by preferences.swipeToSubtitleSeek.collectAsState()
-            val moveSubtitleByDragging by preferences.moveSubtitleByDragging.collectAsState()
-            val pinchToResizeSubtitle by preferences.pinchToResizeSubtitle.collectAsState()
-            val horizontalSwipeSensitivity by preferences.horizontalSwipeSensitivity.collectAsState()
-            val holdForMultipleSpeed by preferences.holdForMultipleSpeed.collectAsState()
-            val longPressSpeedMemoryMode by preferences.longPressSpeedMemoryMode.collectAsState()
-            val showDynamicSpeedOverlay by preferences.showDynamicSpeedOverlay.collectAsState()
-            val showSpeedIndicatorOverlay by preferences.showSpeedIndicatorOverlay.collectAsState()
-
-            GroupedListColumn {
-              GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_player_gestures_brightness,
-              ) {
-                SwitchPreference(
-                  value = brightnessGesture,
-                  onValueChange = preferences.brightnessGesture::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_brightness)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_volume,
-              ) {
-                SwitchPreference(
-                  value = volumeGesture,
-                  onValueChange = preferences.volumeGesture::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_volume)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_pinch_to_zoom,
-              ) {
-                SwitchPreference(
-                  value = pinchToZoomGesture,
-                  onValueChange = preferences.pinchToZoomGesture::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_zoom)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_pan_and_zoom,
-              ) {
-                SwitchPreference(
-                  value = panAndZoomEnabled,
-                  onValueChange = preferences.panAndZoomEnabled::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_pan_and_zoom)) },
-                  summary = { Text(stringResource(R.string.pref_player_gestures_pan_and_zoom_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_horizontal_swipe_to_seek,
-              ) {
-                SwitchPreference(
-                  value = horizontalSwipeToSeek,
-                  onValueChange = preferences.horizontalSwipeToSeek::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_horizontal_swipe_to_seek)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_swipe_to_subtitle_seek_title,
-              ) {
-                SwitchPreference(
-                  value = swipeToSubtitleSeek,
-                  onValueChange = preferences.swipeToSubtitleSeek::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_title)) },
-                  summary = { Text(stringResource(R.string.pref_player_gestures_swipe_to_subtitle_seek_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_move_subtitle_by_dragging_title,
-              ) {
-                SwitchPreference(
-                  value = moveSubtitleByDragging,
-                  onValueChange = preferences.moveSubtitleByDragging::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_title)) },
-                  summary = { Text(stringResource(R.string.pref_player_gestures_move_subtitle_by_dragging_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_pinch_to_resize_subtitle_title,
-              ) {
-                SwitchPreference(
-                  value = pinchToResizeSubtitle,
-                  onValueChange = preferences.pinchToResizeSubtitle::set,
-                  title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_resize_subtitle_title)) },
-                  summary = { Text(stringResource(R.string.pref_player_gestures_pinch_to_resize_subtitle_summary)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_horizontal_swipe_sensitivity,
-              ) {
-                SliderPreference(
-                  value = horizontalSwipeSensitivity,
-                  onValueChange = { preferences.horizontalSwipeSensitivity.set(it.toFixed(3)) },
-                  title = { Text(stringResource(R.string.pref_player_gestures_horizontal_swipe_sensitivity)) },
-                  valueRange = 0.020f..0.1f,
-                  summary = {
-                    val sensitivityPercent = (horizontalSwipeSensitivity * 1000).toInt()
-                    Text(
-                      "Current: ${sensitivityPercent}/100 (${if (sensitivityPercent < 30) "Low" else if (sensitivityPercent < 55) "Medium" else "High"})",
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onSliderValueChange = { preferences.horizontalSwipeSensitivity.set(it.toFixed(3)) },
-                  sliderValue = horizontalSwipeSensitivity,
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_gestures_hold_for_multiple_speed,
-              ) {
-                SliderPreference(
-                  value = holdForMultipleSpeed,
-                  onValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
-                  title = { Text(stringResource(R.string.pref_player_gestures_hold_for_multiple_speed)) },
-                  valueRange = 0f..6f,
-                  summary = {
-                    Text(
-                      if (holdForMultipleSpeed == 0F) {
-                        stringResource(R.string.generic_disabled)
-                      } else {
-                        "%.2fx".format(holdForMultipleSpeed)
-                      },
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onSliderValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
-                  sliderValue = holdForMultipleSpeed,
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_remember_long_press_speed_title,
-              ) {
-                ListPreference(
-                  value = longPressSpeedMemoryMode,
-                  onValueChange = preferences.longPressSpeedMemoryMode::set,
-                  values = LongPressSpeedMemoryMode.entries,
-                  valueToText = { AnnotatedString(context.getString(it.titleRes)) },
-                  title = { Text(stringResource(R.string.pref_player_remember_long_press_speed_title)) },
-                  summary = {
-                    Text(
-                      stringResource(longPressSpeedMemoryMode.titleRes),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = listOf(R.string.pref_player_dynamic_speed_overlay, R.string.pref_dynamic_speed_overlay_title),
-              ) {
-                SwitchPreference(
-                  value = showDynamicSpeedOverlay,
-                  onValueChange = preferences.showDynamicSpeedOverlay::set,
-                  title = { Text(stringResource(R.string.pref_player_dynamic_speed_overlay)) },
-                  summary = {
-                    Text(
-                      stringResource(R.string.pref_player_dynamic_speed_overlay_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  }
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_player_show_speed_indicator_overlay,
-              ) {
-                SwitchPreference(
-                  value = showSpeedIndicatorOverlay,
-                  onValueChange = preferences.showSpeedIndicatorOverlay::set,
-                  title = { Text(stringResource(R.string.pref_player_show_speed_indicator_overlay)) },
-                  summary = {
-                    Text(
-                      stringResource(R.string.pref_player_show_speed_indicator_overlay_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  }
-                )
-              }
-            }
-          }
-
-          // Controls Section
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_player_controls))
-          }
-
-          item {
-            val disableMediaButtons by preferences.disableMediaButtons.collectAsState()
-            val allowGesturesInPanels by preferences.allowGesturesInPanels.collectAsState()
-            val swapVolumeAndBrightness by preferences.swapVolumeAndBrightness.collectAsState()
-            val showLoadingCircle by preferences.showLoadingCircle.collectAsState()
-
-            GroupedListColumn {
-              GroupedPreferenceCard(
-                position = GroupPosition.FIRST,
-                highlightKey = R.string.pref_player_controls_disable_media_buttons_title,
-              ) {
-                SwitchPreference(
-                  value = disableMediaButtons,
-                  onValueChange = preferences.disableMediaButtons::set,
-                  title = { Text(stringResource(id = R.string.pref_player_controls_disable_media_buttons_title)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_player_controls_disable_media_buttons_summary),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.pref_player_controls_allow_gestures_in_panels,
-              ) {
-                SwitchPreference(
-                  value = allowGesturesInPanels,
-                  onValueChange = preferences.allowGesturesInPanels::set,
-                  title = {
-                    Text(
-                      text = stringResource(id = R.string.pref_player_controls_allow_gestures_in_panels),
-                    )
-                  },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
-                highlightKey = R.string.swap_the_volume_and_brightness_slider,
-              ) {
-                SwitchPreference(
-                  value = swapVolumeAndBrightness,
-                  onValueChange = preferences.swapVolumeAndBrightness::set,
-                  title = { Text(stringResource(R.string.swap_the_volume_and_brightness_slider)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_player_controls_show_loading_circle,
-              ) {
-                SwitchPreference(
-                  value = showLoadingCircle,
-                  onValueChange = preferences.showLoadingCircle::set,
-                  title = { Text(stringResource(R.string.pref_player_controls_show_loading_circle)) },
-                )
-              }
-            }
-          }
-
           // Display Section
           item {
             PreferenceSectionHeader(title = stringResource(R.string.pref_player_display))
@@ -768,7 +435,6 @@ object PlayerPreferencesScreen : Screen {
           item {
             val showSystemStatusBar by preferences.showSystemStatusBar.collectAsState()
             val showSystemNavigationBar by preferences.showSystemNavigationBar.collectAsState()
-            val reduceMotion by preferences.reduceMotion.collectAsState()
 
             GroupedListColumn {
               GroupedPreferenceCard(
@@ -783,24 +449,13 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
-                position = GroupPosition.MIDDLE,
+                position = GroupPosition.LAST,
                 highlightKey = listOf(R.string.pref_player_display_show_navigation_bar, R.string.pref_show_navigation_bar_title),
               ) {
                 SwitchPreference(
                   value = showSystemNavigationBar,
                   onValueChange = preferences.showSystemNavigationBar::set,
                   title = { Text(stringResource(R.string.pref_player_display_show_navigation_bar)) },
-                )
-              }
-
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_player_display_reduce_player_animation,
-              ) {
-                SwitchPreference(
-                  value = reduceMotion,
-                  onValueChange = preferences.reduceMotion::set,
-                  title = { Text(stringResource(R.string.pref_player_display_reduce_player_animation)) },
                 )
               }
             }

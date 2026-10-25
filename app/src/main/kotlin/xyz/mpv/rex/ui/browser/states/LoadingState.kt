@@ -60,7 +60,7 @@ fun LoadingState(
       modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = 48.dp)
-        .padding(bottom = 80.dp), // Account for bottom navigation bar
+        .padding(bottom = 64.dp), // Account for bottom navigation bar
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center,
     ) {

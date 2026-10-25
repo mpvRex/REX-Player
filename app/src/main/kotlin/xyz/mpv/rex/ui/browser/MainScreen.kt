@@ -15,7 +15,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
@@ -372,7 +376,9 @@ object MainScreen : Screen {
               targetOffsetY = { fullHeight -> fullHeight }
             )
           ) {
+            val navBarBottomInset = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
             NavigationBar(
+              modifier = Modifier.height(64.dp + navBarBottomInset),
               containerColor = if (isShortsTabActive) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
               contentColor = if (isShortsTabActive) Color.White else MaterialTheme.colorScheme.onSurface,
             ) {
@@ -397,6 +403,7 @@ object MainScreen : Screen {
               visibleTabs.forEachIndexed { index, tab ->
                 val isYouTabWithCustomAvatar = tab.id == "you" && customAvatarBitmap != null
                 NavigationBarItem(
+                  modifier = Modifier.offset(y = 2.dp),
                   icon = {
                     if (isYouTabWithCustomAvatar) {
                       Image(
@@ -434,7 +441,7 @@ object MainScreen : Screen {
         }
     ) { _ ->
       Box(modifier = Modifier.fillMaxSize()) {
-        val fabBottomPadding = 80.dp
+        val fabBottomPadding = 64.dp
 
         AnimatedContent(
           targetState = selectedTab,
@@ -498,7 +505,7 @@ object MainScreen : Screen {
           val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
           
-          val navBarHeight = if (isNavBarVisible) 80.dp else 0.dp
+          val navBarHeight = if (isNavBarVisible) 64.dp else 0.dp
           val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
           val totalBottomPadding = navBarHeight + miniPlayerHeight
           

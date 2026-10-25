@@ -196,7 +196,18 @@ object LocaleHelper {
       val config = Configuration(context.resources.configuration)
       config.setLocale(locale)
       val localizedContext = context.createConfigurationContext(config)
-      val defaultTitle = context.resources.getString(R.string.pref_appearance_title)
+
+      // Baseline must be resolved in the app's default English locale, not the
+      // currently selected UI language — otherwise, with a non-English app
+      // language, untranslated (library) locales that fall back to English
+      // "differ" from the baseline and are wrongly listed as available.
+      val baseConfig = Configuration(context.resources.configuration)
+      baseConfig.setLocale(Locale.ENGLISH)
+      val defaultTitle = context
+        .createConfigurationContext(baseConfig)
+        .resources
+        .getString(R.string.pref_appearance_title)
+
       val localizedTitle = localizedContext.resources.getString(R.string.pref_appearance_title)
       defaultTitle != localizedTitle
     } catch (_: Exception) {

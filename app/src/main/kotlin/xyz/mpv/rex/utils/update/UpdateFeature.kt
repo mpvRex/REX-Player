@@ -66,7 +66,8 @@ data class Release(
     @SerialName("body") val body: String,
     @SerialName("published_at") val publishedAt: String,
     @SerialName("assets") val assets: List<Asset>,
-    @SerialName("html_url") val htmlUrl: String? = null
+    @SerialName("html_url") val htmlUrl: String? = null,
+    @SerialName("changelog") val changelog: List<ChangelogEntry> = emptyList()
 )
 
 @Serializable
@@ -75,6 +76,16 @@ data class Asset(
     @SerialName("name") val name: String,
     @SerialName("size") val size: Long,
     @SerialName("content_type") val contentType: String
+)
+
+// One commit of a preview build's changelog. `serial` matches the "r<serial>" preview
+// version name, `message` is the commit subject (first line only) and `sha` links to
+// the GitHub commit page.
+@Serializable
+data class ChangelogEntry(
+    @SerialName("serial") val serial: Int,
+    @SerialName("message") val message: String,
+    @SerialName("sha") val sha: String = ""
 )
 
 // --- Domain Manager ---
@@ -89,6 +100,8 @@ class UpdateManager(
         const val PREVIEW_PAGE_URL = "https://mpvrex.github.io/REX-Player/"
         const val PREVIEW_JSON_URL = "https://mpvrex.github.io/REX-Player/version.json"
         const val RELEASE_API_URL = "https://api.github.com/repos/mpvRex/REX-Player/releases/latest"
+        const val REPO_COMMIT_URL = "https://github.com/mpvRex/REX-Player/commit"
+        const val REPO_ISSUE_URL = "https://github.com/mpvRex/REX-Player/issues"
 
         fun isPreviewBuild(): Boolean {
             return BuildConfig.IS_PREVIEW || BuildConfig.BUILD_TYPE == "preview" || BuildConfig.APPLICATION_ID.endsWith(".preview")
@@ -112,6 +125,77 @@ class UpdateManager(
             } else {
                 false
             }
+        }
+
+        // --- Preview changelog → release notes markdown ---
+
+        private val markdownEscapes = Regex("""([\`*_\[\]!~<>])""")
+        private val issueRef = Regex("""#(\d+)""")
+
+        fun escapeMarkdown(text: String): String {
+            return markdownEscapes.replace(text) { "\\${it.groupValues[1]}" }
+        }
+
+        // Adjacent-span links: the message text links to the GitHub commit page and each
+        // "#123" reference links to the issue/PR. Markdown forbids nested links, so the
+        // message is split into ordered spans instead of wrapping the whole line.
+        private fun commitSpan(entry: ChangelogEntry, text: String): String {
+            if (text.isEmpty()) return ""
+            // Keep pure-separator runs (")" etc.) plain; only real message text is a link.
+            if (entry.sha.isBlank() || !text.any { it.isLetterOrDigit() }) {
+                return escapeMarkdown(text)
+            }
+            return "[${escapeMarkdown(text)}]($REPO_COMMIT_URL/${entry.sha})"
+        }
+
+        private fun buildEntryLine(entry: ChangelogEntry): String {
+            val line = StringBuilder("- **r").append(entry.serial).append("** ")
+            val message = entry.message.trim()
+            if (message.isEmpty()) return line.toString().trim()
+            var index = 0
+            for (match in issueRef.findAll(message)) {
+                line.append(commitSpan(entry, message.substring(index, match.range.first)))
+                line.append('[')
+                    .append(match.value)
+                    .append("](")
+                    .append(REPO_ISSUE_URL)
+                    .append('/')
+                    .append(match.groupValues[1])
+                    .append(')')
+                index = match.range.last + 1
+            }
+            line.append(commitSpan(entry, message.substring(index)))
+            return line.toString()
+        }
+
+        /**
+         * Builds release notes for a preview update: commit messages between the installed
+         * build (serial > currentCommitCount) and the available build. Entries older than
+         * the changelog window are summarised in a trailing "and N more" note. Falls back
+         * to the static body when no structured changelog is available.
+         */
+        fun buildPreviewReleaseNotes(release: Release, currentCommitCount: Int): String {
+            if (release.changelog.isEmpty()) return release.body
+            val shown = release.changelog
+                .filter { it.serial > currentCommitCount }
+                .sortedByDescending { it.serial }
+            if (shown.isEmpty()) return release.body
+            val notes = StringBuilder("### What's changed\n")
+            shown.forEach { notes.append(buildEntryLine(it)).append('\n') }
+            // Count every commit between the installed build and the release tag — not just
+            // the entries in the (capped, possibly merge-less) changelog window.
+            val latestSerial = parseCommitCount(release.tagName)
+            val totalBetween = if (latestSerial != null) {
+                latestSerial - currentCommitCount
+            } else {
+                shown.first().serial - currentCommitCount
+            }
+            val skipped = totalBetween - shown.size
+            if (skipped > 0) {
+                notes.append("\n*…and ").append(skipped)
+                    .append(" more commits (only the latest 20 are shown)*\n")
+            }
+            return notes.toString().trim()
         }
 
         fun parseFileSizeToBytes(sizeStr: String): Long {
@@ -272,7 +356,8 @@ class UpdateManager(
 
         val currentCommitCount = getCurrentCommitCount()
         return if (isNewerPreviewVersion(remoteVersion, currentCommitCount)) {
-            ensureAssetSizes(release)
+            val sizedRelease = ensureAssetSizes(release)
+            sizedRelease.copy(body = buildPreviewReleaseNotes(release, currentCommitCount))
         } else {
             null
         }

@@ -16,6 +16,7 @@ jobs:
     outputs:
       commit_count: ${{ steps.set_commit.outputs.commit_count }}
       build_time: ${{ steps.set_commit.outputs.build_time }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
       universal_size: ${{ steps.set_commit.outputs.universal_size }}
       arm64-v8a_size: ${{ steps.set_commit.outputs.arm64-v8a_size }}
       armeabi-v7a_size: ${{ steps.set_commit.outputs.armeabi-v7a_size }}
@@ -32,6 +33,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Generate preview changelog (last 20 commits)
+        id: changelog
+        run: |
+          set -e
+          LIMIT=20
+          CHANGELOG_JSON="["
+          i=0
+          while IFS=$'\t' read -r sha msg; do
+            [ -z "$sha" ] && continue
+            serial=$(git rev-list --count "$sha")
+            esc=$(printf '%s' "$msg" | jq -Rs .)
+            if [ "$i" -gt 0 ]; then CHANGELOG_JSON+=","; fi
+            CHANGELOG_JSON+="{\"serial\":$serial,\"message\":$esc,\"sha\":\"$sha\"}"
+            i=$((i+1))
+          done < <(git log --no-merges -${LIMIT} --format='%H%x09%s')
+          CHANGELOG_JSON+="]"
+          # Must be a valid JSON array of at most LIMIT entries before it can be shipped
+          jq -e "type == \"array\" and length <= ${LIMIT}" >/dev/null <<<"$CHANGELOG_JSON"
+          echo "changelog=$CHANGELOG_JSON" >> $GITHUB_OUTPUT
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -155,6 +176,18 @@ jobs:
           envsubst < .github/workflows/preview.template.html > ./public/index.html
           envsubst < .github/workflows/preview.template.json > ./public/version.json
 
+      - name: Inject changelog into version.json
+        env:
+          CHANGELOG_JSON: ${{ needs.build.outputs.changelog }}
+        run: |
+          set -e
+          if jq -e . >/dev/null 2>&1 <<<"$CHANGELOG_JSON"; then
+            jq --argjson changelog "$CHANGELOG_JSON" '.changelog = $changelog' \
+              ./public/version.json > ./public/version.json.tmp
+            mv ./public/version.json.tmp ./public/version.json
+          else
+            echo "::warning::Changelog payload missing or invalid; version.json will not include changelog"
+          fi
 
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3

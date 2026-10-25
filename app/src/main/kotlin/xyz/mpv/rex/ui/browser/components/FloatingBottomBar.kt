@@ -76,7 +76,7 @@ fun BrowserBottomBar(
   val isMainScreen = backstack.lastOrNull() == MainScreen
   val haptic = LocalHapticFeedback.current
 
-  val navBarHeight = if (isMainScreen) 80.dp else 0.dp
+  val navBarHeight = if (isMainScreen) 64.dp else 0.dp
   val miniPlayerOffset = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
   val targetBottomPadding = navBarHeight + miniPlayerOffset + 16.dp
 
