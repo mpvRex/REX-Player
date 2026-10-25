@@ -500,12 +500,12 @@ fun GestureHandler(
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 originalSpeed = playbackSpeed ?: 1f
                 val targetSpeed = when (longPressSpeedMemoryMode) {
-                  LongPressSpeedMemoryMode.Reset -> 2f
+                  LongPressSpeedMemoryMode.Reset -> multipleSpeedGesture
                   LongPressSpeedMemoryMode.Global -> multipleSpeedGesture
                   LongPressSpeedMemoryMode.PerVideo ->
                     mediaIdentifier.takeIf { it.isNotBlank() }?.let {
-                      playerPreferences.longPressSpeedForVideo(it).get()
-                    } ?: 2f
+                      playerPreferences.longPressSpeedForVideo(it, defaultSpeed = multipleSpeedGesture).get()
+                    } ?: multipleSpeedGesture
                 }
                 // Ramp speed up incrementally to avoid audio filter stutter
                 val startSpeed = originalSpeed

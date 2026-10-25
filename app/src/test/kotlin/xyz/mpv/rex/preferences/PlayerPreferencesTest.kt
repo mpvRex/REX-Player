@@ -16,46 +16,56 @@ class PlayerPreferencesTest {
   private class InMemoryPreference<T>(
     private val key: String,
     private val defaultValue: T,
+    private val storage: MutableMap<String, Any?>,
   ) : Preference<T> {
-    private val flow = MutableStateFlow(defaultValue)
+    private val flow = MutableStateFlow(get())
 
     override fun key(): String = key
-    override fun get(): T = flow.value
-    override fun set(value: T) { flow.value = value }
-    override fun isSet(): Boolean = true
-    override fun delete() { flow.value = defaultValue }
+    @Suppress("UNCHECKED_CAST")
+    override fun get(): T = (storage[key] as? T) ?: defaultValue
+    override fun set(value: T) {
+      storage[key] = value
+      flow.value = value
+    }
+    override fun isSet(): Boolean = storage.containsKey(key)
+    override fun delete() {
+      storage.remove(key)
+      flow.value = defaultValue
+    }
     override fun defaultValue(): T = defaultValue
     override fun changes(): Flow<T> = flow.asStateFlow()
     override fun stateIn(scope: CoroutineScope) = flow.asStateFlow()
   }
 
   private class InMemoryPreferenceStore : PreferenceStore {
+    private val storage = mutableMapOf<String, Any?>()
+
     override fun getString(key: String, defaultValue: String): Preference<String> =
-      InMemoryPreference(key, defaultValue)
+      InMemoryPreference(key, defaultValue, storage)
 
     override fun getLong(key: String, defaultValue: Long): Preference<Long> =
-      InMemoryPreference(key, defaultValue)
+      InMemoryPreference(key, defaultValue, storage)
 
     override fun getInt(key: String, defaultValue: Int): Preference<Int> =
-      InMemoryPreference(key, defaultValue)
+      InMemoryPreference(key, defaultValue, storage)
 
     override fun getFloat(key: String, defaultValue: Float): Preference<Float> =
-      InMemoryPreference(key, defaultValue)
+      InMemoryPreference(key, defaultValue, storage)
 
     override fun getBoolean(key: String, defaultValue: Boolean): Preference<Boolean> =
-      InMemoryPreference(key, defaultValue)
+      InMemoryPreference(key, defaultValue, storage)
 
     override fun getStringSet(key: String, defaultValue: Set<String>): Preference<Set<String>> =
-      InMemoryPreference(key, defaultValue)
+      InMemoryPreference(key, defaultValue, storage)
 
     override fun <T> getObject(
       key: String,
       defaultValue: T,
       serializer: (T) -> String,
       deserializer: (String) -> T,
-    ): Preference<T> = InMemoryPreference(key, defaultValue)
+    ): Preference<T> = InMemoryPreference(key, defaultValue, storage)
 
-    override fun getAll(): Map<String, *> = emptyMap<String, Any>()
+    override fun getAll(): Map<String, *> = storage
   }
 
   @Test
@@ -166,6 +176,23 @@ class PlayerPreferencesTest {
 
     preferences.lastMoreSheetTab.delete()
     assertEquals(0, preferences.lastMoreSheetTab.get())
+  }
+
+  @Test
+  fun longPressSpeedForVideo_defaultsToHoldForMultipleSpeed_andPersistsPerVideo() {
+    val store = InMemoryPreferenceStore()
+    val preferences = PlayerPreferences(store)
+
+    assertEquals(2f, preferences.holdForMultipleSpeed.get(), 0.001f)
+    assertEquals(2f, preferences.longPressSpeedForVideo("video_1").get(), 0.001f)
+
+    preferences.holdForMultipleSpeed.set(3f)
+    assertEquals(3f, preferences.longPressSpeedForVideo("video_1").get(), 0.001f)
+
+    preferences.longPressSpeedForVideo("video_1").set(4.5f)
+    assertEquals(4.5f, preferences.longPressSpeedForVideo("video_1").get(), 0.001f)
+
+    assertEquals(3f, preferences.longPressSpeedForVideo("video_2").get(), 0.001f)
   }
 }
 

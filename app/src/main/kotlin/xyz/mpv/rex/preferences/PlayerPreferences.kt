@@ -40,12 +40,15 @@ class PlayerPreferences(
     }
   }
 
-  fun longPressSpeedForVideo(mediaIdentifier: String): Preference<Float> {
+  fun longPressSpeedForVideo(
+    mediaIdentifier: String,
+    defaultSpeed: Float = holdForMultipleSpeed.get(),
+  ): Preference<Float> {
     val identifierHash =
       MessageDigest.getInstance("SHA-256")
         .digest(mediaIdentifier.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-    return preferenceStore.getFloat("long_press_speed_video_$identifierHash", 2f)
+    return preferenceStore.getFloat("long_press_speed_video_$identifierHash", defaultSpeed)
   }
   val showDynamicSpeedOverlay = preferenceStore.getBoolean("show_dynamic_speed_overlay", true)
   val showSpeedIndicatorOverlay = preferenceStore.getBoolean("show_speed_indicator_overlay", true)
