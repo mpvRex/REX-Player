@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.FormatItalic
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.automirrored.outlined.NoteAdd
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -604,11 +605,9 @@ private fun SubtitleTypographySection(
         modifier = Modifier.weight(1f),
         leadingIcon = fontsLoadingIndicator,
         actionLabel = stringResource(R.string.player_sheets_sub_typography_add_font_file),
-        actionIcon = painterResource(R.drawable.outline_note_add_circle_24),
+        actionIcon = Icons.AutoMirrored.Outlined.NoteAdd,
         actionIconTint = MaterialTheme.colorScheme.primary,
-        optionIcon = painterResource(R.drawable.outline_match_case_24),
-        emphasizedOptionIcon = painterResource(R.drawable.outline_match_case_bold_24),
-        emphasizedOption = "Default",
+        optionIcon = matchCaseIcon,
         onActionClick = { showFontFilePicker = true },
       )
     }

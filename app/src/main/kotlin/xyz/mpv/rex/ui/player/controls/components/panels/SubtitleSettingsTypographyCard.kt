@@ -37,9 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
@@ -211,9 +213,7 @@ fun SubtitleSettingsTypographyCard(modifier: Modifier = Modifier) {
             setSubtitleFont(actualFont)
           },
           leadingIcon = fontsLoadingIndicator,
-          optionIcon = painterResource(R.drawable.outline_match_case_24),
-          emphasizedOptionIcon = painterResource(R.drawable.outline_match_case_bold_24),
-          emphasizedOption = "Default",
+          optionIcon = matchCaseIcon,
         )
       }
       SliderItem(
@@ -271,6 +271,14 @@ fun SubtitleSettingsTypographyCard(modifier: Modifier = Modifier) {
     }
   }
 }
+
+/**
+ * `match_case` is a Material Symbols glyph, which the Compose `material-icons-extended` artifact does not ship (it is
+ * frozen at the pre-Symbols icon set), hence the vendored drawable. It is the same workaround as
+ * [R.drawable.outline_brand_family_24].
+ */
+internal val matchCaseIcon: ImageVector
+  @Composable get() = ImageVector.vectorResource(R.drawable.outline_match_case_24)
 
 /**
  * Applies [font] to the primary and secondary subtitles ("" = Default).
