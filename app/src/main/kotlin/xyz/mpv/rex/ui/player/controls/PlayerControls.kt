@@ -495,11 +495,18 @@ fun PlayerControls(
           label = "frameNavYOffset"
         )
 
+        val currentPlayerUpdate by viewModel.playerUpdate.collectAsState()
         val osdTopMargin by animateDpAsState(
           targetValue = if (areButtonsVisible) {
             if (isPortrait) 104.dp else 68.dp
           } else {
             if (isPortrait) 64.dp else 32.dp
+          },
+          animationSpec = if (currentPlayerUpdate is PlayerUpdates.ResumedFrom ||
+           currentPlayerUpdate is PlayerUpdates.PromptResume) {
+            tween(durationMillis = 300, easing = androidx.compose.animation.core.EaseInOut)
+          } else {
+            androidx.compose.animation.core.spring()
           },
           label = "osdTopMargin"
         )
@@ -578,7 +585,6 @@ fun PlayerControls(
         }
 
         val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
-        val currentPlayerUpdate by viewModel.playerUpdate.collectAsState()
         val aspectRatio by viewModel.videoAspect.collectAsState()
         val currentAspectRatio by viewModel.currentAspectRatio.collectAsState()
         val videoZoom by viewModel.videoZoom.collectAsState()
