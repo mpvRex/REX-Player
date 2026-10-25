@@ -502,7 +502,8 @@ fun PlayerControls(
           } else {
             if (isPortrait) 64.dp else 32.dp
           },
-          animationSpec = if (currentPlayerUpdate is PlayerUpdates.ResumedFrom) {
+          animationSpec = if (currentPlayerUpdate is PlayerUpdates.ResumedFrom ||
+           currentPlayerUpdate is PlayerUpdates.PromptResume) {
             tween(durationMillis = 300, easing = androidx.compose.animation.core.EaseInOut)
           } else {
             androidx.compose.animation.core.spring()
