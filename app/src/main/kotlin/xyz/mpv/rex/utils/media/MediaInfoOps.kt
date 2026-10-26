@@ -5,6 +5,8 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import java.io.File
+import java.text.DateFormat
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.mediaarea.mediainfo.lib.MediaInfo
@@ -122,6 +124,64 @@ object MediaInfoOps {
   }
 
   /**
+   * Reads the MediaStore indexing timestamp for this item, including file:// and
+   * document URIs that can be resolved to a shared-storage path.
+   */
+  private fun queryDateAddedSeconds(context: Context, uri: Uri, existingFd: Int? = null): Long? {
+    fun queryDateAdded(
+      queryUri: Uri,
+      selection: String? = null,
+      selectionArgs: Array<String>? = null,
+    ): Long? = runCatching {
+      context.contentResolver.query(
+        queryUri,
+        arrayOf(MediaStore.MediaColumns.DATE_ADDED),
+        selection,
+        selectionArgs,
+        null,
+      )?.use { cursor ->
+        val index = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_ADDED)
+        if (index < 0 || !cursor.moveToFirst() || cursor.isNull(index)) {
+          null
+        } else {
+          cursor.getLong(index).takeIf { it > 0L }
+        }
+      }
+    }.getOrNull()
+
+    queryDateAdded(uri)?.let { return it }
+
+    val path = resolvePath(context, uri, existingFd)?.takeIf { it.isNotBlank() } ?: return null
+    return queryDateAdded(
+      MediaStore.Files.getContentUri("external"),
+      "${MediaStore.MediaColumns.DATA} = ?",
+      arrayOf(path),
+    )
+  }
+
+  private fun insertDateAdded(text: String, label: String, dateAddedSeconds: Long): String {
+    val dateValue = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+      .format(Date(dateAddedSeconds * 1000L))
+    val lines = text.lines().toMutableList()
+    val completeNameIdx = lines.indexOfFirst {
+      it.trimStart().startsWith("Complete name", ignoreCase = true) ||
+        it.trimStart().startsWith("CompleteName", ignoreCase = true)
+    }
+    val generalIdx = lines.indexOfFirst { it.trim().equals("General", ignoreCase = true) }
+    val anchorIdx = if (completeNameIdx >= 0) completeNameIdx else generalIdx
+    if (anchorIdx < 0) return text
+
+    val colonIdx = if (completeNameIdx >= 0) lines[completeNameIdx].indexOf(':') else -1
+    val formattedLine = if (colonIdx > label.length) {
+      "${label.padEnd(colonIdx)}: $dateValue"
+    } else {
+      "$label : $dateValue"
+    }
+    lines.add(anchorIdx + 1, formattedLine)
+    return lines.joinToString("\n")
+  }
+
+  /**
    * Extract detailed media information from a video file
    */
   suspend fun getMediaInfo(
@@ -188,6 +248,14 @@ object MediaInfoOps {
 
           // Get the formatted text output
           var textOutput = mi.Inform()
+          val dateAddedLabel = context.getString(xyz.mpv.rex.R.string.media_info_date_added)
+          queryDateAddedSeconds(context, uri, fd)?.let { dateAddedSeconds ->
+            textOutput = insertDateAdded(textOutput, dateAddedLabel, dateAddedSeconds)
+          }
+          queryDateModifiedSeconds(context, uri, fd)?.let { dateModifiedSeconds ->
+            val dateModifiedLabel = context.getString(xyz.mpv.rex.R.string.media_info_date_modified)
+            textOutput = insertDateModified(textOutput, dateAddedLabel, dateModifiedLabel, dateModifiedSeconds)
+          }
           if (!folderPath.isNullOrBlank()) {
             val label = context.getString(xyz.mpv.rex.R.string.media_info_folder_path)
             textOutput = insertFolderPath(textOutput, label, folderPath)
@@ -206,6 +274,69 @@ object MediaInfoOps {
         }
       }
     }
+
+  /** Reads the filesystem modification timestamp from MediaStore, in seconds since the Unix epoch. */
+  private fun queryDateModifiedSeconds(context: Context, uri: Uri, existingFd: Int? = null): Long? {
+    fun queryDateModified(
+      queryUri: Uri,
+      selection: String? = null,
+      selectionArgs: Array<String>? = null,
+    ): Long? = runCatching {
+      context.contentResolver.query(
+        queryUri,
+        arrayOf(MediaStore.MediaColumns.DATE_MODIFIED),
+        selection,
+        selectionArgs,
+        null,
+      )?.use { cursor ->
+        val index = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+        if (index < 0 || !cursor.moveToFirst() || cursor.isNull(index)) {
+          null
+        } else {
+          cursor.getLong(index).takeIf { it > 0L }
+        }
+      }
+    }.getOrNull()
+
+    queryDateModified(uri)?.let { return it }
+
+    val path = resolvePath(context, uri, existingFd)?.takeIf { it.isNotBlank() } ?: return null
+    return queryDateModified(
+      MediaStore.Files.getContentUri("external"),
+      "${MediaStore.MediaColumns.DATA} = ?",
+      arrayOf(path),
+    )
+  }
+
+  private fun insertDateModified(
+    text: String,
+    dateAddedLabel: String,
+    dateModifiedLabel: String,
+    dateModifiedSeconds: Long,
+  ): String {
+    val dateValue = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+      .format(Date(dateModifiedSeconds * 1000L))
+    val lines = text.lines().toMutableList()
+    val dateAddedIdx = lines.indexOfFirst { line ->
+      val colonIdx = line.indexOf(':')
+      colonIdx > 0 && line.substring(0, colonIdx).trim().equals(dateAddedLabel, ignoreCase = true)
+    }
+    val completeNameIdx = lines.indexOfFirst {
+      it.trimStart().startsWith("Complete name", ignoreCase = true) ||
+        it.trimStart().startsWith("CompleteName", ignoreCase = true)
+    }
+    val anchorIdx = if (dateAddedIdx >= 0) dateAddedIdx else completeNameIdx
+    if (anchorIdx < 0) return text
+
+    val colonIdx = if (completeNameIdx >= 0) lines[completeNameIdx].indexOf(':') else -1
+    val formattedLine = if (colonIdx > dateModifiedLabel.length) {
+      "${dateModifiedLabel.padEnd(colonIdx)}: $dateValue"
+    } else {
+      "$dateModifiedLabel : $dateValue"
+    }
+    lines.add(anchorIdx + 1, formattedLine)
+    return lines.joinToString("\n")
+  }
 
   private fun MediaInfo.getInfo(
     stream: MediaInfo.Stream,
