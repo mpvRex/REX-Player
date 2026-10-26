@@ -497,7 +497,12 @@ fun PlayerControls(
 
         val currentPlayerUpdate by viewModel.playerUpdate.collectAsState()
         val osdTopMargin by animateDpAsState(
-          targetValue = if (areButtonsVisible) {
+          targetValue = if (
+           areButtonsVisible ||
+            (controlsShown && !areControlsLocked &&
+             (currentPlayerUpdate is PlayerUpdates.ResumedFrom ||
+              currentPlayerUpdate is PlayerUpdates.PromptResume))
+           ){
             if (isPortrait) 104.dp else 68.dp
           } else {
             if (isPortrait) 64.dp else 32.dp
