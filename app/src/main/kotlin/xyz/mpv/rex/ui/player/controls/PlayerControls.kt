@@ -496,14 +496,24 @@ fun PlayerControls(
         )
 
         val currentPlayerUpdate by viewModel.playerUpdate.collectAsState()
+        val isSpeedLocked by viewModel.isSpeedLocked.collectAsState()
         val osdTopMargin by animateDpAsState(
-          targetValue = if (areButtonsVisible) {
+          targetValue = if (
+            areButtonsVisible ||
+              (controlsShown && !areControlsLocked &&
+                doubleTapSeekAmount == 0 &&
+                (currentPlayerUpdate !is PlayerUpdates.None ||
+                  (isSpeedLocked && abs((playbackSpeed ?: 1f) - 1f) > 0.01f)))
+          ) {
             if (isPortrait) 104.dp else 68.dp
           } else {
             if (isPortrait) 64.dp else 32.dp
           },
-          animationSpec = if (currentPlayerUpdate is PlayerUpdates.ResumedFrom ||
-           currentPlayerUpdate is PlayerUpdates.PromptResume) {
+          animationSpec = if (
+            doubleTapSeekAmount == 0 ||
+              currentPlayerUpdate is PlayerUpdates.ResumedFrom ||
+              currentPlayerUpdate is PlayerUpdates.PromptResume
+          ) {
             tween(durationMillis = 300, easing = androidx.compose.animation.core.EaseInOut)
           } else {
             androidx.compose.animation.core.spring()
@@ -601,7 +611,6 @@ fun PlayerControls(
           viewModel.playerUpdate.update { PlayerUpdates.None }
         }
 
-        val isSpeedLocked by viewModel.isSpeedLocked.collectAsState()
         val isSpeedUpdate = currentPlayerUpdate is PlayerUpdates.MultipleSpeed ||
           currentPlayerUpdate is PlayerUpdates.DynamicSpeedControl ||
           (currentPlayerUpdate is PlayerUpdates.SpeedLockHint && !(currentPlayerUpdate as PlayerUpdates.SpeedLockHint).isLocked)
@@ -1855,6 +1864,7 @@ fun PlayerControls(
             bottom.linkTo(parent.bottom)
             verticalBias = abLoopVerticalBias
           }
+            .offset(y = (-16).dp)
         ) {
           val itemShape = RoundedCornerShape(14.dp)
           val buttonSize = 38.dp
