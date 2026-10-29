@@ -1075,7 +1075,7 @@ class PlayerActivity :
     // Check if auto PIP is enabled - enter PIP mode instead of finishing
     if (playerPreferences.autoPiPOnNavigation.get() && isReady) {
       miniPlayerStateManager.clearState()
-      pipHelper.enterPipMode()
+      pipController.enterPipMode()
       return
     }
 
@@ -1154,8 +1154,8 @@ class PlayerActivity :
 
   override fun onUserLeaveHint() {
     super.onUserLeaveHint()
-    // Enter PIP mode when user presses home button if auto PIP is enabled
-    if (playerPreferences.autoPiPOnNavigation.get() && isReady && !isFinishing) {
+    // Enter PIP mode on Home only when both PiP settings are enabled
+    if (playerPreferences.autoPiPOnNavigation.get() && playerPreferences.pipOnHome.get() && isReady && !isFinishing) {
       pipController.isEnteringPip = true
       miniPlayerStateManager.clearState()
       pipHelper.enterPipMode()
@@ -1287,8 +1287,9 @@ class PlayerActivity :
       val isInPip = isInPictureInPictureMode || pipController.isEnteringPip || pipController.wasInPipMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
       val isEnding = isUserFinishing || isFinishing
-      val isAutoPipEnabled = playerPreferences.autoPiPOnNavigation.get()
-      val isPipTargeted = isInPip || (isAutoPipEnabled && !isEnding)
+      val isAutoPipOnHomeEnabled =
+        playerPreferences.autoPiPOnNavigation.get() && playerPreferences.pipOnHome.get()
+      val isPipTargeted = isInPip || (isAutoPipOnHomeEnabled && !isEnding)
       val shouldPause = (!audioPreferences.automaticBackgroundPlayback.get() && !isManualBackgroundPlayback) || 
                         (isEnding && !isManualBackgroundPlayback)
 
