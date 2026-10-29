@@ -601,6 +601,34 @@ object GesturePreferencesScreen : Screen {
 
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_gesture_instant_controls_toggle_title,
+              ) {
+                val instantControlsToggle by preferences.instantControlsToggle.collectAsState()
+                SwitchPreference(
+                  value = instantControlsToggle,
+                  onValueChange = { preferences.instantControlsToggle.set(it) },
+                  title = {
+                    Text(
+                      text = stringResource(id = R.string.pref_gesture_instant_controls_toggle_title),
+                    )
+                  },
+                  summary = {
+                    Text(
+                      text = stringResource(
+                        id =
+                          if (instantControlsToggle) {
+                            R.string.pref_gesture_instant_controls_toggle_on_summary
+                          } else {
+                            R.string.pref_gesture_instant_controls_toggle_off_summary
+                          },
+                      ),
+                    )
+                  },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_gesture_prevent_seekbar_tap_title,
               ) {
                 SwitchPreference(

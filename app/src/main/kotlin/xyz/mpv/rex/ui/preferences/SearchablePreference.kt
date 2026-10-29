@@ -721,6 +721,14 @@ object SearchablePreferences {
                 targetIndex = 3,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_gesture_instant_controls_toggle_title,
+                summaryRes = R.string.pref_gesture_instant_controls_toggle_off_summary,
+                keywords = listOf("instant", "controls", "tap", "touch", "delay", "double tap", "seek", "flash", "lag"),
+                category = "Gestures",
+                screen = GesturePreferencesScreen,
+                targetIndex = 3,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_gesture_prevent_seekbar_tap_title,
                 summaryRes = R.string.pref_gesture_prevent_seekbar_tap_summary,
                 keywords = listOf("prevent", "seekbar", "tap", "accidental", "touch"),

@@ -249,6 +249,9 @@
     <string name="pref_gesture_use_single_tap_for_center_summary">Use a single tap in the center for gestures (like play/pause) instead of a double tap.</string>
     <string name="pref_gesture_use_single_tap_for_left_right_title">Use single tap for left/right gesture</string>
     <string name="pref_gesture_use_single_tap_for_left_right_summary">Use a single tap in the left and right areas for gestures instead of a double tap.</string>
+    <string name="pref_gesture_instant_controls_toggle_title">Instant controls</string>
+    <string name="pref_gesture_instant_controls_toggle_on_summary">Controls appear the moment you tap. They may flash briefly during a double-tap seek.</string>
+    <string name="pref_gesture_instant_controls_toggle_off_summary">Controls wait for the double-tap window, so seeking never flashes them.</string>
     <string name="pref_gesture_prevent_seekbar_tap_title">Prevent Seeking on Accidental Taps</string>
     <string name="pref_gesture_prevent_seekbar_tap_summary">Video will only seek by dragging the seekbar, not by tapping it.</string>
     <string name="pref_gesture_use_relative_seeking_title">Use Relative Seeking</string>

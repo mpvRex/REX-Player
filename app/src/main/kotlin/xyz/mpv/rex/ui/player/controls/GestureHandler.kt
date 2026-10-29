@@ -1,5 +1,6 @@
 package xyz.mpv.rex.ui.player.controls
 
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,6 +50,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.toSize
 import `is`.xyz.mpv.MPVLib
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.AudioPreferences
@@ -81,6 +84,7 @@ import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.LongPressSpeedMemoryMode
 import xyz.mpv.rex.ui.player.PlayerViewModel
 import xyz.mpv.rex.ui.player.PlayerTutorialManager
+import xyz.mpv.rex.ui.player.Sheets
 import xyz.mpv.rex.ui.player.SingleActionGesture
 import xyz.mpv.rex.ui.theme.playerRippleConfiguration
 import kotlinx.coroutines.delay
@@ -88,9 +92,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sqrt
+
+/**
+ * How long a still touch must be held before it becomes a long press. Shared by the long-press job
+ * and the tap engine's lift check so the two can never disagree about what counts as a tap.
+ */
+private const val LongPressDelayMs = 500L
 
 @Suppress("CyclomaticComplexMethod", "MultipleEmitters")
 @Composable
@@ -113,11 +124,13 @@ fun GestureHandler(
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState()
   val controlsShown by viewModel.controlsShown.collectAsState()
   val areControlsLocked by viewModel.areControlsLocked.collectAsState()
+  val sheetShown by viewModel.sheetShown.collectAsState()
   val seekAmount by viewModel.doubleTapSeekAmount.collectAsState()
   val isSeekingForwards by viewModel.isSeekingForwards.collectAsState()
   val useSingleTapForCenter by gesturePreferences.useSingleTapForCenter.collectAsState()
   val useSingleTapForLeftRight by gesturePreferences.useSingleTapForLeftRight.collectAsState()
   val reverseDoubleTap by gesturePreferences.reverseDoubleTap.collectAsState()
+  val instantControlsToggle by gesturePreferences.instantControlsToggle.collectAsState()
   val doubleTapSeekAreaWidth by gesturePreferences.doubleTapSeekAreaWidth.collectAsState()
   var isDoubleTapSeeking by remember { mutableStateOf(false) }
   var longPressStartTime by remember { mutableStateOf(0L) }
@@ -150,7 +163,6 @@ fun GestureHandler(
   var dynamicSpeedStartValue by remember { mutableStateOf(2f) }
   var lastAppliedSpeed by remember { mutableStateOf(2f) }
   var hasSwipedEnough by remember { mutableStateOf(false) }
-  var longPressTriggeredDuringTouch by remember { mutableStateOf(false) }
   var isVerticalGestureActive by remember { mutableStateOf(false) }
   var hasIncrementedSpeedLockHint by remember { mutableStateOf(false) }
   val currentVolume by viewModel.currentVolume.collectAsState()
@@ -192,65 +204,105 @@ fun GestureHandler(
     }
   }
 
-  // Isolated double-tap state tracking
-  var tapCount by remember { mutableStateOf(0) }
-  var lastTapTime by remember { mutableStateOf(0L) }
-  var lastTapPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-  var lastTapRegion by remember { mutableStateOf<String?>(null) }
-  var pendingSingleTapRegion by remember { mutableStateOf<String?>(null) }
-  var pendingSingleTapPosition by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
-  var pendingTapInExclusionZone by remember { mutableStateOf(false) }
-  val doubleTapTimeout = 250L
-  val multiTapContinueWindow = 650L
+  // Pointer-input coroutines live as long as the pointerInput block, which is keyed on a handful of
+  // values only. Read the live visibility through rememberUpdatedState so a long-lived lambda can't
+  // act on a stale snapshot.
+  val currentControlsShown by rememberUpdatedState(controlsShown)
+  val currentAreControlsLocked by rememberUpdatedState(areControlsLocked)
+  val currentPanelShown by rememberUpdatedState(panelShown)
+  val currentSheetShown by rememberUpdatedState(sheetShown)
+  val currentUseSingleTapForCenter by rememberUpdatedState(useSingleTapForCenter)
+  val currentUseSingleTapForLeftRight by rememberUpdatedState(useSingleTapForLeftRight)
+  val currentReverseDoubleTap by rememberUpdatedState(reverseDoubleTap)
+  val currentSeekAreaPercent by rememberUpdatedState(doubleTapSeekAreaWidth)
+  val currentInstantControlsToggle by rememberUpdatedState(instantControlsToggle)
 
-  // Multi-tap seeking state
-  var lastSeekRegion by remember { mutableStateOf<String?>(null) }
-  var lastSeekTime by remember { mutableStateOf<Long?>(null) }
+  /** The tap viewport is only known inside the pointerInput scope; the config lambda reads it lazily. */
+  var tapViewportSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
 
-  // Auto-reset tap count on timeout and execute single tap if no double tap detected
-  LaunchedEffect(tapCount, longPressTriggeredDuringTouch) {
-    if (tapCount == 1) {
-      delay(doubleTapTimeout)
-      // Timeout occurred, execute single tap action only if not double-tap seeking and not triggered by long press
-      if (tapCount == 1 && pendingSingleTapRegion != null && !isDoubleTapSeeking && !longPressTriggeredDuringTouch) {
-        val region = pendingSingleTapRegion!!
-        
-        var handled = false
-        if (areControlsLocked) {
-             viewModel.showControls()
-             handled = true
-        } else if (!pendingTapInExclusionZone) {
-            if (region == "center" && useSingleTapForCenter) {
-              viewModel.handleCenterSingleTap()
-              handled = true
-            } else if (region == "left" && useSingleTapForLeftRight) {
-              viewModel.handleLeftSingleTap()
-              handled = true
-            } else if (region == "right" && useSingleTapForLeftRight) {
-              viewModel.handleRightSingleTap()
-              handled = true
+  // Live player state for the tap engine, read at call time. The pointerInput coroutines started
+  // long ago with captured lambdas, but these delegates and the lambda body are recreated on each
+  // recomposition, so a deferred toggle always sees the chrome as it is when it fires.
+  val tapEnvNow = {
+    TapEnv(
+      chromeShown = currentControlsShown,
+      locked = currentAreControlsLocked,
+      panelOrSheetOpen = currentPanelShown != Panels.None || currentSheetShown != Sheets.None,
+    )
+  }
+
+  // The double-tap / chrome decision lives in a pure state machine so it can be tested on a plain
+  // JVM (see TapChromeEngineTest). This host only turns its effects into ViewModel calls.
+  val tapChromeEngine = remember(viewModel) {
+    TapChromeEngine(
+      listener = object : TapChromeListener {
+        override fun onShowChrome() = viewModel.showControls()
+
+        override fun onHideChrome() = viewModel.hideControls()
+
+        override fun onAction(region: TapRegion, isSingleTap: Boolean) {
+          val action = when (region) {
+            TapRegion.Left -> gesturePreferences.leftSingleActionGesture.get()
+            TapRegion.Right -> gesturePreferences.rightSingleActionGesture.get()
+            TapRegion.Center -> gesturePreferences.centerSingleActionGesture.get()
+          }
+          if (isSingleTap) {
+            when (region) {
+              TapRegion.Left -> viewModel.handleLeftSingleTap()
+              TapRegion.Right -> viewModel.handleRightSingleTap()
+              TapRegion.Center -> viewModel.handleCenterSingleTap()
             }
+            return
+          }
+          if (action == SingleActionGesture.Seek) {
+            isDoubleTapSeeking = true
+            // Reset the accumulated amount only when the direction flips, so multi-tap adds up.
+            if ((region == TapRegion.Right) != isSeekingForwards) viewModel.updateSeekAmount(0)
+          }
+          when (region) {
+            TapRegion.Left -> viewModel.handleLeftDoubleTap()
+            TapRegion.Right -> viewModel.handleRightDoubleTap()
+            TapRegion.Center -> viewModel.handleCenterDoubleTap()
+          }
         }
+      },
+      config = {
+        TapConfig(
+          width = tapViewportSize.width,
+          height = tapViewportSize.height,
+          seekAreaPercent = currentSeekAreaPercent.toFloat(),
+          reverse = currentReverseDoubleTap,
+          instantCenter = currentUseSingleTapForCenter,
+          instantSides = currentUseSingleTapForLeftRight,
+          seekLeft = gesturePreferences.leftSingleActionGesture.get() == SingleActionGesture.Seek,
+          seekRight = gesturePreferences.rightSingleActionGesture.get() == SingleActionGesture.Seek,
+          doubleTapMs = android.view.ViewConfiguration.getDoubleTapTimeout().toLong(),
+          deferToggle = !currentInstantControlsToggle,
+        )
+      },
+    )
+  }
 
-        if (!handled) {
-          if (panelShown != Panels.None && !allowGesturesInPanels) {
-            viewModel.panelShown.update { Panels.None }
-          }
-          if (controlsShown) {
-            viewModel.hideControls()
-          } else {
-            viewModel.showControls()
-          }
-        }
-        pendingSingleTapRegion = null
-        pendingSingleTapPosition = null
-      }
-      tapCount = 0
-      lastTapRegion = null
-      if (!isDoubleTapSeeking) {
-        isDoubleTapSeeking = false
-        viewModel.updateSeekAmount(0)
-      }
+  // Expire the double-tap window even when no finger touches again; the engine has no timers.
+  // Monotonic: a wall-clock jump would otherwise corrupt every window comparison.
+  LaunchedEffect(Unit) {
+    while (true) {
+      delay(50)
+      tapChromeEngine.tick(SystemClock.uptimeMillis(), tapEnvNow())
+    }
+  }
+
+  // Deferred controls (instant controls off) do not poll: the engine names its next deadline and
+  // we sleep exactly that long. Down and up are dispatched on the main thread, so a second tap is
+  // always handled before a deadline that is still in its future.
+  val tapDeadline: Long? = if (instantControlsToggle) null else tapChromeEngine.nextDeadline()
+  if (!instantControlsToggle) {
+    LaunchedEffect(tapDeadline) {
+      val deadline = tapDeadline ?: return@LaunchedEffect
+      delay((deadline - SystemClock.uptimeMillis()).coerceAtLeast(0))
+      tapChromeEngine.tick(SystemClock.uptimeMillis(), tapEnvNow())
+      // The tick toggles the chrome, so this recomposes and restarts the effect with the next
+      // deadline: null after a flush, or a fresh one if another toggle was queued meanwhile.
     }
   }
 
@@ -279,179 +331,69 @@ fun GestureHandler(
       )
       .padding(horizontal = 16.dp, vertical = 16.dp)
       .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, reverseDoubleTap) {
-        // Isolated double-tap detection that doesn't interfere with other gestures
-        if (isVerticalGestureActive) return@pointerInput
+        // Isolated double-tap detection that doesn't interfere with other gestures. The live value
+        // is read here rather than the remembered one: this block is keyed on a few values only,
+        // and a stale `true` would silently kill tap handling for the block's whole lifetime.
+        if (viewModel.isVerticalGestureActive.value) return@pointerInput
+        // The tap engine needs the viewport to compute regions and the exclusion zone.
+        tapViewportSize = size.toSize()
         awaitEachGesture {
           val down = awaitFirstDown(requireUnconsumed = false)
           // A tap that lands on a subtitle must still toggle the UI, so only step aside once the
           // touch has actually become a subtitle drag/pinch (checked again inside the loop below).
           if (subtitleGate.isActive) return@awaitEachGesture // this touch belongs to a subtitle
           val downPosition = down.position
-          val downTime = System.currentTimeMillis()
+          // Call-time stamp on the monotonic clock, matching the tick loop above.
+          val tapDownTime = SystemClock.uptimeMillis()
 
-          // Calculate regions
-          val seekAreaFraction = doubleTapSeekAreaWidth / 100f
-          val leftBoundary = size.width * seekAreaFraction
-          val rightBoundary = size.width * (1f - seekAreaFraction)
-          val region = when {
-            downPosition.x > rightBoundary -> if (reverseDoubleTap) "left" else "right"
-            downPosition.x < leftBoundary -> if (reverseDoubleTap) "right" else "left"
-            else -> "center"
-          }
+          // DOWN only classifies: whether this is a first tap, the second of a double, a seek
+          // continuation or a swallowed extra tap. Nothing is committed until the lift.
+          tapChromeEngine.down(
+            time = tapDownTime,
+            x = downPosition.x,
+            y = downPosition.y,
+            env = tapEnvNow(),
+          )
 
-          // Track for potential drag
-          var isDrag = false
-          var wasConsumedByTapGesture = false
+          // Default-deny: the gesture stays clean only while it remains a single pointer that never
+          // becomes a drag/pinch/long press. Every failure mode is folded into this one flag, so
+          // there is no per-gesture rollback call to forget.
+          var clean = true
+          var released = false
+          val slop = viewConfiguration.touchSlop
 
-          do {
+          while (true) {
             val event = awaitPointerEvent()
             val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
 
-            // The touch started on the subtitle and has now become a real drag/pinch: abandon the
-            // tap so we do not consume the pointer the subtitle recognizer is using.
-            if (subtitleGate.isActive) break
+            // A second finger means this was never a tap.
+            if (event.changes.count { it.pressed } > 1) clean = false
 
-            // Check if this is a drag (not a tap)
-            val distance = sqrt(
-              (pointer.position.x - downPosition.x) * (pointer.position.x - downPosition.x) +
-              (pointer.position.y - downPosition.y) * (pointer.position.y - downPosition.y)
-            )
+            // The touch started on the subtitle and has now become a real drag/pinch: this gesture
+            // belongs to the subtitle recognizer. The lift itself is still seen below.
+            if (subtitleGate.isActive) {
+              clean = false
+              break
+            }
 
-            if (distance > 10f) {
-              isDrag = true
-              // Don't consume - let other pointer inputs handle drag gestures
+            if (hypot(pointer.position.x - downPosition.x, pointer.position.y - downPosition.y) > slop) {
+              clean = false
             }
 
             if (!pointer.pressed) {
-              // Pointer lifted - this is a tap if it wasn't a drag
-              if (!isDrag && !wasConsumedByTapGesture) {
-                val timeSinceLastTap = downTime - lastTapTime
-                val positionChange = sqrt(
-                  (downPosition.x - lastTapPosition.x) * (downPosition.x - lastTapPosition.x) +
-                  (downPosition.y - lastTapPosition.y) * (downPosition.y - lastTapPosition.y)
-                )
-
-                // Check if this is a continuation of multi-tap sequence
-                val isMultiTapContinuation =
-                  lastTapRegion == region &&
-                  timeSinceLastTap < multiTapContinueWindow &&
-                  positionChange < 100f &&
-                  tapCount >= 2 &&
-                  isDoubleTapSeeking
-
-                // Check if this is a valid double-tap
-                val isDoubleTap =
-                  timeSinceLastTap < doubleTapTimeout &&
-                  lastTapRegion == region &&
-                  positionChange < 100f &&
-                  tapCount == 1
-
-                if (isDoubleTap && !areControlsLocked && !pendingTapInExclusionZone) {
-                  // Valid double-tap detected
-                  tapCount = 2
-                  lastTapTime = downTime
-                  lastTapPosition = downPosition
-                  pendingSingleTapRegion = null // Cancel pending single tap
-                  pendingSingleTapPosition = null
-                  wasConsumedByTapGesture = true
-                  pointer.consume()
-
-                  when (region) {
-                    "right" -> {
-                      val rightGesture = gesturePreferences.rightSingleActionGesture.get()
-                      if (rightGesture == SingleActionGesture.Seek) {
-                        isDoubleTapSeeking = true
-                        lastSeekRegion = "right"
-                        lastSeekTime = System.currentTimeMillis()
-                        if (!isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleRightDoubleTap()
-                    }
-                    "left" -> {
-                      val leftGesture = gesturePreferences.leftSingleActionGesture.get()
-                      if (leftGesture == SingleActionGesture.Seek) {
-                        isDoubleTapSeeking = true
-                        lastSeekRegion = "left"
-                        lastSeekTime = System.currentTimeMillis()
-                        if (isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleLeftDoubleTap()
-                    }
-                    "center" -> {
-                      viewModel.handleCenterDoubleTap()
-                    }
-                  }
-                } else if (isMultiTapContinuation && isDoubleTapSeeking) {
-                  // Continue multi-tap seeking
-                  tapCount++
-                  wasConsumedByTapGesture = true
-                  pointer.consume()
-                  lastSeekTime = System.currentTimeMillis()
-                  lastTapTime = downTime
-                  lastTapPosition = downPosition
-
-                  when (region) {
-                    "right" -> {
-                      val rightGesture = gesturePreferences.rightSingleActionGesture.get()
-                      if (rightGesture == SingleActionGesture.Seek) {
-                        if (!isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleRightDoubleTap()
-                    }
-                    "left" -> {
-                      val leftGesture = gesturePreferences.leftSingleActionGesture.get()
-                      if (leftGesture == SingleActionGesture.Seek) {
-                        if (isSeekingForwards) viewModel.updateSeekAmount(0)
-                      }
-                      viewModel.handleLeftDoubleTap()
-                    }
-                    "center" -> {
-                      viewModel.handleCenterDoubleTap()
-                    }
-                  }
-                } else if (tapCount == 0 || timeSinceLastTap >= doubleTapTimeout) {
-                  // Single tap or timed out - start new tap sequence
-                  tapCount = 1
-                  lastTapTime = downTime
-                  lastTapPosition = downPosition
-                  lastTapRegion = region
-                  pendingSingleTapRegion = region
-                  pendingSingleTapPosition = downPosition
-                  wasConsumedByTapGesture = true
-                  pointer.consume()
-                  
-                  // Instant single tap for center if enabled and not in exclusion zones
-                  // Instant single tap logic
-                  val isCenterImmediate = region == "center" && useSingleTapForCenter
-                  val isLeftImmediate = region == "left" && useSingleTapForLeftRight
-                  val isRightImmediate = region == "right" && useSingleTapForLeftRight
-
-                  if ((isCenterImmediate || isLeftImmediate || isRightImmediate) && !longPressTriggeredDuringTouch) {
-                    val exclusionZoneHeight = size.height * 0.25f // 25% from top and bottom
-                    val inExclusionZone = downPosition.y < exclusionZoneHeight || 
-                                          downPosition.y > size.height - exclusionZoneHeight
-                    
-                    pendingTapInExclusionZone = inExclusionZone // Store for delayed execution check
-
-                    if (!inExclusionZone) {
-                       if (areControlsLocked) {
-                           viewModel.showControls()
-                       } else {
-                           if (isCenterImmediate) viewModel.handleCenterSingleTap()
-                           else if (isLeftImmediate) viewModel.handleLeftSingleTap()
-                           else if (isRightImmediate) viewModel.handleRightSingleTap()
-                       }
-                       
-                       pendingSingleTapRegion = null 
-                    }
-                  } else {
-                    pendingTapInExclusionZone = false
-                  }
-                }
-              }
+              released = true
               break
             }
-          } while (event.changes.any { it.pressed })
+          }
+
+          val liftTime = SystemClock.uptimeMillis()
+          // Duration is checked here, not in the loop: a still hold emits no events at all, so a
+          // loop-local timer would never get the chance to fire.
+          tapChromeEngine.up(
+            time = liftTime,
+            env = tapEnvNow(),
+            cleanTap = clean && released && liftTime - tapDownTime < LongPressDelayMs,
+          )
         }
       }
       .pointerInput(areControlsLocked, multipleSpeedGesture, brightnessGesture, volumeGesture, longPressSpeedMemoryMode, mediaIdentifier) {
@@ -461,9 +403,6 @@ fun GestureHandler(
           val down = awaitFirstDown(requireUnconsumed = false)
           if (subtitleGate.isCandidate) return@awaitEachGesture // this touch belongs to a subtitle
           val startPosition = down.position
-
-          // Reset long press tracking at the start of each gesture
-          longPressTriggeredDuringTouch = false
 
           // State for vertical gestures (volume/brightness)
           var startingY = 0f
@@ -483,9 +422,8 @@ fun GestureHandler(
 
           // Track long press separately
           var longPressTriggered = false
-          val longPressDelay = 500L
           var longPressJob = coroutineScope.launch {
-            delay(longPressDelay)
+            delay(LongPressDelayMs)
             if (!longPressTriggered && paused == false) {
               val distance = sqrt(
                 (down.position.x - startPosition.x) * (down.position.x - startPosition.x) +
@@ -496,7 +434,8 @@ fun GestureHandler(
                 longPressTriggered = true
                 isLongPressing = true
                 longPressStartTime = System.currentTimeMillis()
-                longPressTriggeredDuringTouch = true
+                // A hold is not a tap. The chrome block withholds the commit on its own (it checks
+                // the same LongPressDelayMs at lift), so nothing needs rolling back here.
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 originalSpeed = playbackSpeed ?: 1f
                 val targetSpeed = when (longPressSpeedMemoryMode) {
