@@ -84,7 +84,7 @@ class YtdlpUpdateManager(private val context: Context) {
             return null
         }
 
-        return if (isNewerVersion(remoteVersion, currentVersion)) {
+        return if (UpdateManager.isNewerVersion(remoteVersion, currentVersion)) {
             release.also { cacheRelease(it) }
         } else {
             cacheRelease(null)
@@ -95,13 +95,59 @@ class YtdlpUpdateManager(private val context: Context) {
     /** True if an automatic (non-manual) companion check is allowed right now. */
     fun isAutoCheckDue(): Boolean = UpdateManager.isAutoCheckDue(prefs.getLong(KEY_LAST_CHECK, 0L))
 
-    /** Records a successful check so the next automatic check waits an hour. */
+    /**
+     * Records a successful check so the next automatic check waits an hour. Also stamps
+     * the companion version the check compared against, so [dropStateFromPreviousCompanion]
+     * can recognize state persisted while an older companion APK was installed.
+     */
     fun markChecked() {
-        prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
+        prefs.edit()
+            .putLong(KEY_LAST_CHECK, System.currentTimeMillis())
+            .putString(KEY_LAST_CHECK_VERSION, installedVersion())
+            .apply()
+    }
+
+    /**
+     * Discards companion update state recorded for a different companion build.
+     *
+     * Updating (or removing) the addon does not change the player app's own version, so
+     * [KEY_LAST_CHECK_VERSION] stores the companion versionName observed at the last
+     * successful check. When it differs, the throttle and cache describe a previous
+     * companion build and are dropped: the cache may otherwise name the very version
+     * that was just installed, and the throttle would defer a fresh check by an hour.
+     */
+    fun dropStateFromPreviousCompanion() {
+        val installedVersion = installedVersion()
+        if (prefs.getString(KEY_LAST_CHECK_VERSION, null) == installedVersion) return
+        prefs.edit()
+            .putString(KEY_LAST_CHECK_VERSION, installedVersion)
+            .putLong(KEY_LAST_CHECK, 0L)
+            .remove(KEY_CACHED_RELEASE)
+            .apply()
     }
 
     /** The newest companion release known from the last successful check, if any. */
     fun cachedRelease(): Release? = UpdateManager.readCachedRelease(prefs, KEY_CACHED_RELEASE)
+
+    /**
+     * The cached companion release, provided it is still newer than the companion APK
+     * currently installed; otherwise the stale cache is cleared and null returned. The
+     * restore-when-throttled path uses this so an update that was installed after the
+     * check is not resurrected from cache.
+     */
+    fun cachedReleaseIfStillNewer(): Release? {
+        val cached = cachedRelease() ?: return null
+        val installedVersion = installedVersion()
+        if (installedVersion != null && UpdateManager.isNewerVersion(
+                remote = cached.tagName.removePrefix("v"),
+                current = installedVersion
+            )
+        ) {
+            return cached
+        }
+        cacheRelease(null)
+        return null
+    }
 
     /** Stores the newest available companion release; passing null clears it. */
     fun cacheRelease(release: Release?) {
@@ -124,21 +170,10 @@ class YtdlpUpdateManager(private val context: Context) {
         json.decodeFromString<Release>(response.body.string())
     }
 
-    private fun isNewerVersion(remote: String, current: String): Boolean {
-        val rParts = remote.split(".").map { it.toIntOrNull() ?: 0 }
-        val cParts = current.split(".").map { it.toIntOrNull() ?: 0 }
-        for (i in 0 until maxOf(rParts.size, cParts.size)) {
-            val r = rParts.getOrElse(i) { 0 }
-            val c = cParts.getOrElse(i) { 0 }
-            if (r > c) return true
-            if (r < c) return false
-        }
-        return false
-    }
-
     companion object {
         const val COMPANION_PACKAGE = "xyz.mpv.rex.addon.ytdl"
         private const val KEY_LAST_CHECK = "last_ytdlp_update_check"
+        private const val KEY_LAST_CHECK_VERSION = "ytdlp_last_check_version"
         private const val KEY_CACHED_RELEASE = "ytdlp_cached_release"
     }
 }

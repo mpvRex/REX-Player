@@ -132,6 +132,7 @@ class UpdateManager(
 
         private const val PREFS_NAME = "mpvEx_prefs"
         private const val KEY_LAST_CHECK = "last_update_check"
+        private const val KEY_LAST_CHECK_VERSION = "last_update_check_version"
         private const val KEY_CACHED_RELEASE = "cached_release"
 
         /** True if an automatic check is allowed right now (never checked, or interval elapsed). */
@@ -184,6 +185,42 @@ class UpdateManager(
                 remoteCount > currentCommitCount
             } else {
                 false
+            }
+        }
+
+        /** Standard "x.y.z" comparison; unparseable segments count as 0. */
+        fun isNewerVersion(remote: String, current: String): Boolean {
+            val rParts = remote.split(".").map { it.toIntOrNull() ?: 0 }
+            val cParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+
+            for (i in 0 until maxOf(rParts.size, cParts.size)) {
+                val r = rParts.getOrElse(i) { 0 }
+                val c = cParts.getOrElse(i) { 0 }
+                if (r > c) return true
+                if (r < c) return false
+            }
+            return false
+        }
+
+        /**
+         * True if a cached release is still newer than the build it would be shown to.
+         *
+         * The cache stores the release that was newer at the last successful check,
+         * relative to the build that ran it. When that update is then installed
+         * (in-app self-update, sideload) the process dies before the cache can be
+         * cleared, so restoring from cache must re-validate against the *installed*
+         * version instead of resurrecting an already-installed "update available".
+         */
+        fun isCachedReleaseStillNewer(
+            release: Release,
+            isPreviewBuild: Boolean,
+            currentCommitCount: Int,
+            currentVersionName: String
+        ): Boolean {
+            return if (isPreviewBuild) {
+                isNewerPreviewVersion(release.tagName, currentCommitCount)
+            } else {
+                isNewerVersion(release.tagName.removePrefix("v"), currentVersionName.replace("-dev", ""))
             }
         }
 
@@ -466,13 +503,57 @@ class UpdateManager(
     /**
      * Records a successful check so the next automatic check waits [AUTO_CHECK_INTERVAL_MS].
      * Only called when the server actually answered, so network failures retry next launch.
+     * Also stamps the build the check was made by, so [dropStateFromPreviousBuild] can
+     * recognize state persisted by an older app version.
      */
     fun markChecked() {
-        prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
+        prefs.edit()
+            .putLong(KEY_LAST_CHECK, System.currentTimeMillis())
+            .putString(KEY_LAST_CHECK_VERSION, BuildConfig.VERSION_NAME)
+            .apply()
+    }
+
+    /**
+     * Discards update state recorded by a different app build.
+     *
+     * An in-app self-update kills the process while the package installer runs, so the
+     * cached release and the check timestamp survive in SharedPreferences even though
+     * they describe the previous build: the cache may name the very version that was
+     * just installed, and the timestamp would defer the first real check after the
+     * update by up to an hour. On the first launch of a new build both are dropped so
+     * the automatic check runs fresh against the new version.
+     */
+    fun dropStateFromPreviousBuild() {
+        if (prefs.getString(KEY_LAST_CHECK_VERSION, null) == BuildConfig.VERSION_NAME) return
+        prefs.edit()
+            .putString(KEY_LAST_CHECK_VERSION, BuildConfig.VERSION_NAME)
+            .putLong(KEY_LAST_CHECK, 0L)
+            .remove(KEY_CACHED_RELEASE)
+            .apply()
     }
 
     /** The newest release that was known to be available at the last successful check, if any. */
     fun cachedRelease(): Release? = readCachedRelease(prefs, KEY_CACHED_RELEASE)
+
+    /**
+     * The cached release, provided it is still newer than the installed build; otherwise
+     * the stale cache is cleared and null returned. The restore-when-throttled path uses
+     * this so an update that was installed after the check is not resurrected from cache.
+     */
+    fun cachedReleaseIfStillNewer(): Release? {
+        val cached = cachedRelease() ?: return null
+        if (isCachedReleaseStillNewer(
+                release = cached,
+                isPreviewBuild = isPreviewBuild(),
+                currentCommitCount = getCurrentCommitCount(),
+                currentVersionName = BuildConfig.VERSION_NAME
+            )
+        ) {
+            return cached
+        }
+        cacheRelease(null)
+        return null
+    }
 
     /** Stores the newest available release; passing null clears it (already up to date). */
     fun cacheRelease(release: Release?) {
@@ -489,19 +570,6 @@ class UpdateManager(
 
         val responseBody = response.body.string()
         json.decodeFromString<Release>(responseBody)
-    }
-
-    private fun isNewerVersion(remote: String, current: String): Boolean {
-        val rParts = remote.split(".").map { it.toIntOrNull() ?: 0 }
-        val cParts = current.split(".").map { it.toIntOrNull() ?: 0 }
-        
-        for (i in 0 until maxOf(rParts.size, cParts.size)) {
-            val r = rParts.getOrElse(i) { 0 }
-            val c = cParts.getOrElse(i) { 0 }
-            if (r > c) return true
-            if (r < c) return false
-        }
-        return false
     }
 
     fun downloadUpdate(release: Release): Flow<Float> {
@@ -677,9 +745,11 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         // Never run two companion checks at once (avoids duplicate API hits).
         if (companionCheckJob?.isActive == true) return
         // Automatic checks are throttled to once per hour, across restarts.
-        // When throttled, fall back to the last known release so the dialog still shows offline.
+        // When throttled, fall back to the last known release so the dialog still shows
+        // offline; only if it is still newer than the companion APK actually installed
+        // (an update installed after the check must not resurrect from the cache).
         if (!manual && !ytdlpUpdateManager.isAutoCheckDue()) {
-            val cached = ytdlpUpdateManager.cachedRelease()
+            val cached = ytdlpUpdateManager.cachedReleaseIfStillNewer()
             if (cached != null) _companionUpdateState.value = UpdateState.Available(cached)
             return
         }
@@ -723,6 +793,12 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         // The checks themselves are throttled to once per hour (persisted across launches),
         // so reopening the app repeatedly within the hour makes no server request.
         if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+            // State persisted by a previous app build (cached release + throttle window)
+            // is invalid after a self-update; drop it so the checks below run fresh.
+            // The companion is tracked separately because updating the addon does not
+            // change the player app's own version.
+            updateManager.dropStateFromPreviousBuild()
+            ytdlpUpdateManager.dropStateFromPreviousCompanion()
             if (isAutoUpdateEnabled.value) {
                 checkForUpdate(manual = false)
             }
@@ -754,9 +830,11 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
         // Never run two app checks at once (avoids duplicate API hits).
         if (appCheckJob?.isActive == true) return
         // Automatic checks are throttled to once per hour, across app restarts.
-        // When throttled, fall back to the last known release so the dialog still shows offline.
+        // When throttled, fall back to the last known release so the dialog still shows
+        // offline; only if it is still newer than the installed build (a self-update
+        // installed after the check must not resurrect from the cache).
         if (!manual && !updateManager.isAutoCheckDue()) {
-            updateManager.cachedRelease()?.let { release ->
+            updateManager.cachedReleaseIfStillNewer()?.let { release ->
                 _updateState.value = if (updateManager.getApkFile(release) != null) {
                     UpdateState.ReadyToInstall(release)
                 } else {

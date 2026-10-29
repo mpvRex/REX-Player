@@ -1,13 +1,17 @@
 package xyz.mpv.rex.utils.update
 
 import kotlinx.serialization.json.Json
+import android.content.Context
 import android.content.SharedPreferences
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import xyz.mpv.rex.BuildConfig
 
 class UpdateFeatureTest {
 
@@ -337,10 +341,133 @@ class UpdateFeatureTest {
         assertTrue(release.changelog.isEmpty())
         assertEquals("Release notes", release.body)
     }
+
+    // --- Cached-restore staleness tests ---
+
+    @Test
+    fun isNewerVersion_comparesDottedVersions() {
+        assertTrue(UpdateManager.isNewerVersion("5.4.1", "5.4.0"))
+        assertFalse(UpdateManager.isNewerVersion("5.4.0", "5.4.1"))
+        assertFalse(UpdateManager.isNewerVersion("5.4.0", "5.4.0"))
+        assertTrue(UpdateManager.isNewerVersion("2.0", "1.9.9"))
+        // Unparseable segments count as 0 on both sides
+        assertFalse(UpdateManager.isNewerVersion("5.4.x", "5.4.0-beta"))
+    }
+
+    @Test
+    fun isCachedReleaseStillNewer_revalidatesAgainstTheInstalledBuild() {
+        // Preview: the cache names r1015, newer while r1010 runs, same after self-update
+        val previewCache = previewRelease(tagName = "r1015")
+        assertTrue(
+            UpdateManager.isCachedReleaseStillNewer(
+                previewCache,
+                isPreviewBuild = true,
+                currentCommitCount = 1010,
+                currentVersionName = "5.4.0-1010"
+            )
+        )
+        assertFalse(
+            UpdateManager.isCachedReleaseStillNewer(
+                previewCache,
+                isPreviewBuild = true,
+                currentCommitCount = 1015,
+                currentVersionName = "5.4.0-1015"
+            )
+        )
+
+        // Release: the "v" prefix and "-dev" suffix are ignored
+        val releaseCache = previewRelease(tagName = "v5.5.0")
+        assertTrue(
+            UpdateManager.isCachedReleaseStillNewer(
+                releaseCache,
+                isPreviewBuild = false,
+                currentCommitCount = 0,
+                currentVersionName = "5.4.0"
+            )
+        )
+        assertTrue(
+            UpdateManager.isCachedReleaseStillNewer(
+                releaseCache,
+                isPreviewBuild = false,
+                currentCommitCount = 0,
+                currentVersionName = "5.4.0-dev"
+            )
+        )
+        assertFalse(
+            UpdateManager.isCachedReleaseStillNewer(
+                releaseCache,
+                isPreviewBuild = false,
+                currentCommitCount = 0,
+                currentVersionName = "5.5.0"
+            )
+        )
+        assertFalse(
+            UpdateManager.isCachedReleaseStillNewer(
+                releaseCache,
+                isPreviewBuild = false,
+                currentCommitCount = 0,
+                currentVersionName = "5.6.0"
+            )
+        )
+    }
+
+    /** An [UpdateManager] whose prefs are the given fakes, like the real one through Context. */
+    private fun managerWithPrefs(prefs: FakePrefs): UpdateManager {
+        val context = mockk<Context>(relaxed = true) {
+            every { getSharedPreferences(any(), any()) } returns prefs
+        }
+        return UpdateManager(context)
+    }
+
+    private fun releaseWith(tagName: String): Release = previewRelease(tagName = tagName)
+
+    @Test
+    fun cachedReleaseIfStillNewer_restoresOnlyReleasesNewerThanTheInstalledBuild() {
+        val manager = managerWithPrefs(FakePrefs())
+
+        // Clearly newer than the test build -> restored for the restore-when-throttled path
+        val newer = releaseWith(tagName = "v99.0.0")
+        manager.cacheRelease(newer)
+        assertEquals(newer, manager.cachedReleaseIfStillNewer())
+        assertNotNull(manager.cachedRelease())
+
+        // Cached tag matches the installed build (the self-update scenario):
+        // it must not resurrect, and the stale cache entry must be dropped.
+        manager.cacheRelease(releaseWith(tagName = "v" + BuildConfig.VERSION_NAME))
+        assertNull(manager.cachedReleaseIfStillNewer())
+        assertNull(manager.cachedRelease())
+    }
+
+    @Test
+    fun dropStateFromPreviousBuild_resetsThrottleAndCacheAfterAppUpdate() {
+        val prefs = FakePrefs()
+        val manager = managerWithPrefs(prefs)
+
+        // Simulate state left behind by the previous build (checked recently, cache filled);
+        // key names mirror the private UpdateManager.KEY_* constants.
+        prefs.edit()
+            .putLong("last_update_check", System.currentTimeMillis() - 60_000L)
+            .putString("last_update_check_version", "5.3.9")
+            .putString("cached_release", Json.encodeToString(Release.serializer(), previewRelease()))
+            .apply()
+
+        manager.dropStateFromPreviousBuild()
+
+        // Throttle dropped so the first launch of the new build checks immediately...
+        assertTrue(manager.isAutoCheckDue())
+        // ...the stale cache is gone, and the stamp identifies the running build.
+        assertNull(manager.cachedRelease())
+        assertEquals(BuildConfig.VERSION_NAME, prefs.getString("last_update_check_version", null))
+
+        // A second call on the same build must not keep resetting the state.
+        prefs.edit().putLong("last_update_check", System.currentTimeMillis() - 60_000L).apply()
+        manager.dropStateFromPreviousBuild()
+        assertFalse(manager.isAutoCheckDue())
+    }
 }
 
 /** Minimal in-memory [SharedPreferences] for unit tests. */
-private class FakePrefs : SharedPreferences {
+internal class FakePrefs : SharedPreferences {
     private val values = mutableMapOf<String, Any?>()
 
     override fun getAll(): Map<String, *> = values
