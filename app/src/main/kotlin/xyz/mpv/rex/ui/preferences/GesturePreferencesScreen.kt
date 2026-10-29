@@ -118,9 +118,6 @@ object GesturePreferencesScreen : Screen {
             val pinchToResizeSubtitle by playerPreferences.pinchToResizeSubtitle.collectAsState()
             val horizontalSwipeSensitivity by playerPreferences.horizontalSwipeSensitivity.collectAsState()
             val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
-            var holdForMultipleSpeedUi by remember(holdForMultipleSpeed) {
-              mutableStateOf(holdForMultipleSpeed)
-            }
             val longPressSpeedMemoryMode by playerPreferences.longPressSpeedMemoryMode.collectAsState()
             val showDynamicSpeedOverlay by playerPreferences.showDynamicSpeedOverlay.collectAsState()
             val showSpeedIndicatorOverlay by playerPreferences.showSpeedIndicatorOverlay.collectAsState()
