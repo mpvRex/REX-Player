@@ -1150,6 +1150,7 @@
     <string name="bookmark_rename_title">Bookmark name</string>
     <string name="bookmark_deleted">Bookmark deleted</string>
     <string name="bookmark_saved">Bookmark renamed</string>
+    <string name="bookmark_needs_media">Bookmark needs a loaded video</string>
     <string name="skip_seconds">Skip %1$ds</string>
     <string name="playback_speed">Playback Speed</string>
     <string name="screen_rotation">Rotation</string>

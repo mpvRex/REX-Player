@@ -29,6 +29,12 @@ class PlaybackManager(
     private var resyncJob: Job? = null
     @Volatile private var lastSeekAt = 0L
 
+    /**
+     * Invoked whenever the user starts a seek, so the player can drop any pending jump highlight
+     * (chapter/bookmark) that the new position no longer describes.
+     */
+    var onSeekRequested: (() -> Unit)? = null
+
     private fun canAccessMpv(): Boolean =
         MPVLifecycleLock.isNativeInitialized && !MPVLifecycleLock.isTearingDown.value
 
@@ -62,6 +68,7 @@ class PlaybackManager(
      */
     fun seekTo(scope: CoroutineScope, position: Int, abLoopA: Double?, abLoopB: Double?) {
         seekJob?.cancel()
+        onSeekRequested?.invoke()
         if (!canAccessMpv()) return
         seekJob = scope.launch(Dispatchers.IO) {
             if (!isActive || !canAccessMpv()) return@launch
@@ -149,6 +156,7 @@ class PlaybackManager(
         if (offset == 0 || !canAccessMpv()) return
         
         seekJob?.cancel()
+        onSeekRequested?.invoke()
         seekJob = scope.launch(Dispatchers.IO) {
             if (!isActive || !canAccessMpv()) return@launch
             val duration = runCatching { MPVLib.getPropertyInt("duration") }.getOrNull() ?: 0

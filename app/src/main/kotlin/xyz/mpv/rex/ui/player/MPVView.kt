@@ -279,8 +279,13 @@ class MPVView(
   // on hits — so without an entry here the property is never re-registered on
   // fresh native handles created after the previous one was destroyed while the
   // JVM stayed alive (e.g. via MediaPlaybackService).
+  //
+  // A property read through two different helpers (`propInt` *and* `propDouble`) needs one entry
+  // per format: each helper owns its own cache and registers its own observer, and libmpv keeps
+  // one observer per (name, format) pair. Hence a list of pairs rather than a map, so `time-pos`
+  // can legitimately appear twice.
   private val observedProps =
-    mapOf(
+    listOf(
       "pause" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
       "paused-for-cache" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
       "seeking" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
@@ -289,7 +294,11 @@ class MPVView(
       "video-params/w" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "video-params/h" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "eof-reached" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
+      // Integer seconds, consumed by `propInt["time-pos"]`.
       "time-pos" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
+      // Fractional seconds, consumed by `propDouble["time-pos"]` (seek bar, bookmark position and
+      // chapter/bookmark highlighting). Must stay a separate entry, see the note above.
+      "time-pos" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
       "duration" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "volume-max" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "track-list" to MPVLib.MpvFormat.MPV_FORMAT_NODE,

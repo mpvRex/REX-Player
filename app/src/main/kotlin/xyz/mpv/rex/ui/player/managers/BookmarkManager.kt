@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.mpv.rex.R
@@ -50,13 +51,14 @@ class BookmarkManager(
     followJob = scope.launch {
       combine(mediaIdentifier, mediaTitle) { identifier, title ->
         identifier.ifBlank { title }
-      }.collectLatest { mediaKey ->
-        if (mediaKey.isBlank()) {
-          _bookmarks.value = emptyList()
-          return@collectLatest
-        }
-        repository.observeByMediaKey(mediaKey).collect { _bookmarks.value = it }
       }
+        // Both sources start blank and fill in once the media is set up. Reacting to the blank
+        // interim value would briefly publish an empty list for the real media, so wait for a key.
+        .distinctUntilChanged()
+        .collectLatest { mediaKey ->
+          if (mediaKey.isBlank()) return@collectLatest
+          repository.observeByMediaKey(mediaKey).collect { _bookmarks.value = it }
+        }
     }
   }
 
@@ -75,7 +77,13 @@ class BookmarkManager(
     positionMs: Long? = null,
   ) {
     if (mediaKey.isBlank()) return
-    val rawPosition = positionMs ?: currentPosition() ?: return
+    // No playhead yet (media still loading): say so instead of failing silently, which looks
+    // exactly like a bookmark that was dropped.
+    val rawPosition = positionMs ?: currentPosition()
+    if (rawPosition == null) {
+      onShowText(context.getString(R.string.bookmark_needs_media))
+      return
+    }
     scope.launch(Dispatchers.IO) {
       val duration = currentDurationMs()
       val position = rawPosition.coerceIn(0L, if (duration > 0) duration else rawPosition)

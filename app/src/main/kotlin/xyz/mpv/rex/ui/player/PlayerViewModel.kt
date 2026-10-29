@@ -346,9 +346,18 @@ class PlayerViewModel(
 
   /**
    * Pins a bookmark at [positionMs] (defaults to the live position) for the current media.
+   *
+   * The media key is resolved here and now: on a freshly opened player the identifier flow may still
+   * be blank when the tap arrives, and a bookmark saved under a blank key would never be found again.
    */
-  fun addBookmark(positionMs: Long? = null) =
-    _bookmarkManager.add(_mediaIdentifier.value.ifBlank { _mediaTitle.value }, positionMs)
+  fun addBookmark(positionMs: Long? = null) {
+    val mediaKey = _mediaIdentifier.value.ifBlank { _mediaTitle.value }
+    if (mediaKey.isBlank()) {
+      playerUpdate.value = PlayerUpdates.ShowText(host.context.getString(R.string.bookmark_needs_media))
+      return
+    }
+    _bookmarkManager.add(mediaKey, positionMs)
+  }
 
   fun renameBookmark(
     id: Long,
@@ -507,6 +516,9 @@ class PlayerViewModel(
   val mediaIdentifier: StateFlow<String> = _mediaIdentifier.asStateFlow()
 
   fun setMediaIdentifier(identifier: String) {
+    // A recreated view model (player reopened) must never carry a jump highlight over into the
+    // next media: the pin only makes sense for the seek that armed it.
+    pendingStop.value = null
     _mediaIdentifier.value = identifier
   }
 
@@ -521,14 +533,27 @@ class PlayerViewModel(
     onShowText = { playerUpdate.value = PlayerUpdates.ShowText(it) },
   )
 
-  /** Live playback position in seconds, used to pre-fill and time new bookmarks. */
+  /**
+   * Live playback position in seconds, used to pre-fill and time new bookmarks.
+   *
+   * `time-pos` is a float property, so it must be observed as one: mpv only converts to the
+   * requested format for `MPV_FORMAT_NONE`/`MPV_FORMAT_STRING`, so observing it as INT64 fails and
+   * the flow never emits anything but its initial value.
+   */
   val currentPosition: StateFlow<Float?> =
-    `is`.xyz.mpv.MPVLib.propInt["time-pos"]
+    MPVLib.propDouble["time-pos"]
       .map { it?.toFloat() }
       .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
+  /**
+   * Manual bookmarks for the current media.
+   *
+   * Always restarted (`WhileSubscribed`) rather than `Lazily`: the manager's flow is a replayed
+   * snapshot of a repository subscription, so a second subscriber after the first stopped (closing
+   * and reopening the player) would otherwise sit on the initial empty list forever.
+   */
   val bookmarks: StateFlow<List<BookmarkEntity>> =
-    _bookmarkManager.bookmarks.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    _bookmarkManager.bookmarks.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
   /**
    * The stop (chapter or bookmark) the user just jumped to, shown as current until playback
@@ -548,12 +573,16 @@ class PlayerViewModel(
     MPVLib.propDouble["time-pos"],
     MPVLib.propInt["chapter"],
   ) { chapters, bookmarks, pending, position, mpvChapterIndex ->
+    // Merge once: this ran twice per emission and each merge re-sorts the whole timeline.
+    val items = mergeChapterSheetItems(chapters, bookmarks)
     CurrentStopLineup(
-      items = mergeChapterSheetItems(chapters, bookmarks),
+      items = items,
+      // `null` means "unknown", never index 0: `?: 0` made a not-yet-reported chapter look
+      // like chapter 0 and would highlight the wrong chapter.
       active = pending ?: activeChapterSheetItem(
-        mergedItems = mergeChapterSheetItems(chapters, bookmarks),
+        mergedItems = items,
         currentSeconds = position?.toFloat(),
-        activeChapterIndex = mpvChapterIndex ?: 0,
+        activeChapterIndex = mpvChapterIndex,
       ),
     )
   }.stateIn(
@@ -616,6 +645,10 @@ class PlayerViewModel(
     _bookmarkManager.follow(_mediaIdentifier, _mediaTitle)
 
     attachOptimisticStopWatcher()
+
+    // A plain seek (scrubbing, gesture seeks) supersedes any pending chapter/bookmark jump, so
+    // the title stops describing the old jump target the moment the playhead is moved elsewhere.
+    _playbackManager.onSeekRequested = { pendingStop.value = null }
     
     // Restore repeat mode and shuffle state from preferences
     _repeatMode.value = playerPreferences.repeatMode.get()
@@ -1157,9 +1190,13 @@ class PlayerViewModel(
 
   private fun reconcilePendingStop(position: Double) {
     val pending = pendingStop.value ?: return
-    if (position + OPTIMISTIC_STOP_TOLERANCE_SECONDS >= pending.startSeconds) {
-      pendingStop.value = null
-    }
+    // The pin is a jump preview, so it only holds while playback is still (roughly) passing
+    // through the target. If the playhead is anywhere else, the user kept going: drop it and let
+    // the position decide again, otherwise a jump that overshot (mpv resolving a chapter seek,
+    // an exact seek clamped by an A-B loop, ...) would pin the old title indefinitely.
+    val stillThere = kotlin.math.abs(position - pending.startSeconds) <=
+      OPTIMISTIC_STOP_TOLERANCE_SECONDS
+    if (!stillThere) pendingStop.value = null
   }
 
   private fun armOptimisticStop(stop: ChapterSheetItem) {

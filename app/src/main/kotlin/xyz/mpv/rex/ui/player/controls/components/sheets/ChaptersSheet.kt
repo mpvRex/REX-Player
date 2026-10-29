@@ -112,7 +112,7 @@ internal fun ChapterSheetItem.key(): Any = when (this) {
 internal fun activeChapterSheetItem(
   mergedItems: List<ChapterSheetItem>,
   currentSeconds: Float?,
-  activeChapterIndex: Int,
+  activeChapterIndex: Int?,
   toleranceSeconds: Float = 0.5f,
 ): ChapterSheetItem? {
   if (mergedItems.isEmpty()) return null
