@@ -136,6 +136,7 @@ class PlayerPreferences(
   val showControlsOnPlay = preferenceStore.getBoolean("show_controls_on_play", true)
 
   val autoPiPOnNavigation = preferenceStore.getBoolean("auto_pip_on_navigation", false)
+  val pipOnHome = preferenceStore.getBoolean("pip_on_home", false)
 
   val keepScreenOnWhenPaused = preferenceStore.getBoolean("keep_screen_on_when_paused", false)
 
