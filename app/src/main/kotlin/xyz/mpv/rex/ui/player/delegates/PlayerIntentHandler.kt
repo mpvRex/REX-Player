@@ -416,6 +416,8 @@ class PlayerIntentHandler(
 
     // If expanding active session without intent media, or if the exact same media is already active in foreground
     if (activity.isReady && (!hasIntentMedia || (isSameMedia && !activity.isInBackgroundPlayback && !activity.isManualBackgroundPlayback))) {
+      // PRELOAD-RESUME-STATE-V1: this intent did not start a new file load.
+      activity.pendingIntentExtras = false
       Log.d(TAG, "onNewIntent: current media already playing or expanding active session, restoring player without reload")
       activity.enableVideoAfterBackground()
       @Suppress("DEPRECATION")
