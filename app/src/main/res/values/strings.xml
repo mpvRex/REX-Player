@@ -1234,6 +1234,7 @@
 
     <!-- Network Streaming Screen -->
     <string name="network_recent_links">Recent Links</string>
+    <string name="network_clear_all_links">Clear all</string>
     <string name="network_stream_link_hint">Type or paste a URL</string>
     <string name="network_local_network">Local Network</string>
     <string name="network_share_unreachable">Can\'t reach the network share.</string>
