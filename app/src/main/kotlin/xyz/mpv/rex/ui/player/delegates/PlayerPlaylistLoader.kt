@@ -14,7 +14,7 @@ import xyz.mpv.rex.ui.browser.networkstreaming.proxy.NetworkStreamingProxy
 import xyz.mpv.rex.ui.player.MediaPlaybackService
 import xyz.mpv.rex.ui.player.PlayerActivity
 import xyz.mpv.rex.ui.player.PlayerActivity.Companion.TAG
-import xyz.mpv.rex.ui.player.ResumePlaybackMode
+
 import xyz.mpv.rex.ui.player.resolveUri
 import xyz.mpv.rex.utils.media.FolderPlaylistOps
 import xyz.mpv.rex.utils.media.HttpUtils
@@ -28,6 +28,7 @@ import xyz.mpv.rex.utils.media.M3UParser
 class PlayerPlaylistLoader(
   private val activity: PlayerActivity,
 ) {
+  // PRELOAD-RESUME-STATE-V1
   var activeNetworkStreamId: String? = null
   var isAutoplayNextTriggered: Boolean = false
 
@@ -132,13 +133,14 @@ class PlayerPlaylistLoader(
       return
     }
     isAutoplayNextTriggered = true
-    loadPlaylistItemInternal(index)
+    val loadGeneration = activity.beginPlaybackLoadRequest()
+    loadPlaylistItemInternal(index, loadGeneration)
   }
 
   /**
    * Internal method to load a playlist item
    */
-  fun loadPlaylistItemInternal(index: Int) {
+  fun loadPlaylistItemInternal(index: Int, loadGeneration: Long = activity.beginPlaybackLoadRequest()) {
     val playlist = activity.viewModel.playlistManager.playlist.value
     if (index < 0 || index >= playlist.size) {
       Log.e(TAG, "Invalid playlist index: $index (playlist size: ${playlist.size})")
@@ -154,7 +156,7 @@ class PlayerPlaylistLoader(
             .onFailure { Log.w(TAG, "Could not resolve the next network playlist item", it) }
             .getOrNull()
         }
-        if (token != smbResolveToken) {
+        if (token != smbResolveToken || !activity.isPlaybackLoadRequestCurrent(loadGeneration)) {
           stream?.streamId?.takeIf { it.isNotEmpty() }?.let { streamId ->
             activity.lifecycleScope.launch(Dispatchers.IO) {
               NetworkStreamingProxy.getInstance()?.unregisterStream(streamId)
@@ -171,12 +173,18 @@ class PlayerPlaylistLoader(
           uri = uri,
           playableUri = stream.url,
           mediaIdentifierOverride = "network_${stream.connectionId}_${stream.filePath.hashCode()}",
+          loadGeneration = loadGeneration,
         )
       }
       return
     }
 
-    loadResolvedPlaylistItem(index, uri, uri.resolveUri(activity) ?: uri.toString())
+    loadResolvedPlaylistItem(
+      index,
+      uri,
+      uri.resolveUri(activity) ?: uri.toString(),
+      loadGeneration = loadGeneration,
+    )
   }
 
   fun switchActiveNetworkStream(playableUri: String?) {
@@ -199,7 +207,9 @@ class PlayerPlaylistLoader(
     uri: Uri,
     playableUri: String,
     mediaIdentifierOverride: String? = null,
+    loadGeneration: Long = activity.beginPlaybackLoadRequest(),
   ) {
+    if (!activity.isPlaybackLoadRequestCurrent(loadGeneration)) return
     activity.isReady = false
     // Save current video's playback state before switching
     if (activity.fileName.isNotBlank()) {
@@ -224,20 +234,22 @@ class PlayerPlaylistLoader(
     val fastDurationSec = if (fastDurationMs > 0L) fastDurationMs / 1000f else null
     val isNetwork = HttpUtils.isNetworkStream(uri)
     activity.viewModel.prepareForFileLoad(fastDurationSec, isNetwork = isNetwork)
+    val loadedTitle = activity.fileName
 
     val targetUri = uri
     activity.lifecycleScope.launch(Dispatchers.IO) {
       val cachedThumb = activity.getCachedThumbnailForUri(targetUri)
       withContext(Dispatchers.Main) {
+        if (!activity.isPlaybackLoadRequestCurrent(loadGeneration)) return@withContext
         val activeThumb = cachedThumb ?: MediaPlaybackService.thumbnail ?: activity.miniPlayerStateManager.state.value.thumbnail
         MediaPlaybackService.thumbnail = activeThumb
         activity.mediaPlaybackService?.setMediaInfo(
-          title = activity.fileName,
+          title = loadedTitle,
           artist = "",
           thumbnail = activeThumb
         )
         activity.miniPlayerStateManager.updateState(
-          title = activity.fileName,
+          title = loadedTitle,
           thumbnail = activeThumb,
           videoPath = targetUri.toString(),
           currentPositionMs = 0L,
@@ -285,14 +297,11 @@ class PlayerPlaylistLoader(
 
     if (activity.mpvInitialized) {
       activity.safeSetPropertyString("vid", "no")
-      runCatching { MPVLib.setPropertyBoolean("pause", true) }
-    } else if (!activity.playerPreferences.autoplayOnOpen.get() || activity.playerPreferences.savePositionOnQuit.get() || activity.playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
-      runCatching { MPVLib.setPropertyBoolean("pause", true) }
     }
-    // Load the new video
-    // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
-    activity.lifecycleScope.launch(Dispatchers.Default) {
-      MPVLib.command("loadfile", playableUri)
+    runCatching { MPVLib.setPropertyBoolean("pause", true) }
+    // Prepare the resume position and cached playback state before MPV opens the item.
+    activity.lifecycleScope.launch {
+      activity.loadMediaWithPlaybackState(playableUri, loadGeneration)
     }
 
     // Update media title (this will trigger UI update)
@@ -311,6 +320,7 @@ class PlayerPlaylistLoader(
     // Update media session metadata
     activity.lifecycleScope.launch {
       kotlinx.coroutines.delay(100) // Wait for MPV to load the file
+      if (!activity.isPlaybackLoadRequestCurrent(loadGeneration)) return@launch
       val mpvDuration = MPVLib.getPropertyDouble("duration")
       val durationMs = if (mpvDuration != null && mpvDuration > 0) {
         (mpvDuration * 1000).toLong()
@@ -443,6 +453,7 @@ class PlayerPlaylistLoader(
    * Falls back to direct playback if the parse fails (e.g. HLS streams).
    */
   fun loadM3uPlaylistOrPlayDirectly(uriStr: String) {
+    val loadGeneration = activity.beginPlaybackLoadRequest()
     val uri = Uri.parse(uriStr)
     activity.lifecycleScope.launch(Dispatchers.IO) {
       val result = if (uri.scheme == "http" || uri.scheme == "https") {
@@ -452,6 +463,7 @@ class PlayerPlaylistLoader(
       }
 
       withContext(Dispatchers.Main) {
+        if (!activity.isPlaybackLoadRequestCurrent(loadGeneration)) return@withContext
         if (result is M3UParseResult.Success && result.items.isNotEmpty()) {
           val items = result.items
           val playlistUris = items.map { Uri.parse(it.url) }
@@ -466,7 +478,7 @@ class PlayerPlaylistLoader(
           )
 
           // Play the first item
-          loadPlaylistItemInternal(0)
+          loadPlaylistItemInternal(0, loadGeneration)
 
           // Set media title in UI
           val playlistName = result.playlistName
@@ -477,16 +489,10 @@ class PlayerPlaylistLoader(
           Log.d(TAG, "M3U parsing failed or HLS stream. Playing directly: $uriStr")
           if (activity.mpvInitialized) {
             activity.safeSetPropertyString("vid", "no")
-            runCatching { MPVLib.setPropertyBoolean("pause", true) }
-          } else if (!activity.playerPreferences.autoplayOnOpen.get() || activity.playerPreferences.savePositionOnQuit.get() || activity.playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
-            runCatching { MPVLib.setPropertyBoolean("pause", true) }
           }
-          if (activity.mpvInitialized) {
-            activity.lifecycleScope.launch(Dispatchers.Default) {
-              MPVLib.command("loadfile", uriStr)
-            }
-          } else {
-            activity.player.playFile(uriStr)
+          runCatching { MPVLib.setPropertyBoolean("pause", true) }
+          activity.lifecycleScope.launch {
+            activity.loadMediaWithPlaybackState(uriStr, loadGeneration)
           }
         }
       }
