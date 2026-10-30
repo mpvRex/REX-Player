@@ -16,17 +16,6 @@ import xyz.mpv.rex.BuildConfig
 class UpdateFeatureTest {
 
     @Test
-    fun parseCommitCount_extractsIntegerFromTags() {
-        assertEquals(1010, UpdateManager.parseCommitCount("r1010"))
-        assertEquals(1010, UpdateManager.parseCommitCount("R1010"))
-        assertEquals(1010, UpdateManager.parseCommitCount("1010"))
-        assertEquals(1010, UpdateManager.parseCommitCount("v1010"))
-        assertEquals(1010, UpdateManager.parseCommitCount("  r1010  "))
-        assertNull(UpdateManager.parseCommitCount("v5.3.0"))
-        assertNull(UpdateManager.parseCommitCount("invalid"))
-    }
-
-    @Test
     fun isAutoCheckDue_respectsOneHourWindow() {
         val hour = UpdateManager.AUTO_CHECK_INTERVAL_MS
         val now = 1_000_000_000_000L
@@ -56,7 +45,7 @@ class UpdateFeatureTest {
             name = "REX r1042",
             body = "notes",
             publishedAt = "2026-10-26T00:00:00Z",
-            assets = listOf(Asset("https://example.com/app.apk", "app-arm64-v8a.apk", 123L, "apk")),
+            assets = listOf(Asset("https://example.com/app.apk", "app-arm64-v8a.apk", 123L)),
             htmlUrl = "https://example.com/release"
         )
 
@@ -73,24 +62,6 @@ class UpdateFeatureTest {
     }
 
     @Test
-    fun isNewerPreviewVersion_comparesCommitCountsCorrectly() {
-        // Remote is newer
-        assertTrue(UpdateManager.isNewerPreviewVersion("r1015", 1010))
-        assertTrue(UpdateManager.isNewerPreviewVersion("1015", 1010))
-
-        // Remote is same
-        assertFalse(UpdateManager.isNewerPreviewVersion("r1010", 1010))
-        assertFalse(UpdateManager.isNewerPreviewVersion("1010", 1010))
-
-        // Remote is older
-        assertFalse(UpdateManager.isNewerPreviewVersion("r1005", 1010))
-        assertFalse(UpdateManager.isNewerPreviewVersion("1005", 1010))
-
-        // Current count is 0 (fallback)
-        assertFalse(UpdateManager.isNewerPreviewVersion("r1010", 0))
-    }
-
-    @Test
     fun parseFileSizeToBytes_convertsUnitsCorrectly() {
         assertEquals(101L * 1024 * 1024, UpdateManager.parseFileSizeToBytes("101M"))
         assertEquals(40L * 1024 * 1024, UpdateManager.parseFileSizeToBytes("40MB"))
@@ -101,70 +72,13 @@ class UpdateFeatureTest {
     }
 
     @Test
-    fun parsePreviewHtml_extractsVersionBuildTimeAndApks() {
-        val sampleHtml = """
-            <!DOCTYPE html>
-            <html>
-            <body>
-                <div class="version-badge">r1010</div>
-                <div class="build-info">
-                    Build time: 2026-10-12 13:26 UTC
-                </div>
-                <div class="download-list">
-                    <div class="download-item">
-                        <div class="item-size">101M</div>
-                        <a href="REX-Player-preview-r1010-universal.apk" class="btn-download">Download</a>
-                    </div>
-                    <div class="download-item">
-                        <div class="item-size">40M</div>
-                        <a href="REX-Player-preview-r1010-arm64-v8a.apk" class="btn-download">Download</a>
-                    </div>
-                    <div class="download-item">
-                        <div class="item-size">38M</div>
-                        <a href="REX-Player-preview-r1010-armeabi-v7a.apk" class="btn-download">Download</a>
-                    </div>
-                    <div class="download-item">
-                        <div class="item-size">41M</div>
-                        <a href="REX-Player-preview-r1010-x86.apk" class="btn-download">Download</a>
-                    </div>
-                    <div class="download-item">
-                        <div class="item-size">41M</div>
-                        <a href="REX-Player-preview-r1010-x86_64.apk" class="btn-download">Download</a>
-                    </div>
-                </div>
-            </body>
-            </html>
-        """.trimIndent()
-
-        val release = UpdateManager.parsePreviewHtml(sampleHtml)
-
-        assertEquals("r1010", release.tagName)
-        assertEquals("REX Player Preview r1010", release.name)
-        assertEquals("2026-10-12 13:26 UTC", release.publishedAt)
-        assertEquals("https://mpvrex.github.io/REX-Player/", release.htmlUrl)
-        assertEquals(5, release.assets.size)
-
-        val universal = release.assets.firstOrNull { it.name.contains("universal") }
-        assertNotNull(universal)
-        assertEquals("REX-Player-preview-r1010-universal.apk", universal!!.name)
-        assertEquals("https://mpvrex.github.io/REX-Player/REX-Player-preview-r1010-universal.apk", universal.downloadUrl)
-        assertEquals(101L * 1024 * 1024, universal.size)
-
-        val arm64 = release.assets.firstOrNull { it.name.contains("arm64-v8a") }
-        assertNotNull(arm64)
-        assertEquals("REX-Player-preview-r1010-arm64-v8a.apk", arm64!!.name)
-        assertEquals("https://mpvrex.github.io/REX-Player/REX-Player-preview-r1010-arm64-v8a.apk", arm64.downloadUrl)
-        assertEquals(40L * 1024 * 1024, arm64.size)
-    }
-
-    @Test
     fun selectBestApkAsset_selectsMatchingArchOrFallback() {
         val assets = listOf(
-            Asset("url1", "REX-Player-preview-r1010-universal.apk", 101L * 1024 * 1024, "application/vnd.android.package-archive"),
-            Asset("url2", "REX-Player-preview-r1010-arm64-v8a.apk", 40L * 1024 * 1024, "application/vnd.android.package-archive"),
-            Asset("url3", "REX-Player-preview-r1010-armeabi-v7a.apk", 38L * 1024 * 1024, "application/vnd.android.package-archive"),
-            Asset("url4", "REX-Player-preview-r1010-x86.apk", 41L * 1024 * 1024, "application/vnd.android.package-archive"),
-            Asset("url5", "REX-Player-preview-r1010-x86_64.apk", 41L * 1024 * 1024, "application/vnd.android.package-archive")
+            Asset("url1", "REX-Player-preview-r1010-universal.apk", 101L * 1024 * 1024),
+            Asset("url2", "REX-Player-preview-r1010-arm64-v8a.apk", 40L * 1024 * 1024),
+            Asset("url3", "REX-Player-preview-r1010-armeabi-v7a.apk", 38L * 1024 * 1024),
+            Asset("url4", "REX-Player-preview-r1010-x86.apk", 41L * 1024 * 1024),
+            Asset("url5", "REX-Player-preview-r1010-x86_64.apk", 41L * 1024 * 1024)
         )
 
         val bestArm64 = UpdateManager.selectBestApkAsset(assets, "arm64-v8a")
@@ -182,147 +96,6 @@ class UpdateFeatureTest {
         assertEquals(101L * 1024 * 1024, fallbackUniversal.size)
     }
 
-    // --- Preview changelog tests ---
-
-    private fun previewRelease(
-        changelog: List<ChangelogEntry> = emptyList(),
-        tagName: String = "r1015"
-    ): Release = Release(
-        tagName = tagName,
-        name = "REX Player Preview r1015",
-        body = "Nightly preview build automatically generated from master branch.",
-        publishedAt = "2026-10-25 12:00 UTC",
-        assets = emptyList(),
-        htmlUrl = null,
-        changelog = changelog
-    )
-
-    @Test
-    fun previewChangelogEntries_filtersByInstalledBuildAndOrdersNewestFirst() {
-        val release = previewRelease(
-            listOf(
-                ChangelogEntry(1011, "Improve subtitle rendering", "def456"),
-                ChangelogEntry(1005, "Older than installed build", "old123"), // <= current, excluded
-                ChangelogEntry(1015, "Fix crash on playback start (fixes #42)", "abc123"),
-                ChangelogEntry(1014, "Fix subtitle offsets on low-fps clips", "ghi789")
-            )
-        )
-
-        val entries = UpdateManager.previewChangelogEntries(release, currentCommitCount = 1010)
-
-        assertEquals(listOf(1015, 1014, 1011), entries.map { it.serial })
-    }
-
-    @Test
-    fun previewChangelogEntries_handlesBoundaryAndEmptyResults() {
-        val atInstalledBuild = previewRelease(listOf(ChangelogEntry(1010, "At installed build", "sha")))
-        assertTrue(UpdateManager.previewChangelogEntries(atInstalledBuild, 1010).isEmpty())
-
-        val nextCommit = previewRelease(listOf(ChangelogEntry(1011, "Next commit", "sha")))
-        assertEquals(
-            listOf(1011),
-            UpdateManager.previewChangelogEntries(nextCommit, 1010).map { it.serial }
-        )
-
-        // No changelog at all (older manifest / HTML fallback)
-        assertTrue(UpdateManager.previewChangelogEntries(previewRelease(), 1000).isEmpty())
-    }
-
-    @Test
-    fun previewChangelogSkipped_countsCommitsOutsideWindow() {
-        val window = (996..1015).map { n -> ChangelogEntry(n, "Commit $n", "sha$n") }
-        val release = previewRelease(window)
-
-        val shown = UpdateManager.previewChangelogEntries(release, 800)
-        assertEquals(20, shown.size)
-        assertEquals(195, UpdateManager.previewChangelogSkipped(release, 800, shown.size))
-
-        // Whole range covered by the window -> no extra note
-        val fullyCovered = UpdateManager.previewChangelogEntries(release, 995)
-        assertEquals(0, UpdateManager.previewChangelogSkipped(release, 995, fullyCovered.size))
-
-        // Nothing shown -> no note
-        assertEquals(0, UpdateManager.previewChangelogSkipped(release, 1015, 0))
-    }
-
-    @Test
-    fun parseChangelogSegments_splitsIssueReferences() {
-        assertEquals(
-            listOf(
-                ChangelogSegment.Text("Fix crash on playback start (fixes "),
-                ChangelogSegment.Ref("42"),
-                ChangelogSegment.Text(")")
-            ),
-            UpdateManager.parseChangelogSegments("Fix crash on playback start (fixes #42)")
-        )
-
-        assertEquals(
-            listOf(
-                ChangelogSegment.Text("collisions ("),
-                ChangelogSegment.Ref("396"),
-                ChangelogSegment.Text(") ("),
-                ChangelogSegment.Ref("455"),
-                ChangelogSegment.Text(")")
-            ),
-            UpdateManager.parseChangelogSegments("collisions (#396) (#455)")
-        )
-
-        assertEquals(
-            listOf(ChangelogSegment.Ref("12"), ChangelogSegment.Text(" lead")),
-            UpdateManager.parseChangelogSegments("#12 lead")
-        )
-
-        assertEquals(
-            listOf(ChangelogSegment.Text("no references here")),
-            UpdateManager.parseChangelogSegments("no references here")
-        )
-    }
-
-    @Test
-    fun commitAndIssueUrls_pointToRepositoryPages() {
-        assertEquals(
-            "https://github.com/mpvRex/REX-Player/commit/abc123",
-            UpdateManager.commitUrl("abc123")
-        )
-        assertEquals(
-            "https://github.com/mpvRex/REX-Player/issues/442",
-            UpdateManager.issueUrl("442")
-        )
-    }
-
-    @Test
-    fun release_decodesChangelogFromPreviewManifestAndDefaultsMissingFields() {
-        val payload = """
-            {
-              "tag_name": "r1015",
-              "name": "REX Player Preview r1015",
-              "body": "Nightly preview build automatically generated from master branch.",
-              "published_at": "2026-10-25 12:00 UTC",
-              "html_url": "https://mpvrex.github.io/REX-Player/",
-              "assets": [
-                {
-                  "name": "REX-Player-preview-r1015-universal.apk",
-                  "browser_download_url": "https://mpvrex.github.io/REX-Player/REX-Player-preview-r1015-universal.apk",
-                  "size": 100,
-                  "content_type": "application/vnd.android.package-archive"
-                }
-              ],
-              "changelog": [
-                { "serial": 1015, "message": "Fix crash on playback start (fixes #42)", "sha": "abc123" },
-                { "serial": 1014, "message": "Improve subtitle rendering" }
-              ]
-            }
-        """.trimIndent()
-
-        val release = Json { ignoreUnknownKeys = true }.decodeFromString<Release>(payload)
-
-        assertEquals(2, release.changelog.size)
-        assertEquals(1015, release.changelog[0].serial)
-        assertEquals("abc123", release.changelog[0].sha)
-        assertEquals("", release.changelog[1].sha) // missing sha defaults to blank
-        assertEquals(100L, release.assets[0].size)
-    }
-
     @Test
     fun release_decodesWithoutChangelogField() {
         val payload = """
@@ -338,7 +111,7 @@ class UpdateFeatureTest {
 
         val release = Json { ignoreUnknownKeys = true }.decodeFromString<Release>(payload)
 
-        assertTrue(release.changelog.isEmpty())
+        assertTrue(release.assets.isEmpty())
         assertEquals("Release notes", release.body)
     }
 
@@ -356,59 +129,13 @@ class UpdateFeatureTest {
 
     @Test
     fun isCachedReleaseStillNewer_revalidatesAgainstTheInstalledBuild() {
-        // Preview: the cache names r1015, newer while r1010 runs, same after self-update
-        val previewCache = previewRelease(tagName = "r1015")
-        assertTrue(
-            UpdateManager.isCachedReleaseStillNewer(
-                previewCache,
-                isPreviewBuild = true,
-                currentCommitCount = 1010,
-                currentVersionName = "5.4.0-1010"
-            )
-        )
-        assertFalse(
-            UpdateManager.isCachedReleaseStillNewer(
-                previewCache,
-                isPreviewBuild = true,
-                currentCommitCount = 1015,
-                currentVersionName = "5.4.0-1015"
-            )
-        )
+        // The "v" prefix and "-dev" suffix are ignored
+        val cached = makeRelease(tagName = "v5.5.0")
 
-        // Release: the "v" prefix and "-dev" suffix are ignored
-        val releaseCache = previewRelease(tagName = "v5.5.0")
-        assertTrue(
-            UpdateManager.isCachedReleaseStillNewer(
-                releaseCache,
-                isPreviewBuild = false,
-                currentCommitCount = 0,
-                currentVersionName = "5.4.0"
-            )
-        )
-        assertTrue(
-            UpdateManager.isCachedReleaseStillNewer(
-                releaseCache,
-                isPreviewBuild = false,
-                currentCommitCount = 0,
-                currentVersionName = "5.4.0-dev"
-            )
-        )
-        assertFalse(
-            UpdateManager.isCachedReleaseStillNewer(
-                releaseCache,
-                isPreviewBuild = false,
-                currentCommitCount = 0,
-                currentVersionName = "5.5.0"
-            )
-        )
-        assertFalse(
-            UpdateManager.isCachedReleaseStillNewer(
-                releaseCache,
-                isPreviewBuild = false,
-                currentCommitCount = 0,
-                currentVersionName = "5.6.0"
-            )
-        )
+        assertTrue(UpdateManager.isCachedReleaseStillNewer(cached, currentVersionName = "5.4.0"))
+        assertTrue(UpdateManager.isCachedReleaseStillNewer(cached, currentVersionName = "5.4.0-dev"))
+        assertFalse(UpdateManager.isCachedReleaseStillNewer(cached, currentVersionName = "5.5.0"))
+        assertFalse(UpdateManager.isCachedReleaseStillNewer(cached, currentVersionName = "5.6.0"))
     }
 
     /** An [UpdateManager] whose prefs are the given fakes, like the real one through Context. */
@@ -419,7 +146,15 @@ class UpdateFeatureTest {
         return UpdateManager(context)
     }
 
-    private fun releaseWith(tagName: String): Release = previewRelease(tagName = tagName)
+    private fun makeRelease(tagName: String): Release = Release(
+        tagName = tagName,
+        name = "REX Player $tagName",
+        body = "",
+        publishedAt = "",
+        assets = emptyList()
+    )
+
+    private fun releaseWith(tagName: String): Release = makeRelease(tagName)
 
     @Test
     fun cachedReleaseIfStillNewer_restoresOnlyReleasesNewerThanTheInstalledBuild() {
@@ -448,7 +183,7 @@ class UpdateFeatureTest {
         prefs.edit()
             .putLong("last_update_check", System.currentTimeMillis() - 60_000L)
             .putString("last_update_check_version", "5.3.9")
-            .putString("cached_release", Json.encodeToString(Release.serializer(), previewRelease()))
+            .putString("cached_release", Json.encodeToString(Release.serializer(), makeRelease("v5.5.0")))
             .apply()
 
         manager.dropStateFromPreviousBuild()
@@ -512,5 +247,63 @@ internal class FakePrefs : SharedPreferences {
             removals.clear()
             clear = false
         }
+    }
+
+    @Test
+    fun isTrustedReleaseUrl_acceptsExpectedReleaseHosts() {
+        assertTrue(UpdateManager.isTrustedReleaseUrl("https://github.com/mpvRex/REX-Player/releases/latest"))
+        assertTrue(UpdateManager.isTrustedReleaseUrl("https://api.github.com/repos/mpvRex/REX-Player/releases/latest"))
+        assertTrue(UpdateManager.isTrustedReleaseUrl("https://mpvrex.github.io/REX-Player/version.json"))
+        assertTrue(UpdateManager.isTrustedReleaseUrl("https://objects.githubusercontent.com/x/y.apk"))
+    }
+
+    @Test
+    fun isTrustedReleaseUrl_rejectsLookalikesAndDowngrades() {
+        // wrong scheme
+        assertFalse(UpdateManager.isTrustedReleaseUrl("http://github.com/mpvRex/REX-Player/releases"))
+        // wrong host
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://evil.example/mpvRex/REX-Player/x.apk"))
+        // suffix / prefix host spoofing
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://github.com.evil.example/mpvRex/REX-Player/x.apk"))
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://notgithub.com/mpvRex/REX-Player/x.apk"))
+        // userinfo trick: real host is evil.example
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://github.com@evil.example/mpvRex/REX-Player/x.apk"))
+        // non-default port
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://github.com:8443/mpvRex/REX-Player/x.apk"))
+        // trusted host, untrusted path
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://github.com/someoneelse/other/x.apk"))
+        assertFalse(UpdateManager.isTrustedReleaseUrl("https://mpvrex.github.io/Other/x.apk"))
+        // junk
+        assertFalse(UpdateManager.isTrustedReleaseUrl(null))
+        assertFalse(UpdateManager.isTrustedReleaseUrl(""))
+        assertFalse(UpdateManager.isTrustedReleaseUrl("not a url"))
+    }
+
+    @Test
+    fun sanitizeRelease_dropsUntrustedAssetsAndHtmlUrl() {
+        val release = Release(
+            tagName = "v5.5.1",
+            name = "R",
+            body = "b",
+            publishedAt = "",
+            assets = listOf(
+                Asset("https://github.com/mpvRex/REX-Player/releases/download/v5.5.1/app.apk", "app.apk", 1L),
+                Asset("https://evil.example/app.apk", "evil.apk", 1L),
+                Asset("http://github.com/mpvRex/REX-Player/x.apk", "plain-http.apk", 1L)
+            ),
+            htmlUrl = "https://evil.example/phish"
+        )
+
+        val safe = UpdateManager.sanitizeRelease(release)
+
+        assertEquals(listOf("app.apk"), safe.assets.map { it.name })
+        assertNull(safe.htmlUrl)
+    }
+
+    @Test
+    fun sanitizeRelease_keepsTrustedHtmlUrl() {
+        val url = "https://github.com/mpvRex/REX-Player/releases/tag/v5.5.1"
+        val release = Release("v5.5.1", "R", "b", "", emptyList(), htmlUrl = url)
+        assertEquals(url, UpdateManager.sanitizeRelease(release).htmlUrl)
     }
 }

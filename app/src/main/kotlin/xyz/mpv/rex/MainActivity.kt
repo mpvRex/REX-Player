@@ -191,14 +191,7 @@ class MainActivity : ComponentActivity() {
     @Suppress("UNCHECKED_CAST")
     val typedBackstack = backstack as NavBackStack<Screen>
 
-    val currentVersion = if (UpdateManager.isPreviewBuild()) {
-      val count = BuildConfig.GIT_COUNT.takeIf { it > 0 }
-        ?: BuildConfig.VERSION_NAME.substringAfterLast('-', "").toIntOrNull()
-        ?: 0
-      "r$count"
-    } else {
-      BuildConfig.VERSION_NAME.replace("-dev", "")
-    }
+    val currentVersion = BuildConfig.VERSION_NAME.replace("-dev", "")
 
     // Conditionally initialize update feature based on build config
     val updateViewModel: UpdateViewModel? = if (BuildConfig.ENABLE_UPDATE_FEATURE) {
@@ -207,9 +200,6 @@ class MainActivity : ComponentActivity() {
       null
     }
     val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
-    val companionUpdateState by (updateViewModel?.companionUpdateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
-    val isDownloading by (updateViewModel?.isDownloading ?: MutableStateFlow(false)).collectAsState()
-    val downloadProgress by (updateViewModel?.downloadProgress ?: MutableStateFlow(0f)).collectAsState()
     val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val hideNavigationBar by MainScreen.shouldHideNavigationBar.collectAsState()
     val currentRoute = typedBackstack.lastOrNull()
@@ -307,83 +297,20 @@ class MainActivity : ComponentActivity() {
             val release = (updateState as UpdateViewModel.UpdateState.Available).release
             UpdateDialog(
               release = release,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              actionLabel = if (isDownloading) "Downloading..." else "Download",
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { 
-                // Redirect to GitHub releases page as requested by user
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW, 
-                    (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
-                      UpdateManager.PREVIEW_PAGE_URL
-                    } else {
-                      "https://github.com/mpvRex/REX-Player/releases/latest"
-                    }).toUri()
-                  )
-                )
-                // updateViewModel.downloadUpdate(release) // Kept in code but disabled for now
-              },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
-            )
-          }
-          is UpdateViewModel.UpdateState.ReadyToInstall -> {
-            val release = (updateState as UpdateViewModel.UpdateState.ReadyToInstall).release
-            UpdateDialog(
-              release = release,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              actionLabel = "Install",
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { 
-                // Redirect to GitHub releases page as requested by user
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW, 
-                    (release.htmlUrl ?: if (UpdateManager.isPreviewBuild()) {
-                      UpdateManager.PREVIEW_PAGE_URL
-                    } else {
-                      "https://github.com/mpvRex/REX-Player/releases/latest"
-                    }).toUri()
-                  )
-                )
-                // updateViewModel.installUpdate(release) // Kept in code but disabled for now
-              },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
-            )
-          }
-          else -> {}
-        }
-      }
-
-      // Companion (REX-Ytdlp APK) update dialog — only when addon is installed.
-      // Guarded so an active app-update dialog always wins; companion shows after it's dismissed.
-      if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null &&
-          updateState !is UpdateViewModel.UpdateState.Available &&
-          updateState !is UpdateViewModel.UpdateState.ReadyToInstall) {
-        when (companionUpdateState) {
-          is UpdateViewModel.UpdateState.Available -> {
-            val release = (companionUpdateState as UpdateViewModel.UpdateState.Available).release
-            UpdateDialog(
-              release = release,
-              isDownloading = false,
-              progress = 0f,
               actionLabel = "Download",
-              currentVersion = updateViewModel.ytdlpInstalledVersion() ?: "",
-              titleOverride = "REX-Ytdlp Update Available",
-              onDismiss = { updateViewModel.dismissCompanionNoUpdate() },
+              currentVersion = currentVersion,
+              onDismiss = { updateViewModel.dismiss() },
               onAction = {
+                // Hand off to the releases page; the app never downloads or
+                // installs APKs itself. Every build tracks the same release feed.
                 context.startActivity(
                   Intent(
                     Intent.ACTION_VIEW,
-                    (release.htmlUrl ?: "https://github.com/mpvRex/REX-Ytdlp/releases/latest").toUri()
+                    (release.htmlUrl ?: "https://github.com/mpvRex/REX-Player/releases/latest").toUri()
                   )
                 )
               },
-              onIgnore = { updateViewModel.ignoreYtdlpVersion(release.tagName.removePrefix("v")) }
+              onIgnore = { updateViewModel.ignoreVersion(release.tagName.removePrefix("v")) }
             )
           }
           else -> {}

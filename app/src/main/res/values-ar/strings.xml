@@ -1444,7 +1444,6 @@
     <string name="media_info_folder_path">مسار المجلد</string>
     <string name="network_status_connected">متصل</string>
     <string name="network_status_offline">غير متصل</string>
-    <string name="pref_category_ytdlp_updates">تحديثات REX Ytdlp</string>
     <string name="pref_playback_controls_position_title">موقع أدوات التحكم بالتشغيل</string>
     <string name="pref_playback_controls_position_summary">وضع أزرار التشغيل في الوسط أو الشريط السفلي</string>
     <string name="pref_playback_controls_position_center">منتصف الشاشة</string>

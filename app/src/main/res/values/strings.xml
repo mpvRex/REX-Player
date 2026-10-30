@@ -1044,13 +1044,6 @@
 
     <!-- Update features -->
     <string name="pref_category_updates">Updates</string>
-    <string name="pref_category_ytdlp_updates">REX Ytdlp Updates</string>
-    <string name="pref_ytdlp_auto_check_updates">Auto Check for Companion Updates</string>
-    <string name="pref_ytdlp_auto_check_updates_summary">Check for new REX Ytdlp companion releases on startup</string>
-    <string name="pref_ytdlp_check_updates">Check for Companion Updates</string>
-    <string name="pref_ytdlp_check_updates_summary">Manually check for new REX Ytdlp companion releases on GitHub</string>
-    <string name="pref_ytdlp_up_to_date">REX Ytdlp companion app is up to date!</string>
-    <string name="pref_ytdlp_check_updates_failed">Failed to check for REX Ytdlp companion app updates</string>
     <string name="pref_about_auto_check_updates">Auto Check for Updates</string>
     <string name="pref_about_auto_check_updates_summary">Check for new versions on startup</string>
     <string name="pref_about_check_updates">Check for Updates</string>

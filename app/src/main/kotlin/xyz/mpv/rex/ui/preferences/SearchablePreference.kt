@@ -1378,22 +1378,6 @@ object SearchablePreferences {
                 targetIndex = 2,
             ))
             add(SearchablePreference(
-                titleRes = R.string.pref_ytdlp_auto_check_updates,
-                summaryRes = R.string.pref_ytdlp_auto_check_updates_summary,
-                keywords = listOf("auto check", "updates", "ytdlp", "companion", "addon", "startup"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 2,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_ytdlp_check_updates,
-                summaryRes = R.string.pref_ytdlp_check_updates_summary,
-                keywords = listOf("check", "updates", "ytdlp", "companion", "addon", "github"),
-                category = "Integrations",
-                screen = YtdlSettingsScreen,
-                targetIndex = 2,
-            ))
-            add(SearchablePreference(
                 title = "Auto-detect Web Pages",
                 summary = "Proactively probe unknown URLs to route HTML web pages through yt-dlp",
                 keywords = listOf("auto-detect", "web", "pages", "urls", "probe", "yt-dlp", "routing"),

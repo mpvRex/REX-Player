@@ -3,13 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Play Store flavor: Remove high-risk permissions for 100% acceptance rate -->
-    
+
     <!-- Remove MANAGE_EXTERNAL_STORAGE - not acceptable for Play Store without special approval -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:node="remove" />
-    
-    <!-- Remove REQUEST_INSTALL_PACKAGES - not needed for Play Store distribution -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
-    
+
     <!-- Remove WRITE_EXTERNAL_STORAGE - deprecated and not needed with scoped storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
 
