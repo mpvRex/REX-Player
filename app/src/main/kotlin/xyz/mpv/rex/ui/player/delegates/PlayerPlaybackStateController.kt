@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
 import `is`.xyz.mpv.MPVLib
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -15,6 +16,7 @@ import xyz.mpv.rex.ui.player.PlayerOrientation
 import xyz.mpv.rex.ui.player.PlayerUpdates
 import xyz.mpv.rex.ui.player.ResumePlaybackMode
 import xyz.mpv.rex.ui.player.VideoAspect
+import java.util.Locale
 
 /**
  * Controller responsible for saving and restoring video playback state (resume position,
@@ -23,6 +25,19 @@ import xyz.mpv.rex.ui.player.VideoAspect
 class PlayerPlaybackStateController(
   private val activity: PlayerActivity,
 ) {
+  // PRELOAD-RESUME-STATE-V1
+  data class PreparedPlaybackState(
+    val generation: Long,
+    val mediaIdentifier: String,
+    val state: PlaybackStateEntity?,
+    val startPositionSeconds: String?,
+    val resumePosition: Int?,
+    val explicitPositionMs: Long?,
+    val jellyfinPositionMs: Int?,
+    val resumeMode: ResumePlaybackMode,
+    val autoResumeOnAsk: Boolean,
+  )
+
   @Volatile
   var isPlaybackStateLoaded: Boolean = false
 
@@ -129,24 +144,94 @@ class PlayerPlaybackStateController(
   }
 
   /**
-   * Loads and applies saved playback state from the database.
-   *
-   * @param mediaTitle The title of the media being played
-   * @return true if saved state was found and applied, false otherwise
+   * Reads the resume record before MPV starts opening the media. The resulting state object is
+   * carried through FILE_LOADED so restoration does not query the database or seek a second time.
    */
-  suspend fun loadVideoPlaybackState(mediaTitle: String): Boolean {
-    if (activity.mediaIdentifier.isBlank()) return false
+  suspend fun preparePlaybackState(
+    mediaIdentifier: String,
+    generation: Long,
+    explicitPositionMs: Long?,
+    jellyfinPositionMs: Int?,
+  ): PreparedPlaybackState {
+    val resumeMode = activity.playerPreferences.resumePlaybackMode.get()
+    val autoResumeOnAsk = activity.playerPreferences.autoResumeOnAsk.get()
+    val savePosition = activity.playerPreferences.savePositionOnQuit.get()
+    val state = if (mediaIdentifier.isBlank()) {
+      null
+    } else {
+      try {
+        withContext(Dispatchers.IO) {
+          activity.playbackStateRepository.getVideoDataByTitle(mediaIdentifier)
+        }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.e(TAG, "Error preparing playback state for $mediaIdentifier", e)
+        null
+      }
+    }
 
-    return runCatching {
-      val state = activity.playbackStateRepository.getVideoDataByTitle(activity.mediaIdentifier)
+    val resumePosition = state?.takeIf {
+      savePosition &&
+        resumeMode != ResumePlaybackMode.Never &&
+        it.lastPosition > 3 &&
+        !(it.hasBeenWatched && it.timeRemaining <= 0)
+    }?.lastPosition
+    val startPositionSeconds = when {
+      explicitPositionMs != null -> String.format(
+        Locale.US,
+        "%.3f",
+        explicitPositionMs.coerceAtLeast(0L) / 1000.0,
+      )
+      resumePosition != null && (
+        resumeMode == ResumePlaybackMode.Always ||
+          (resumeMode == ResumePlaybackMode.Ask && autoResumeOnAsk)
+        ) -> resumePosition.toString()
+      else -> null
+    }
+
+    return PreparedPlaybackState(
+      generation = generation,
+      mediaIdentifier = mediaIdentifier,
+      state = state,
+      startPositionSeconds = startPositionSeconds,
+      resumePosition = resumePosition,
+      explicitPositionMs = explicitPositionMs,
+      jellyfinPositionMs = jellyfinPositionMs,
+      resumeMode = resumeMode,
+      autoResumeOnAsk = autoResumeOnAsk,
+    )
+  }
+
+  /**
+   * Loads and applies the state already prepared for this request. Unprepared MPV-native playlist
+   * transitions retain the legacy lookup path as a fallback.
+   */
+  suspend fun loadVideoPlaybackState(
+    mediaTitle: String,
+    preparedState: PreparedPlaybackState? = null,
+    expectedMediaIdentifier: String = activity.mediaIdentifier,
+  ): Boolean {
+    if (expectedMediaIdentifier.isBlank()) return false
+    if (preparedState != null && preparedState.mediaIdentifier != expectedMediaIdentifier) return false
+
+    return try {
+      val state = if (preparedState != null) {
+        preparedState.state
+      } else {
+        activity.playbackStateRepository.getVideoDataByTitle(expectedMediaIdentifier)
+      }
 
       applyPlaybackState(state)
       applyDefaultSettings(state)
-
+      applyResumePosition(state, preparedState)
       state != null
-    }.onFailure { e ->
-      Log.e(TAG, "Error loading playback state", e)
-    }.getOrDefault(false)
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Log.e(TAG, "Error loading playback state for $expectedMediaIdentifier", e)
+      false
+    }
   }
 
   /**
@@ -260,28 +345,42 @@ class PlayerPlaybackStateController(
     }
 
     isPlaybackStateLoaded = true
+  }
 
-    val resumeMode = activity.playerPreferences.resumePlaybackMode.get()
-    val hasValidSavedPosition = state.lastPosition > 3
-
-    if (activity.startedAtSavedPosition) {
-      Log.d(TAG, "Media was already started at position ${state.lastPosition} via load options; skipping seek")
-      activity.startedAtSavedPosition = false
-      if (resumeMode == ResumePlaybackMode.Ask && activity.playerPreferences.autoResumeOnAsk.get()) {
+  private suspend fun applyResumePosition(
+    state: PlaybackStateEntity?,
+    preparedState: PreparedPlaybackState?,
+  ) {
+    if (preparedState != null) {
+      if (preparedState.explicitPositionMs != null) {
+        preparedState.jellyfinPositionMs?.let {
+          xyz.mpv.rex.jellyfin.JellyfinExternalHelper.logSeekApplied(it)
+        }
         withContext(Dispatchers.Main) {
-          activity.viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
+          activity.viewModel.clearResumePrompt()
+        }
+      } else if (preparedState.resumeMode == ResumePlaybackMode.Ask && preparedState.resumePosition != null) {
+        withContext(Dispatchers.Main) {
+          activity.viewModel.playerUpdate.value = if (preparedState.autoResumeOnAsk) {
+            PlayerUpdates.ResumedFrom(preparedState.resumePosition)
+          } else {
+            PlayerUpdates.PromptResume(preparedState.resumePosition)
+          }
         }
       }
       return
     }
 
+    // Fallback for MPV-native playlist transitions that were not started by an app load request.
+    if (state == null) return
+    val resumeMode = activity.playerPreferences.resumePlaybackMode.get()
+    val hasValidSavedPosition = state.lastPosition > 3 &&
+      !(state.hasBeenWatched && state.timeRemaining <= 0)
+
     when {
-      !activity.playerPreferences.savePositionOnQuit.get() || resumeMode == ResumePlaybackMode.Never || !hasValidSavedPosition -> {
-        // No seek needed, playback continues from start
-      }
+      !activity.playerPreferences.savePositionOnQuit.get() || resumeMode == ResumePlaybackMode.Never || !hasValidSavedPosition -> Unit
       resumeMode == ResumePlaybackMode.Ask -> {
-        val autoResume = activity.playerPreferences.autoResumeOnAsk.get()
-        if (autoResume) {
+        if (activity.playerPreferences.autoResumeOnAsk.get()) {
           MPVLib.setPropertyInt("time-pos", state.lastPosition)
           withContext(Dispatchers.Main) {
             activity.viewModel.playerUpdate.value = PlayerUpdates.ResumedFrom(state.lastPosition)
@@ -292,9 +391,7 @@ class PlayerPlaybackStateController(
           }
         }
       }
-      resumeMode == ResumePlaybackMode.Always -> {
-        MPVLib.setPropertyInt("time-pos", state.lastPosition)
-      }
+      resumeMode == ResumePlaybackMode.Always -> MPVLib.setPropertyInt("time-pos", state.lastPosition)
     }
   }
 
