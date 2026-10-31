@@ -58,6 +58,8 @@ internal data class TapConfig(
  *  - A double tap ends with the chrome exactly as it was before the first tap.
  *  - With an instant single-tap action enabled, a tap outside the top/bottom quarter runs the action
  *    and never touches the chrome.
+ *  - While the controls are locked, a clean tap never runs an action and always shows the chrome:
+ *    the unlock slider lives there, so it must be reachable from anywhere on the screen.
  *  - An unclean gesture produces no chrome effect, writes no snapshot and starts no double-tap
  *    window: the next touch is still a first tap.
  *
@@ -217,7 +219,11 @@ internal class TapChromeEngine(
       togglable = false
     }
     when (kind) {
-      Kind.Locked -> if (spent) listener.onShowChrome()
+      // While locked the only tap effect is surfacing the unlock slider, which lives in the chrome.
+      // A clean single tap must therefore always show the chrome, regardless of where it landed:
+      // with an instant single-tap action enabled `spent` is true for most of the screen, and
+      // gating on it left locked users with no way to bring the unlock slider back at all.
+      Kind.Locked -> listener.onShowChrome()
       Kind.Swallowed -> Unit
       Kind.SecondOfDouble, Kind.Continuation -> {
         if (kind == Kind.SecondOfDouble) {

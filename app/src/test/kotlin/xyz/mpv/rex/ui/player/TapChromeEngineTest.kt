@@ -248,6 +248,10 @@ class TapChromeEngineTest {
     val r = Rig(false)
     r.locked = true
     r.tap(0)
+    // The unlock slider lives in the chrome, so a locked tap still surfaces it; nothing else.
+    assertEquals(listOf("show"), r.log)
+    assertEquals(0, r.tapped("center:single"))
+    r.log.clear()
     r.locked = false
     r.blocked = true
     r.tap(1000)
@@ -260,6 +264,28 @@ class TapChromeEngineTest {
     r.locked = true
     r.tap(0)
     assertEquals(listOf("show"), r.log)
+  }
+
+  @Test
+  fun locked_withInstantSideAction_revealsChromeFromTheSidesToo() {
+    for (x in listOf(100f, 500f, 900f)) {
+      val r = Rig(false, cfg(instantCenter = true, instantSides = true))
+      r.locked = true
+      // An instant action "spends" the tap outside the top/bottom quarter, so the chrome must be
+      // shown from anywhere: otherwise the unlock slider could never be brought back.
+      r.tap(0, x = x, y = 400f)
+      assertEquals("x=$x", listOf("show"), r.log)
+      assertEquals("x=$x", 0, r.tapped("center:single") + r.tapped("left:single") + r.tapped("right:single"))
+    }
+  }
+
+  @Test
+  fun locked_uncleanGesture_doesNotRevealChrome() {
+    val r = Rig(false)
+    r.locked = true
+    r.down(0)
+    r.unclean(start = 0)
+    assertTrue(r.log.isEmpty())
   }
 
   // 16, 17 -------------------------------------------------------------------------------------

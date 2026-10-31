@@ -362,11 +362,14 @@ class TapChromeEngineDeferredTest {
   }
 
   @Test
-  fun lockedAndPanelTapsAreSilent_inBothModes() {
+  fun lockedTapRevealsChrome_panelTapIsSilent_inBothModes() {
     for (defer in listOf(true, false)) {
       val r = DeferredRig(false, deferredCfg(deferToggle = defer))
       r.locked = true
       r.tap(0)
+      // The unlock slider lives in the chrome: a locked tap must surface it, in both modes.
+      assertEquals("defer=$defer", listOf("show"), r.log)
+      r.log.clear()
       r.locked = false
       r.blocked = true
       r.tap(1000)
