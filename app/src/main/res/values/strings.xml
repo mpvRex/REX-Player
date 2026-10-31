@@ -1296,7 +1296,7 @@
     <string name="pref_player_auto_pip">Auto Picture-in-Picture</string>
     <string name="pref_player_auto_pip_summary">Automatically enter PIP mode when pressing Back or Home</string>
     <string name="pref_player_pip_on_home">PiP on Home</string>
-    <string name="pref_player_pip_on_home_summary">Enter PiP only when pressing Home; Back closes the player</string>
+    <string name="pref_player_pip_on_home_summary">Enter PiP only when pressing Home, Back closes the player</string>
     <string name="pref_player_dynamic_speed_overlay">Dynamic Speed Overlay</string>
     <string name="pref_player_dynamic_speed_overlay_summary">Show advance overlay for speed control during long press and swipe</string>
     <string name="pref_player_show_speed_indicator_overlay">Show Speed Indicator Overlay</string>
