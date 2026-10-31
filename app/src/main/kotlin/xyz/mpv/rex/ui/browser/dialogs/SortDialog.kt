@@ -793,6 +793,7 @@ fun FolderSortDialog(
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
+  val showFileExtension by browserPreferences.showFileExtension.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
@@ -946,6 +947,11 @@ fun FolderSortDialog(
         onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
       ),
       VisibilityToggle(
+        label = stringResource(R.string.field_file_extension),
+        checked = showFileExtension,
+        onCheckedChange = { browserPreferences.showFileExtension.set(it) },
+      ),
+      VisibilityToggle(
         label = stringResource(R.string.path),
         checked = showFolderPath,
         onCheckedChange = { browserPreferences.showFolderPath.set(it) },
@@ -1033,6 +1039,7 @@ fun VideoSortDialog(
   val showDateChip by browserPreferences.showDateChip.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
+  val showFileExtension by browserPreferences.showFileExtension.collectAsState()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val showTotalVideosChip by browserPreferences.showTotalVideosChip.collectAsState()
   val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
@@ -1173,6 +1180,11 @@ fun VideoSortDialog(
           onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
         ),
         VisibilityToggle(
+          label = stringResource(R.string.field_file_extension),
+          checked = showFileExtension,
+          onCheckedChange = { browserPreferences.showFileExtension.set(it) },
+        ),
+        VisibilityToggle(
           label = stringResource(R.string.path),
           checked = showFolderPath,
           onCheckedChange = { browserPreferences.showFolderPath.set(it) },
@@ -1250,6 +1262,7 @@ fun FileSystemSortDialog(
   val showProgressBar by browserPreferences.showProgressBar.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
+  val showFileExtension by browserPreferences.showFileExtension.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
   val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
@@ -1395,6 +1408,11 @@ fun FileSystemSortDialog(
         label = stringResource(R.string.field_full_name),
         checked = unlimitedNameLines,
         onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
+      ),
+      VisibilityToggle(
+        label = stringResource(R.string.field_file_extension),
+        checked = showFileExtension,
+        onCheckedChange = { browserPreferences.showFileExtension.set(it) },
       ),
       VisibilityToggle(
         label = stringResource(R.string.path),
