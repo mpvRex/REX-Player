@@ -27,6 +27,7 @@ import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import xyz.mpv.rex.BuildConfig
+import xyz.mpv.rex.R
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.utils.history.RecentlyPlayedOps
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
@@ -77,14 +78,39 @@ object PermissionUtils {
       onRequestPermission()
     } else {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        try {
-          val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-            data = Uri.parse("package:${context.packageName}")
+        // Some OEM builds (e.g. Android 11 go devices) ship without an activity for either
+        // all-files-access intent, so every candidate must be guarded and we fall back to the
+        // app's own details page / the runtime permission instead of crashing (issue #471).
+        val candidates =
+          listOf(
+            Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+              data = Uri.parse("package:${context.packageName}")
+            },
+            Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+            Intent(
+              Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+              Uri.parse("package:${context.packageName}"),
+            ),
+          )
+
+        val started =
+          candidates.any { intent ->
+            runCatching {
+              // startActivity throws ActivityNotFoundException synchronously when nothing handles it.
+              // The NEW_TASK flag allows this to work from a non-Activity context as well.
+              if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              context.startActivity(intent)
+            }.isSuccess
           }
-          context.startActivity(intent)
-        } catch (_: Exception) {
-          val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-          context.startActivity(intent)
+
+        if (!started) {
+          Log.w(FILE_ACCESS_TAG, "No settings activity available for all-files access")
+          runCatching {
+            android.widget.Toast
+              .makeText(context, R.string.permission_settings_unavailable, android.widget.Toast.LENGTH_LONG)
+              .show()
+          }
+          onRequestPermission()
         }
       } else {
         onRequestPermission()

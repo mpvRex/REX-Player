@@ -1131,6 +1131,7 @@
     <string name="permission_required_photos_videos">mpvRex requires \"Photos and videos\" permission to access and play your video files stored on your device.</string>
     <string name="permission_required_storage">mpvRex requires \"Storage\" permission to access and play your media files stored on your device.</string>
     <string name="permission_required_all_files">mpvRex requires \"All file access\" permission to discover media and subtitles on your device due to a change in security policy in Android 11 and later versions.</string>
+    <string name="permission_settings_unavailable">Could not open the system settings on this device. Please grant \"All files access\" for REX Player manually in Settings → Apps.</string>
     <string name="permission_explanation_tiramisu_plus">On Android 13 and above, this permission allows the app to read video files from your device\'s storage, including Downloads, Movies, and DCIM folders.</string>
     <string name="permission_explanation_pre_tiramisu">This permission allows the app to read media files from your device\'s storage to play videos and audio.</string>
 
