@@ -266,6 +266,7 @@ object PlayerControlsPreferencesScreen : Screen {
                         val whiteSeekBar by playerPrefs.whiteSeekBar.collectAsState()
                         val showSeekbarChapters by playerPrefs.showSeekbarChapters.collectAsState()
                         val showSeekbarReadAhead by playerPrefs.showSeekbarReadAhead.collectAsState()
+                        val speedAdjustedRemaining by playerPrefs.speedAdjustedRemainingTime.collectAsState()
 
                         GroupedListColumn {
                             GroupedPreferenceCard(
@@ -330,7 +331,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
-                                position = GroupPosition.LAST,
+                                position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_player_show_seekbar_read_ahead_title,
                             ) {
                                 SwitchPreference(
@@ -341,6 +342,22 @@ object PlayerControlsPreferencesScreen : Screen {
                                     },
                                     summary = {
                                         Text(text = stringResource(R.string.pref_player_show_seekbar_read_ahead_summary))
+                                    },
+                                )
+                            }
+
+                            GroupedPreferenceCard(
+                                position = GroupPosition.LAST,
+                                highlightKey = R.string.pref_player_speed_adjusted_remaining_title,
+                            ) {
+                                SwitchPreference(
+                                    value = speedAdjustedRemaining,
+                                    onValueChange = { playerPrefs.speedAdjustedRemainingTime.set(it) },
+                                    title = {
+                                        Text(text = stringResource(R.string.pref_player_speed_adjusted_remaining_title))
+                                    },
+                                    summary = {
+                                        Text(text = stringResource(R.string.pref_player_speed_adjusted_remaining_summary))
                                     },
                                 )
                             }

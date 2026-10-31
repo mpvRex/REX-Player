@@ -256,6 +256,14 @@ object SearchablePreferences {
                 targetIndex = 7,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_player_speed_adjusted_remaining_title,
+                summaryRes = R.string.pref_player_speed_adjusted_remaining_summary,
+                keywords = listOf("speed", "remaining", "time", "timestamp", "timer", "clock", "seekbar", "duration", "player"),
+                category = "Player Layout",
+                screen = PlayerControlsPreferencesScreen,
+                targetIndex = 7,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_controls_layout_below_seekbar_title,
                 summaryRes = R.string.pref_controls_layout_below_seekbar_summary_true,
                 keywords = listOf("bottom controls", "seekbar", "layout", "position", "below"),

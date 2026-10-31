@@ -122,6 +122,21 @@ internal fun buildBoundaryGaps(
     .map { x -> (x - gapHalf).coerceAtLeast(startX) to (x + gapHalf).coerceAtMost(endX) }
 }
 
+/**
+ * Remaining wall-clock time at the current playback [speed].
+ *
+ * A 120s clip watched at 2x leaves 60s of real time, so the clock reads `01:00` instead of `02:00`.
+ * [end] lets callers report the AB-loop end instead of the file duration, matching where playback
+ * will actually stop. The speed is clamped away from zero so a transient/zero `speed` property can
+ * never divide by zero or produce infinities. Negative results are intentional: they mean the
+ * position sits past the end (still mid-seek) and [Utils.prettyTime] renders them as `-MM:SS`.
+ */
+internal fun speedAdjustedRemaining(
+  position: Float,
+  end: Float,
+  speed: Float,
+): Float = (end - position) / speed.coerceIn(0.05f, 100f)
+
 /** Chapter boundaries plus bookmark pins, for rendering the same way as chapters. */
 internal fun collectSeekbarBoundaries(
   chapters: List<Segment>,
@@ -152,6 +167,10 @@ fun SeekbarWithTimers(
   isGestureSeeking: Boolean = false,
   isCancelActive: Boolean = false,
   bookmarks: ImmutableList<Segment> = persistentListOf(),
+  /** Live mpv `speed`; read lazily so a speed change never recomposes the seekbar. */
+  speed: () -> Float = { 1f },
+  /** Divide the remaining clock by [speed] (issue #472). Off keeps the raw media time. */
+  speedAdjustedRemaining: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   val clickEvent = LocalPlayerButtonsClickEvent.current
@@ -395,7 +414,19 @@ fun SeekbarWithTimers(
     }
 
     VideoTimer(
-      value = { if (timersInverted.second) position() - duration else duration },
+      value = {
+        when {
+          !timersInverted.second -> duration
+          speedAdjustedRemaining -> {
+            // Follow the thumb while the user scrubs so the label matches the target position.
+            val currentPosition = if (isUserInteracting) userPosition else position()
+            // With an AB loop active, playback stops at loop B, so that is the real end.
+            val end = loopEnd?.takeIf { it > 0f } ?: duration
+            speedAdjustedRemaining(currentPosition, end, speed())
+          }
+          else -> position() - duration
+        }
+      },
       isInverted = timersInverted.second,
       onClick = {
         clickEvent()

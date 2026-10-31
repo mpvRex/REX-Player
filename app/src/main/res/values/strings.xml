@@ -661,6 +661,8 @@
     <string name="pref_player_show_seekbar_chapters_summary">Display chapter markers on the seekbar</string>
     <string name="pref_player_show_seekbar_read_ahead_title">Show buffered content</string>
     <string name="pref_player_show_seekbar_read_ahead_summary">Display visual hint of buffered content on the seekbar</string>
+    <string name="pref_player_speed_adjusted_remaining_title">Speed-based remaining time</string>
+    <string name="pref_player_speed_adjusted_remaining_summary">Adjust the remaining time by the playback speed (a 2-minute video at 2x shows 1 minute remaining)</string>
     <string name="pref_player_hide_osd_text_title">Hide player OSD text</string>
     <string name="pref_player_hide_osd_text_summary">Hide the default mpv OSD text during seeking or subtitle seeking</string>
     <string name="pref_player_keep_screen_on_when_paused_title">Keep screen on when paused</string>

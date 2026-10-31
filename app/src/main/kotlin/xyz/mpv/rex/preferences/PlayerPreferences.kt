@@ -19,6 +19,11 @@ class PlayerPreferences(
   val orientation = preferenceStore.getEnum("player_orientation", PlayerOrientation.Video)
   val backgroundPlayback = preferenceStore.getEnum("background_playback_mode", BackgroundPlaybackMode.AudioOnly)
   val invertDuration = preferenceStore.getBoolean("invert_duration")
+  /**
+   * When enabled, the "remaining" seekbar clock is divided by the current playback speed, so a
+   * 2-minute clip watched at 2x reads "01:00 remaining" (real time left for the viewer).
+   */
+  val speedAdjustedRemainingTime = preferenceStore.getBoolean("speed_adjusted_remaining_time")
   val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 2f)
   private val legacyRememberLongPressSpeed = preferenceStore.getBoolean("remember_long_press_speed", true)
   val longPressSpeedMemoryMode =
