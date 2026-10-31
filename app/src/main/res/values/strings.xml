@@ -1531,6 +1531,7 @@
     <string name="fields">Fields</string>
     <string name="field_video_thumbnails">Video Thumbnails</string>
     <string name="field_full_name">Full Name</string>
+    <string name="field_file_extension">File Extension</string>
     <string name="field_total_videos">Total Videos</string>
     <string name="field_total_duration">Total Duration</string>
     <string name="field_folder_size">Folder Size</string>
