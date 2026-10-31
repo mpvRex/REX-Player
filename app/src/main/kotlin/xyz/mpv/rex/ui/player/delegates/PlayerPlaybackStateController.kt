@@ -41,6 +41,9 @@ class PlayerPlaybackStateController(
   @Volatile
   var isPlaybackStateLoaded: Boolean = false
 
+  @Volatile
+  private var activeVisualsUseSharedMode = activity.playerPreferences.rememberVideoAspect.get()
+
   var savePlaybackStateJob: Job? = null
 
   /**
@@ -62,6 +65,7 @@ class PlayerPlaybackStateController(
     val currentZoom = activity.viewModel.videoZoom.value
     val currentAspect = activity.viewModel.videoAspect.value.name
     val currentCustomRatio = activity.viewModel.currentAspectRatio.value
+    val rememberSharedVisuals = activeVisualsUseSharedMode
     val currentSid = activity.player.sid
     val currentSecondarySid = activity.player.secondarySid
     val currentAid = activity.player.aid
@@ -85,16 +89,20 @@ class PlayerPlaybackStateController(
         val oldState = activity.playbackStateRepository.getVideoDataByTitle(identifier)
         Log.d(TAG, "Saving playback state for: $mediaTitle (identifier: $identifier) at position: $currentPos")
 
-        val currentZoomToSave = if (isStateLoaded) currentZoom else (oldState?.videoZoom ?: currentZoom)
-        val currentAspectToSave = if (isStateLoaded) {
-          currentAspect
-        } else {
-          oldState?.videoAspect ?: currentAspect
+        val currentZoomToSave = when {
+          rememberSharedVisuals -> oldState?.videoZoom ?: 0f
+          isStateLoaded -> currentZoom
+          else -> oldState?.videoZoom ?: currentZoom
         }
-        val currentCustomRatioToSave = if (isStateLoaded) {
-          currentCustomRatio
-        } else {
-          oldState?.customAspectRatio ?: currentCustomRatio
+        val currentAspectToSave = when {
+          rememberSharedVisuals -> oldState?.videoAspect ?: VideoAspect.Fit.name
+          isStateLoaded -> currentAspect
+          else -> oldState?.videoAspect ?: currentAspect
+        }
+        val currentCustomRatioToSave = when {
+          rememberSharedVisuals -> oldState?.customAspectRatio ?: -1.0
+          isStateLoaded -> currentCustomRatio
+          else -> oldState?.customAspectRatio ?: currentCustomRatio
         }
 
         val watchedThreshold = activity.browserPreferences.watchedThreshold.get()
@@ -212,9 +220,17 @@ class PlayerPlaybackStateController(
     preparedState: PreparedPlaybackState? = null,
     expectedMediaIdentifier: String = activity.mediaIdentifier,
   ): Boolean {
-    if (expectedMediaIdentifier.isBlank()) return false
+    if (expectedMediaIdentifier.isBlank()) {
+      withContext(Dispatchers.Main) {
+        restoreVideoAspectAndZoom(null)
+      }
+      isPlaybackStateLoaded = true
+      return false
+    }
     if (preparedState != null && preparedState.mediaIdentifier != expectedMediaIdentifier) return false
 
+    var stateForVisualRestore: PlaybackStateEntity? = null
+    var visualsRestored = false
     return try {
       val state = if (preparedState != null) {
         preparedState.state
@@ -222,14 +238,27 @@ class PlayerPlaybackStateController(
         activity.playbackStateRepository.getVideoDataByTitle(expectedMediaIdentifier)
       }
 
+      stateForVisualRestore = state
+      // Apply visual state first so track restoration cannot delay aspect/zoom.
+      withContext(Dispatchers.Main) {
+        restoreVideoAspectAndZoom(state)
+      }
+      visualsRestored = true
       applyPlaybackState(state)
       applyDefaultSettings(state)
+      isPlaybackStateLoaded = true
       applyResumePosition(state, preparedState)
       state != null
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
       Log.e(TAG, "Error loading playback state for $expectedMediaIdentifier", e)
+      if (!visualsRestored) {
+        withContext(Dispatchers.Main) {
+          restoreVideoAspectAndZoom(stateForVisualRestore)
+        }
+        isPlaybackStateLoaded = true
+      }
       false
     }
   }
@@ -318,33 +347,29 @@ class PlayerPlaybackStateController(
       }
     }
 
-    // Restore video zoom from saved state
-    MPVLib.setPropertyDouble("video-zoom", state.videoZoom.toDouble())
-    activity.viewModel.setVideoZoom(state.videoZoom)
 
-    // Restore video aspect ratio from saved state
-    if (state.videoAspect != null) {
-      val aspect = runCatching { VideoAspect.valueOf(state.videoAspect) }.getOrDefault(VideoAspect.Fit)
-      withContext(Dispatchers.Main) {
-        if (state.customAspectRatio > 0.0) {
-          activity.viewModel.setCustomAspectRatio(
-            state.customAspectRatio,
-            resetZoomAndPan = false,
-            showUpdate = false,
-            persistToPreferences = false,
-          )
-        } else {
-          activity.viewModel.changeVideoAspect(
-            aspect,
-            showUpdate = false,
-            resetZoomAndPan = false,
-            persistToPreferences = false,
-          )
-        }
-      }
+  }
+
+  private fun restoreVideoAspectAndZoom(state: PlaybackStateEntity?) {
+    val rememberSharedVisuals = activity.playerPreferences.rememberVideoAspect.get()
+    activeVisualsUseSharedMode = rememberSharedVisuals
+    val defaultZoom = activity.playerPreferences.defaultVideoZoom.get()
+    val aspect = if (rememberSharedVisuals) {
+      activity.playerPreferences.defaultVideoAspect.get()
+    } else {
+      state?.videoAspect?.let {
+        runCatching { VideoAspect.valueOf(it) }.getOrDefault(VideoAspect.Fit)
+      } ?: VideoAspect.Fit
     }
+    val customAspectRatio = if (rememberSharedVisuals) {
+      activity.playerPreferences.defaultCustomAspectRatio.get()
+    } else {
+      state?.customAspectRatio ?: -1.0
+    }
+    val zoom = if (rememberSharedVisuals) defaultZoom else state?.videoZoom ?: 0f
 
     isPlaybackStateLoaded = true
+    activity.viewModel.restoreAspectAndZoom(aspect, customAspectRatio, zoom)
   }
 
   private suspend fun applyResumePosition(
@@ -403,7 +428,6 @@ class PlayerPlaybackStateController(
    * @param state The saved playback state entity (null if no saved state)
    */
   private fun applyDefaultSettings(state: PlaybackStateEntity?) {
-    isPlaybackStateLoaded = true
     if (state == null) {
       val defaultSubSpeed = activity.subtitlesPreferences.defaultSubSpeed.get().toDouble()
       MPVLib.setPropertyDouble("sub-speed", defaultSubSpeed)
