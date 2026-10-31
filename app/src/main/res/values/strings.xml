@@ -806,6 +806,8 @@
     <string name="pref_library_roots_clear_all_confirm_message">Are you sure you want to remove all added library scan roots? Persisted permissions will be released.</string>
     <string name="pref_show_tree_view_path_title">Show path breadcrumbs</string>
     <string name="pref_show_tree_view_path_summary">Show the folder path breadcrumbs at the top of Tree View</string>
+    <string name="pref_flatten_folders_title">Flatten folders in Tree View</string>
+    <string name="pref_flatten_folders_summary">Hide folders without media when they only lead to a single media folder</string>
     <string name="pref_media_library_title">Media &amp; Library</string>
     <string name="pref_media_library_summary">Manage scan roots, .nomedia files, blacklisted folders, and indexing</string>
     <string name="pref_category_content_discovery">Content &amp; Discovery</string>

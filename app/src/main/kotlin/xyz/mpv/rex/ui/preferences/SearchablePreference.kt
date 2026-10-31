@@ -180,6 +180,14 @@ object SearchablePreferences {
                 targetIndex = 3,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_flatten_folders_title,
+                summaryRes = R.string.pref_flatten_folders_summary,
+                keywords = listOf("flatten", "flat", "tree view", "nested", "empty", "merge", "folder hierarchy"),
+                category = "Media & Library",
+                screen = MediaLibraryPreferencesScreen,
+                targetIndex = 3,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_appearance_show_network_thumbnails_title,
                 summaryRes = R.string.pref_appearance_show_network_thumbnails_summary,
                 keywords = listOf("network", "thumbnail", "stream", "preview", "images"),
