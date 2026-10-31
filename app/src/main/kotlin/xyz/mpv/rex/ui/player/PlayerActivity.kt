@@ -322,6 +322,11 @@ class PlayerActivity :
         webSubtitlesJob?.cancel()
         webSubtitlesJob = null
         if (!isQualitySwitching) {
+           if (isAutoplayNextTriggered) {
+              viewModel.showControls()
+           } else {
+               viewModel.hideControls()
+           }
           playbackStateLoadJob?.cancel()
           activePlaybackLoadState = pendingPlaybackLoadStates.poll()
           if (activePlaybackLoadState != null && pendingPlaybackLoadGeneration == activePlaybackLoadState?.generation) {
@@ -1159,7 +1164,7 @@ class PlayerActivity :
     }
 
     // Check if auto PIP is enabled - enter PIP mode instead of finishing
-    if (playerPreferences.autoPiPOnNavigation.get() && isReady) {
+    if (playerPreferences.autoPiPOnNavigation.get() && !playerPreferences.pipOnHome.get() && isReady) {
       miniPlayerStateManager.clearState()
       pipController.enterPipMode()
       return
@@ -1240,11 +1245,13 @@ class PlayerActivity :
 
   override fun onUserLeaveHint() {
     super.onUserLeaveHint()
-    // Enter PIP mode on Home only when both PiP settings are enabled
-    if (playerPreferences.autoPiPOnNavigation.get() && playerPreferences.pipOnHome.get() && isReady && !isFinishing) {
-      pipController.isEnteringPip = true
+    // Use Android's automatic transition on Android 12+ for a smooth Home gesture.
+    if (playerPreferences.autoPiPOnNavigation.get() && isReady && !isFinishing) {
       miniPlayerStateManager.clearState()
-      pipHelper.enterPipMode()
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        // Android 11 and below require explicit PiP entry.
+        pipController.enterPipMode()
+      }
     } else if (isReady && !isFinishing) {
       val isEnding = isUserFinishing || isFinishing
       val shouldAllowBackgroundPlayback = isManualBackgroundPlayback || 
@@ -1373,9 +1380,8 @@ class PlayerActivity :
       val isInPip = isInPictureInPictureMode || pipController.isEnteringPip || pipController.wasInPipMode
       val isInMultiWindow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) isInMultiWindowMode else false
       val isEnding = isUserFinishing || isFinishing
-      val isAutoPipOnHomeEnabled =
-        playerPreferences.autoPiPOnNavigation.get() && playerPreferences.pipOnHome.get()
-      val isPipTargeted = isInPip || (isAutoPipOnHomeEnabled && !isEnding)
+      val isAutoPipEnabled = playerPreferences.autoPiPOnNavigation.get()
+      val isPipTargeted = isInPip || (isAutoPipEnabled && !isEnding)
       val shouldPause = (!audioPreferences.automaticBackgroundPlayback.get() && !isManualBackgroundPlayback) || 
                         (isEnding && !isManualBackgroundPlayback)
 
@@ -2187,10 +2193,6 @@ class PlayerActivity :
       viewModel.setMediaTitle(fileName)
     } else {
       viewModel.setMediaTitle(fileName)
-    }
-
-    if (!shouldAutoplay || playerPreferences.showControlsOnPlay.get()) {
-      viewModel.showControls()
     }
 
     val isWebStream = ytDlClient.requiresYtdl(parsePathFromIntent(intent) ?: "")
