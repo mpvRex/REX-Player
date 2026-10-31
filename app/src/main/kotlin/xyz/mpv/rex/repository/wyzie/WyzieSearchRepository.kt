@@ -19,7 +19,42 @@ import okhttp3.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketException
+import java.net.SocketTimeoutException
 import java.net.URLEncoder
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
+
+/**
+ * Failure categories for online subtitle operations.
+ *
+ * Every failure is mapped to exactly one of these so the UI can tell the user what to do
+ * instead of showing a single generic "Search failed" for a missing key, a rate limit and a
+ * dead network alike.
+ */
+enum class WyzieErrorKind {
+    /** No API key configured — the user has to add one in Subtitle Settings. */
+    MissingApiKey,
+
+    /** The key was rejected or is not valid for this endpoint. */
+    InvalidApiKey,
+
+    /** Rate limited (free tier quota). */
+    RateLimited,
+
+    /** Backend returned an unexpected status, an unparseable body, or nothing usable. */
+    ServerError,
+
+    /** Could not reach the backend. */
+    NetworkError,
+}
+
+class WyzieException(
+    val kind: WyzieErrorKind,
+    message: String,
+    cause: Throwable? = null,
+) : IOException(message, cause)
 
 @Serializable
 data class WyzieSubtitle(
@@ -209,11 +244,34 @@ class WyzieSearchRepository(
 ) {
     private val baseUrl = "https://sub.wyzie.io"
 
+    companion object {
+        private const val TAG = "WyzieSearchRepository"
+
+        /** Fallback titles the player uses when it cannot name the media. Searching for them is pointless. */
+        private val USELESS_TITLES = setOf(
+            "unknown video",
+            "network stream",
+            "web stream",
+            "",
+        )
+
+        internal fun sanitizeFileBaseName(name: String): String {
+            val sanitized = name
+                .replace(Regex("""[\\/:*?"<>|\u0000-\u001F]"""), "_")
+                .trim()
+                .trimEnd('.')
+            return sanitized.ifBlank { "subtitle" }.take(150)
+        }
+    }
+
     private fun buildApiRequest(url: String): Request {
         val apiKey = preferences.wyzieApiKey.get()
         
         if (apiKey.isBlank()) {
-            throw IOException("Wyzie API key is missing. Please set it in Subtitle Settings.")
+            throw WyzieException(
+                WyzieErrorKind.MissingApiKey,
+                "Wyzie API key is missing. Please set it in Subtitle Settings."
+            )
         }
         
         val httpUrl = url.toHttpUrlOrNull()
@@ -236,21 +294,23 @@ class WyzieSearchRepository(
         year: String? = null
     ): Result<List<WyzieSubtitle>> = withContext(Dispatchers.IO) {
         try {
-            var searchId = query
-            if (!query.startsWith("tt", ignoreCase = true) && !query.all { it.isDigit() }) {
-                val tmdbResults = tmdbSearch(query)
-                if (tmdbResults.isNotEmpty()) {
-                    // If year is provided, prefer match with matching release year
-                    val result = if (year != null) {
-                        tmdbResults.firstOrNull { it.releaseYear == year }
-                            ?: tmdbResults.firstOrNull { it.releaseYear?.startsWith(year.take(3)) == true }
-                            ?: tmdbResults[0]
-                    } else {
-                        tmdbResults[0]
-                    }
+            val normalizedQuery = normalizeSearchQuery(query)
+            var searchId = normalizedQuery
+            var searchSeason = season
+            var searchEpisode = episode
+            if (!normalizedQuery.startsWith("tt", ignoreCase = true) && !normalizedQuery.all { it.isDigit() }) {
+                val tmdbResults = tmdbSearch(normalizedQuery)
+                val result = pickTmdbMatch(tmdbResults, normalizedQuery, year)
+                if (result != null) {
                     searchId = result.id.toString()
+                    // TMDb tells us whether this is a series even when the filename does not.
+                    if (result.mediaType != "tv") {
+                        searchSeason = null
+                        searchEpisode = null
+                    }
                 } else {
-                    return@withContext Result.failure(Exception("Could not find media ID for '$query'"))
+                    // The title is not an id we can resolve, so a direct search is the only chance.
+                    searchId = normalizedQuery
                 }
             }
 
@@ -270,20 +330,39 @@ class WyzieSearchRepository(
             
             val hearingImpaired = preferences.wyzieHearingImpaired.get()
 
-            val results = fetchSubtitles(
-                id = searchId,
-                season = season,
-                episode = episode,
-                language = languages,
-                format = formatParam,
-                encoding = encodingParam,
-                source = sourceParam,
-                hi = if (hearingImpaired) true else null
-            )
+            val results = withNetworkMapping {
+                fetchSubtitles(
+                    id = searchId,
+                    season = searchSeason,
+                    episode = searchEpisode,
+                    language = languages,
+                    format = formatParam,
+                    encoding = encodingParam,
+                    source = sourceParam,
+                    hi = if (hearingImpaired) true else null
+                )
+            }
+
+            // The backend does not always honour the language filter, so enforce it locally
+            // as well. Without this a user asking for French gets whatever came back.
+            val allowedLanguages = languages?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }
+            val filteredResults = if (allowedLanguages.isNullOrEmpty()) {
+                results
+            } else {
+                results.filter { sub ->
+                    val code = sub.language?.lowercase()?.trim()
+                    val display = sub.display?.lowercase()?.trim()
+                    allowedLanguages.any { allowed ->
+                        code == allowed || display == allowed ||
+                            WyzieLanguages.ALL[allowed]?.lowercase() == code ||
+                            WyzieLanguages.ALL[allowed]?.lowercase() == display
+                    }
+                }
+            }
             
-            val sortedResults = results.sortedWith(compareByDescending<WyzieSubtitle> { sub ->
+            val sortedResults = filteredResults.sortedWith(compareByDescending<WyzieSubtitle> { sub ->
                 val name = sub.displayName.lowercase()
-                val q = query.lowercase()
+                val q = normalizedQuery.lowercase()
                 var score = 0
                 if (name.contains(q)) score += 100
                 if (name.contains("720p") || name.contains("1080p") || name.contains("2160p")) score += 50
@@ -293,11 +372,67 @@ class WyzieSearchRepository(
             }.thenByDescending { it.displayName.length })
 
             Result.success(sortedResults)
+        } catch (e: WyzieException) {
+            Log.e(TAG, "Search failed (${e.kind}): ${e.message}", e)
+            Result.failure(e)
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Search failed: ${e.message}", e)
+            Log.e(TAG, "Search failed: ${e.message}", e)
             Result.failure(e)
         }
     }
+
+    /**
+     * Collapses whitespace, strips release noise and drops the dummy title the player uses for
+     * streams without an extractable name. Searching for "Unknown Video" never matched anything
+     * and hid the fact that the filename - not the backend - was at fault.
+     */
+    internal fun normalizeSearchQuery(query: String): String {
+        val cleaned = MediaInfoParser.parse(query).title.ifBlank { query }
+            .replace(Regex("""\s+"""), " ")
+            .trim()
+        return if (cleaned.lowercase() in USELESS_TITLES) "" else cleaned
+    }
+
+    /**
+     * Chooses the TMDb entry that best matches the query. Exact title matches beat remote
+     * matches ("Dune" must not resolve to "Dune: Part Two"), then year proximity.
+     */
+    internal fun pickTmdbMatch(
+        results: List<WyzieTmdbResult>,
+        query: String,
+        year: String?
+    ): WyzieTmdbResult? {
+        if (results.isEmpty()) return null
+        val normalizedQuery = query.lowercase().trim()
+        val scored = results.mapIndexed { index, result ->
+            var score = 100 - index
+            if (result.title.lowercase().trim() == normalizedQuery) score += 1000
+            if (year != null && result.releaseYear == year) score += 500
+            score to result
+        }
+        return scored.maxByOrNull { it.first }?.second
+    }
+
+    /**
+     * Maps transport failures (no connection, DNS, timeouts) onto [WyzieErrorKind.NetworkError]
+     * so they are not reported as server errors.
+     */
+    private inline fun <T> withNetworkMapping(block: () -> T): T =
+        try {
+            block()
+        } catch (e: WyzieException) {
+            throw e
+        } catch (e: SocketTimeoutException) {
+            throw WyzieException(WyzieErrorKind.NetworkError, "Subtitle server timed out", e)
+        } catch (e: UnknownHostException) {
+            throw WyzieException(WyzieErrorKind.NetworkError, "No connection to the subtitle server", e)
+        } catch (e: ConnectException) {
+            throw WyzieException(WyzieErrorKind.NetworkError, "Could not reach the subtitle server", e)
+        } catch (e: SocketException) {
+            throw WyzieException(WyzieErrorKind.NetworkError, "Could not reach the subtitle server", e)
+        } catch (e: SSLException) {
+            throw WyzieException(WyzieErrorKind.NetworkError, "Secure connection to the subtitle server failed", e)
+        }
 
     private fun fetchSubtitles(
         id: String,
@@ -313,10 +448,10 @@ class WyzieSearchRepository(
         val finalUrl = "$baseUrl/search".toHttpUrlOrNull()?.newBuilder()?.apply {
             addQueryParameter("id", id)
             
-            if (season != null && episode != null) {
-                addQueryParameter("season", season.toString())
-                addQueryParameter("episode", episode.toString())
-            }
+            // Send what we know. Requiring both meant an episode whose season could not be
+            // derived from the filename silently fell back to a whole-title search.
+            season?.let { addQueryParameter("season", it.toString()) }
+            episode?.let { addQueryParameter("episode", it.toString()) }
             
             language?.filter { !it.isWhitespace() }?.let { addQueryParameter("language", it) }
             
@@ -340,28 +475,47 @@ class WyzieSearchRepository(
                 if (response.code == 400 && responseBodyString.contains("No subtitles found", ignoreCase = true)) {
                     return emptyList()
                 }
-                
-                if (response.code == 400 && responseBodyString.contains("season and episode", ignoreCase = true)) {
-                    throw IOException("Please select both a Season and an Episode.")
-                }
-                val errorMsg = "Search failed: HTTP ${response.code} for URL: $finalUrl | Body: $responseBodyString"
-                Log.e("WyzieSearchRepository", errorMsg)
-                throw IOException(errorMsg)
+                throw httpError(response.code, responseBodyString)
             }
             return try {
                 json.decodeFromString<List<WyzieSubtitle>>(responseBodyString)
             } catch (e: Exception) {
-                Log.e("WyzieSearchRepository", "Failed to parse response: $responseBodyString", e)
-                emptyList()
+                Log.e(TAG, "Failed to parse response: $responseBodyString", e)
+                throw WyzieException(
+                    WyzieErrorKind.ServerError,
+                    "Unexpected subtitle search response",
+                    e
+                )
             }
+        }
+    }
+
+    /**
+     * Turns a non-success HTTP status into a typed [WyzieException]. Note that the URL is never
+     * logged with the API key attached.
+     */
+    private fun httpError(code: Int, body: String): WyzieException {
+        Log.e(TAG, "HTTP $code from subtitle backend: ${body.take(300)}")
+        return when (code) {
+            401, 403 -> WyzieException(WyzieErrorKind.InvalidApiKey, "HTTP $code: subtitle API key rejected")
+            429 -> WyzieException(WyzieErrorKind.RateLimited, "HTTP 429: subtitle search rate limited")
+            in 500..599 -> WyzieException(WyzieErrorKind.ServerError, "HTTP $code: subtitle server error")
+            else -> WyzieException(WyzieErrorKind.ServerError, "HTTP $code: $body")
         }
     }
 
     suspend fun download(subtitle: WyzieSubtitle, mediaTitle: String): Result<Uri> = withContext(Dispatchers.IO) {
         try {
-            val bytes = client.newCall(Request.Builder().url(subtitle.url).build()).execute().use { response ->
-                if (!response.isSuccessful) return@withContext Result.failure(Exception("Download failed: ${response.code}"))
-                response.body?.bytes() ?: return@withContext Result.failure(Exception("Empty body"))
+            val bytes = withNetworkMapping {
+                client.newCall(Request.Builder().url(subtitle.url).build()).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw WyzieException(
+                            WyzieErrorKind.ServerError,
+                            "Download failed: HTTP ${response.code}"
+                        )
+                    }
+                    response.body?.bytes() ?: throw WyzieException(WyzieErrorKind.ServerError, "Empty subtitle file")
+                }
             }
             val urlExtension = subtitle.url.substringAfterLast("/", "").substringBefore("?").substringAfterLast(".", "")
             val extension = subtitle.format?.lowercase() ?: urlExtension.takeIf { it.isNotEmpty() } ?: "srt"
@@ -369,9 +523,11 @@ class WyzieSearchRepository(
             val saveFolderUri = preferences.subtitleSaveFolder.get()
             // Use CRC32 checksum of mediaTitle for the folder name
             val folderName = ChecksumUtils.getCRC32(mediaTitle)
-            val fullTitle = mediaTitle.substringBeforeLast(".")
+            // Strip the extension and sanitise the rest: names containing "/" or ":" made the
+            // download land in an unexpected folder or fail outright.
+            val fullTitle = sanitizeFileBaseName(mediaTitle.substringBeforeLast("."))
             val langCode = subtitle.language ?: "en"
-            val subFileName = "${fullTitle}.${langCode}.$extension"
+            val subFileName = "$fullTitle.$langCode.$extension"
 
             if (saveFolderUri.isNotBlank()) {
                 val parentDir = DocumentFile.fromTreeUri(context, Uri.parse(saveFolderUri))
@@ -393,17 +549,24 @@ class WyzieSearchRepository(
             val file = File(movieDir, subFileName)
             FileOutputStream(file).use { it.write(bytes) }
             Result.success(Uri.fromFile(file))
+        } catch (e: WyzieException) {
+            Log.e(TAG, "Download failed (${e.kind}): ${e.message}", e)
+            Result.failure(e)
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Download failed", e)
+            Log.e(TAG, "Download failed", e)
             Result.failure(e)
         }
     }
 
     suspend fun searchMedia(query: String): Result<List<WyzieTmdbResult>> = withContext(Dispatchers.IO) {
         try {
-            Result.success(tmdbSearch(query))
+            val normalizedQuery = normalizeSearchQuery(query)
+            Result.success(if (normalizedQuery.isBlank()) emptyList() else tmdbSearch(normalizedQuery))
+        } catch (e: WyzieException) {
+            Log.e(TAG, "Media search failed (${e.kind})", e)
+            Result.failure(e)
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Media search failed", e)
+            Log.e(TAG, "Media search failed", e)
             Result.failure(e)
         }
     }
@@ -412,13 +575,18 @@ class WyzieSearchRepository(
         try {
             val url = "$baseUrl/api/tmdb/tv/$id"
             val request = buildApiRequest(url)
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Failed to get TV show details: ${response.code}")
-                val body = response.body?.string() ?: throw IOException("Empty body from $url")
-                Result.success(json.decodeFromString<WyzieTvShowDetails>(body))
+            withNetworkMapping {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw httpError(response.code, response.body?.string().orEmpty())
+                    val body = response.body?.string() ?: throw WyzieException(WyzieErrorKind.ServerError, "Empty body from $url")
+                    Result.success(json.decodeFromString<WyzieTvShowDetails>(body))
+                }
             }
+        } catch (e: WyzieException) {
+            Log.e(TAG, "Failed to get TV show details (${e.kind})", e)
+            Result.failure(e)
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Failed to get TV show details", e)
+            Log.e(TAG, "Failed to get TV show details", e)
             Result.failure(e)
         }
     }
@@ -427,24 +595,29 @@ class WyzieSearchRepository(
         try {
             val url = "$baseUrl/api/tmdb/tv/$id/$season"
             val request = buildApiRequest(url)
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Failed to get season episodes: ${response.code}")
-                val body = response.body?.string() ?: throw IOException("Empty body from $url")
-                Result.success(json.decodeFromString<WyzieSeasonDetails>(body).episodes)
+            withNetworkMapping {
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw httpError(response.code, response.body?.string().orEmpty())
+                    val body = response.body?.string() ?: throw WyzieException(WyzieErrorKind.ServerError, "Empty body from $url")
+                    Result.success(json.decodeFromString<WyzieSeasonDetails>(body).episodes)
+                }
             }
+        } catch (e: WyzieException) {
+            Log.e(TAG, "Failed to get season episodes (${e.kind})", e)
+            Result.failure(e)
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Failed to get season episodes", e)
+            Log.e(TAG, "Failed to get season episodes", e)
             Result.failure(e)
         }
     }
 
-    private fun tmdbSearch(query: String): List<WyzieTmdbResult> {
+    private fun tmdbSearch(query: String): List<WyzieTmdbResult> = withNetworkMapping {
         val url = "$baseUrl/api/tmdb/search?q=${URLEncoder.encode(query, "UTF-8")}"
         val request = buildApiRequest(url)
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("TMDb search failed: ${response.code}")
-            val body = response.body?.string() ?: throw IOException("Empty body")
-            return json.decodeFromString<WyzieTmdbResponse>(body).results
+            if (!response.isSuccessful) throw httpError(response.code, response.body?.string().orEmpty())
+            val body = response.body?.string() ?: throw WyzieException(WyzieErrorKind.ServerError, "Empty body")
+            json.decodeFromString<WyzieTmdbResponse>(body).results
         }
     }
 
@@ -458,7 +631,7 @@ class WyzieSearchRepository(
             }
             deleted
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Delete failed", e)
+            Log.e(TAG, "Delete failed", e)
             false
         }
     }
@@ -468,7 +641,7 @@ class WyzieSearchRepository(
             val root = DocumentFile.fromTreeUri(context, saveFolderUri) ?: return
             root.listFiles().forEach { if (it.isDirectory && it.listFiles()?.isEmpty() == true) it.delete() }
         } catch (e: Exception) {
-            Log.e("WyzieSearchRepository", "Cleanup failed", e)
+            Log.e(TAG, "Cleanup failed", e)
         }
     }
 }

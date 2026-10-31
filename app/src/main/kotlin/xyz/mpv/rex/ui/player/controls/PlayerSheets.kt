@@ -176,6 +176,10 @@ fun PlayerSheets(
       // Media Search / Autocomplete
       val mediaResults by viewModel.mediaSearchResults.composeCollectAsState()
       val isSearchingMedia by viewModel.isSearchingMedia.composeCollectAsState()
+
+      // Failure / empty states
+      val searchError by viewModel.subtitleManager.searchError.composeCollectAsState()
+      val hasSearched by viewModel.subtitleManager.hasSearched.composeCollectAsState()
       
       // TV Show / Seasons / Episodes
       val selectedTvShow by viewModel.selectedTvShow.composeCollectAsState()
@@ -194,23 +198,36 @@ fun PlayerSheets(
         isOnlineSectionExpanded = isOnlineSectionExpanded,
         onToggleOnlineSection = { viewModel.toggleOnlineSection() },
         mediaTitle = viewModel.currentMediaTitle,
+        searchError = searchError,
+        hasSearched = hasSearched,
+        hasApiKey = viewModel.hasSubtitleApiKey(),
+        onRetry = {
+          val fileInfo = MediaInfoParser.parse(viewModel.currentMediaTitle)
+          viewModel.subtitleManager.searchSubtitles(
+            query = fileInfo.title.ifBlank { viewModel.currentMediaTitle },
+            season = selectedSeason?.season_number ?: fileInfo.season,
+            episode = selectedEpisode?.episode_number ?: fileInfo.episode,
+            year = fileInfo.year,
+          )
+        },
         // Autocomplete & Series Selection
         mediaSearchResults = mediaResults.toImmutableList(),
         isSearchingMedia = isSearchingMedia,
+        // "Search" only looks the title up. Searching for subtitles needs a concrete movie or
+        // show; firing both at once searched series titles as movies and returned nothing.
         onSearchMedia = { query ->
-          // Parse both the user's search query and the original filename
+          val queryInfo = MediaInfoParser.parse(query)
+          viewModel.findMedia(queryInfo.title.ifBlank { query })
+        },
+        onSearchSubtitles = { query ->
           val queryInfo = MediaInfoParser.parse(query)
           val fileInfo = MediaInfoParser.parse(viewModel.currentMediaTitle)
-          
-          // Use clean title from query for TMDB search (strip S01E05 noise)
-          val searchTitle = queryInfo.title.ifBlank { query }
-          viewModel.subtitleManager.searchMedia(searchTitle)
-          
-          // Priority: TMDB selection > query parsed > file parsed
-          val s = selectedSeason?.season_number ?: queryInfo.season ?: fileInfo.season
-          val e = selectedEpisode?.episode_number ?: queryInfo.episode ?: fileInfo.episode
-          val y = queryInfo.year ?: fileInfo.year
-          viewModel.subtitleManager.searchSubtitles(searchTitle, s, e, y)
+          viewModel.subtitleManager.searchSubtitles(
+            query = queryInfo.title.ifBlank { query },
+            season = selectedSeason?.season_number ?: queryInfo.season ?: fileInfo.season,
+            episode = selectedEpisode?.episode_number ?: queryInfo.episode ?: fileInfo.episode,
+            year = queryInfo.year ?: fileInfo.year,
+          )
         },
         onSelectMedia = { viewModel.subtitleManager.selectMedia(it) },
         selectedTvShow = selectedTvShow,

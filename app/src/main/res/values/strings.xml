@@ -328,6 +328,17 @@
     <string name="pref_subtitles_wyzie_api_key_not_set">Not set</string>
     <string name="pref_subtitles_wyzie_api_key_masked">••••••••••••••••••••••</string>
 
+    <!-- Online subtitle search: states and failures -->
+    <string name="subtitle_search_retry">Retry</string>
+    <string name="subtitle_search_api_key_required_title">API key required</string>
+    <string name="subtitle_search_api_key_required_summary">Subtitle search needs a free Wyzie API key. Add it in Settings › Subtitles › Subtitle Search.</string>
+    <string name="subtitle_search_rate_limited_title">Too many searches</string>
+    <string name="subtitle_search_rate_limited_summary">The subtitle server is rate limiting requests. Wait a minute before trying again.</string>
+    <string name="subtitle_search_network_error_title">Can’t reach the subtitle server</string>
+    <string name="subtitle_search_network_error_summary">Check your internet connection and try again.</string>
+    <string name="subtitle_search_failed_title">No subtitles found</string>
+    <string name="subtitle_search_failed_summary">Try the full title of the movie or show, or pick the right one from the suggestions.</string>
+
     <string name="pref_audio">Audio</string>
     <string name="pref_audio_summary">Preferred languages, audio channels, pitch correction</string>
     <string name="pref_audio_pitch_correction_title">Enable audio pitch correction</string>

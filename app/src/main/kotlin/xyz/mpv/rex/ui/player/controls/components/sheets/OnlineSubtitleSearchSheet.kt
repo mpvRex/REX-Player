@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
+import xyz.mpv.rex.repository.wyzie.WyzieErrorKind
 import xyz.mpv.rex.repository.wyzie.WyzieSubtitle
 import xyz.mpv.rex.ui.theme.spacing
 import xyz.mpv.rex.utils.media.MediaInfoParser
@@ -51,10 +52,16 @@ fun OnlineSubtitleSearchSheet(
   onToggleOnlineSection: () -> Unit = {},
   modifier: Modifier = Modifier,
   mediaTitle: String = "",
+  // Failure / empty states
+  searchError: WyzieErrorKind? = null,
+  hasSearched: Boolean = false,
+  hasApiKey: Boolean = true,
+  onRetry: () -> Unit = {},
   // Autocomplete & Series Selection
   mediaSearchResults: ImmutableList<xyz.mpv.rex.repository.wyzie.WyzieTmdbResult> = emptyList<xyz.mpv.rex.repository.wyzie.WyzieTmdbResult>().toImmutableList(),
   isSearchingMedia: Boolean = false,
   onSearchMedia: (String) -> Unit = {},
+  onSearchSubtitles: (String) -> Unit = {},
   onSelectMedia: (xyz.mpv.rex.repository.wyzie.WyzieTmdbResult) -> Unit = {},
   selectedTvShow: xyz.mpv.rex.repository.wyzie.WyzieTvShowDetails? = null,
   isFetchingTvDetails: Boolean = false,
@@ -102,10 +109,13 @@ fun OnlineSubtitleSearchSheet(
         }
       }
 
-      // Auto-trigger search on open
-      LaunchedEffect(mediaInfo) {
-        if (mediaInfo.title.isNotBlank()) {
+      // Auto-trigger search on open. Without a key every request fails, so ask for the key
+      // instead of flashing an error the user cannot act on. A later key entry (returning from
+      // settings re-creates the sheet state) re-runs this.
+      LaunchedEffect(mediaInfo, hasApiKey) {
+        if (hasApiKey && mediaInfo.title.isNotBlank()) {
           onSearchMedia(mediaInfo.title)
+          onSearchSubtitles(mediaInfo.title)
         }
       }
 
@@ -114,7 +124,11 @@ fun OnlineSubtitleSearchSheet(
             .padding(top = MaterialTheme.spacing.medium)
             .fillMaxWidth()
     ) {
-        if (detectedInfo.isNotBlank() && mediaInfo.title.isNotBlank()) {
+        if (!hasApiKey) {
+          ApiKeyRequiredCard()
+        }
+
+        if (detectedInfo.isNotBlank() && mediaInfo.title.isNotBlank() && hasApiKey) {
           Row(
             modifier = Modifier
               .padding(horizontal = MaterialTheme.spacing.medium, vertical = 4.dp)
@@ -154,9 +168,10 @@ fun OnlineSubtitleSearchSheet(
               searchQuery = mediaInfo.title
               showAutocomplete = false 
               onSearchMedia(mediaInfo.title)
+              onSearchSubtitles(mediaInfo.title)
               keyboardController?.hide()
             }) {
-              Icon(Icons.Default.Refresh, contentDescription = "Reset Search", tint = MaterialTheme.colorScheme.primary)
+              Icon(Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
           },
           trailingIcon = {
@@ -174,13 +189,17 @@ fun OnlineSubtitleSearchSheet(
                   Icon(Icons.Default.Close, null)
                 }
               }
-              IconButton(onClick = { 
-                val q = searchQuery.ifBlank { mediaInfo.title }
-                searchQuery = q
-                onSearchMedia(q)
-                showAutocomplete = false
-                keyboardController?.hide()
-              }) {
+              IconButton(
+                onClick = { 
+                  val q = searchQuery.ifBlank { mediaInfo.title }
+                  searchQuery = q
+                  // Submitting the text searches subtitles for it directly; the suggestions
+                  // below are only shown when the query changes.
+                  onSearchSubtitles(q)
+                  showAutocomplete = false
+                  keyboardController?.hide()
+                }
+              ) {
                 Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.primary)
               }
             }
@@ -190,7 +209,7 @@ fun OnlineSubtitleSearchSheet(
           keyboardActions = KeyboardActions(onSearch = {
             val q = searchQuery.ifBlank { mediaInfo.title }
             searchQuery = q
-            onSearchMedia(q)
+            onSearchSubtitles(q)
             showAutocomplete = false
             keyboardController?.hide()
           }),
@@ -259,6 +278,22 @@ fun OnlineSubtitleSearchSheet(
           LinearProgressIndicator(
             modifier = Modifier.fillMaxWidth().height(2.dp),
             color = MaterialTheme.colorScheme.primary
+          )
+        }
+
+        // Explain an empty result list. Previously the sheet just stayed blank and the real
+        // reason ("set your API key", "rate limited") was only in Logcat.
+        if (!isSearching && searchError != null) {
+          SearchErrorCard(
+            kind = searchError,
+            onRetry = onRetry,
+          )
+        } else if (!isSearching && hasSearched && searchResults.isEmpty()) {
+          SearchStatusCard(
+            title = stringResource(R.string.subtitle_search_failed_title),
+            summary = stringResource(R.string.subtitle_search_failed_summary),
+            actionLabel = stringResource(R.string.subtitle_search_retry),
+            onAction = onRetry,
           )
         }
       }
@@ -375,6 +410,118 @@ fun WyzieSubtitleRow(
         )
       }
     }
+}
+
+/**
+ * Explains why an online subtitle operation failed and offers the one action that fixes it.
+ */
+@Composable
+private fun SearchErrorCard(
+  kind: WyzieErrorKind,
+  onRetry: () -> Unit,
+) {
+  val (title, summary) = when (kind) {
+    // Both key problems have the same fix: the user has to set a key in Subtitle Settings.
+    WyzieErrorKind.MissingApiKey, WyzieErrorKind.InvalidApiKey ->
+      stringResource(R.string.subtitle_search_api_key_required_title) to
+        stringResource(R.string.subtitle_search_api_key_required_summary)
+    WyzieErrorKind.RateLimited ->
+      stringResource(R.string.subtitle_search_rate_limited_title) to
+        stringResource(R.string.subtitle_search_rate_limited_summary)
+    WyzieErrorKind.NetworkError ->
+      stringResource(R.string.subtitle_search_network_error_title) to
+        stringResource(R.string.subtitle_search_network_error_summary)
+    WyzieErrorKind.ServerError ->
+      stringResource(R.string.subtitle_search_failed_title) to
+        stringResource(R.string.subtitle_search_failed_summary)
+  }
+
+  SearchStatusCard(
+    title = title,
+    summary = summary,
+    // A missing key cannot be fixed by retrying, so no action is offered.
+    actionLabel = if (kind == WyzieErrorKind.MissingApiKey || kind == WyzieErrorKind.InvalidApiKey) {
+      null
+    } else {
+      stringResource(R.string.subtitle_search_retry)
+    },
+    onAction = if (kind == WyzieErrorKind.MissingApiKey || kind == WyzieErrorKind.InvalidApiKey) {
+      null
+    } else {
+      onRetry
+    },
+    isError = true,
+  )
+}
+
+@Composable
+private fun SearchStatusCard(
+  title: String,
+  summary: String,
+  actionLabel: String? = null,
+  onAction: (() -> Unit)? = null,
+  isError: Boolean = false,
+) {
+  Card(
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = MaterialTheme.spacing.medium, vertical = 4.dp),
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(
+      containerColor = if (isError) {
+        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+      } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+      }
+    ),
+  ) {
+    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+      Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface,
+      )
+      Text(
+        text = summary,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+      if (actionLabel != null && onAction != null) {
+        TextButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 0.dp)) {
+          Text(actionLabel, fontWeight = FontWeight.SemiBold)
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun ApiKeyRequiredCard() {
+  Card(
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = MaterialTheme.spacing.medium),
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+  ) {
+    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(
+          text = stringResource(R.string.subtitle_search_api_key_required_title),
+          style = MaterialTheme.typography.titleSmall,
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+      }
+      Text(
+        text = stringResource(R.string.subtitle_search_api_key_required_summary),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+      )
+    }
+  }
 }
 
 @Composable

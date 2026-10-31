@@ -1001,6 +1001,12 @@ class PlayerViewModel(
 
   fun searchMedia(query: String) = _subtitleManager.searchMedia(query)
 
+  fun findMedia(query: String) = _subtitleManager.findMedia(query)
+
+  fun hasSubtitleApiKey(): Boolean = _subtitleManager.hasApiKey()
+
+  fun clearSubtitleSearchError() = _subtitleManager.clearSearchError()
+
   fun selectMedia(result: xyz.mpv.rex.repository.wyzie.WyzieTmdbResult) = _subtitleManager.selectMedia(result)
 
   fun selectSeason(season: xyz.mpv.rex.repository.wyzie.WyzieSeason) = _subtitleManager.selectSeason(season)

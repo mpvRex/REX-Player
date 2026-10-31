@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import xyz.mpv.rex.R
+import xyz.mpv.rex.repository.wyzie.WyzieErrorKind
+import xyz.mpv.rex.repository.wyzie.WyzieException
 import xyz.mpv.rex.repository.wyzie.WyzieSearchRepository
 import xyz.mpv.rex.repository.wyzie.WyzieSubtitle
 import xyz.mpv.rex.repository.wyzie.WyzieTmdbResult
@@ -13,8 +16,10 @@ import xyz.mpv.rex.repository.wyzie.WyzieEpisode
 import `is`.xyz.mpv.MPVLib
 import xyz.mpv.rex.ui.player.resolveUri
 import xyz.mpv.rex.ui.player.TrackNode
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,6 +80,25 @@ class SubtitleManager(
 
     private val _isOnlineSectionExpanded = MutableStateFlow(true)
     val isOnlineSectionExpanded = _isOnlineSectionExpanded.asStateFlow()
+
+    /**
+     * Why the last online operation returned nothing, or null when it succeeded. The sheet shows
+     * this instead of an empty list; previously the reason (missing key, rate limit, network)
+     * was only visible in Logcat.
+     */
+    private val _searchError = MutableStateFlow<WyzieErrorKind?>(null)
+    val searchError = _searchError.asStateFlow()
+
+    /** True once a subtitle search completed with zero results (as opposed to no search yet). */
+    private val _hasSearched = MutableStateFlow(false)
+    val hasSearched = _hasSearched.asStateFlow()
+
+    // Superseded searches are cancelled so a slow response for an old query cannot overwrite
+    // the results of a newer one.
+    private var searchMediaJob: Job? = null
+    private var searchSubtitlesJob: Job? = null
+    private var tvDetailsJob: Job? = null
+    private var episodesJob: Job? = null
 
     private val _externalSubtitles = mutableListOf<String>()
     val externalSubtitles: List<String> get() = _externalSubtitles.toList()
@@ -142,7 +166,9 @@ class SubtitleManager(
 
                 if (!silent) {
                     withContext(Dispatchers.Main) {
-                        onShowToast("Subtitle added: ${fileName.take(30)}")
+                        // ASCII-only on purpose: the old toast embedded the file name, which
+                        // was unreadable in some locales and not translatable anyway.
+                        onShowToast("Subtitle added")
                     }
                 }
             }.onFailure { e ->
@@ -198,19 +224,43 @@ class SubtitleManager(
 
     // ==================== Online Search ====================
 
+    fun hasApiKey(): Boolean = subtitlesPreferences.wyzieApiKey.get().isNotBlank()
+
+    /** Clears a remembered failure, e.g. after the user saved a key or typed a new query. */
+    fun clearSearchError() {
+        _searchError.value = null
+    }
+
     fun searchMedia(query: String) {
+        runMediaLookup(query)
+    }
+
+    /**
+     * Looks up the TMDb entry and only reports the result. Does NOT start a subtitle search so
+     * the sheet can wait for the user to pick a suggestion (pressing search used to fire both at
+     * once, which searched series titles as movies).
+     */
+    fun findMedia(query: String) {
+        runMediaLookup(query)
+    }
+
+    private fun runMediaLookup(query: String) {
+        searchMediaJob?.cancel()
         if (query.isBlank()) {
             _mediaSearchResults.value = emptyList()
             return
         }
-        scope.launch {
+        searchMediaJob = scope.launch {
             _isSearchingMedia.value = true
             wyzieRepository.searchMedia(query)
                 .onSuccess { results ->
                     _mediaSearchResults.value = results
                 }
-                .onFailure {
-                    Log.e(TAG, "Media search failed", it)
+                .onFailure { error ->
+                    if (error is CancellationException) return@launch
+                    Log.e(TAG, "Media search failed", error)
+                    _mediaSearchResults.value = emptyList()
+                    reportError(error)
                 }
             _isSearchingMedia.value = false
         }
@@ -218,16 +268,21 @@ class SubtitleManager(
 
     fun selectMedia(result: WyzieTmdbResult) {
         _wyzieSearchResults.value = emptyList()
+        tvDetailsJob?.cancel()
         if (result.mediaType == "movie") {
-            searchSubtitles(result.title)
+            searchSubtitles(result.title, year = result.releaseYear)
             _selectedTvShow.value = null
+            _selectedSeason.value = null
+            _selectedEpisode.value = null
+            _seasonEpisodes.value = emptyList()
         } else {
             fetchTvShowDetails(result.id)
         }
     }
 
     private fun fetchTvShowDetails(id: Int) {
-        scope.launch {
+        tvDetailsJob?.cancel()
+        tvDetailsJob = scope.launch {
             _isFetchingTvDetails.value = true
             wyzieRepository.getTvShowDetails(id)
                 .onSuccess { details ->
@@ -235,10 +290,15 @@ class SubtitleManager(
                     _selectedTvShow.value = details.copy(seasons = validSeasons)
                     _selectedSeason.value = null
                     _seasonEpisodes.value = emptyList()
+                    // Auto-select the first season so the episode list is reachable, and search
+                    // the show without an episode (the backend returns the show's subtitles).
+                    validSeasons.firstOrNull()?.let { selectSeason(it) }
+                        ?: searchSubtitles(details.name)
                 }
-                .onFailure {
-                    Log.e(TAG, "Failed to fetch TV details", it)
-                    onShowToast("Failed to load series details")
+                .onFailure { error ->
+                    if (error is CancellationException) return@launch
+                    Log.e(TAG, "Failed to fetch TV details", error)
+                    reportError(error)
                 }
             _isFetchingTvDetails.value = false
         }
@@ -247,7 +307,8 @@ class SubtitleManager(
     fun selectSeason(season: WyzieSeason) {
         val tvShowId = _selectedTvShow.value?.id ?: return
         _selectedSeason.value = season
-        scope.launch {
+        episodesJob?.cancel()
+        episodesJob = scope.launch {
             _isFetchingEpisodes.value = true
             wyzieRepository.getSeasonEpisodes(tvShowId, season.season_number)
                 .onSuccess { episodes ->
@@ -255,9 +316,10 @@ class SubtitleManager(
                     _seasonEpisodes.value = validEpisodes
                     _selectedEpisode.value = null
                 }
-                .onFailure {
-                    Log.e(TAG, "Failed to fetch episodes", it)
-                    onShowToast("Failed to load episodes")
+                .onFailure { error ->
+                    if (error is CancellationException) return@launch
+                    Log.e(TAG, "Failed to fetch episodes", error)
+                    reportError(error)
                 }
             _isFetchingEpisodes.value = false
         }
@@ -270,15 +332,21 @@ class SubtitleManager(
     }
 
     fun searchSubtitles(query: String, season: Int? = null, episode: Int? = null, year: String? = null) {
-        scope.launch {
+        searchSubtitlesJob?.cancel()
+        searchSubtitlesJob = scope.launch {
             _isSearchingSub.value = true
+            clearSearchError()
             wyzieRepository.search(query, season, episode, year)
                 .onSuccess { results ->
                     _wyzieSearchResults.value = results
+                    _hasSearched.value = true
                 }
-                .onFailure {
-                    Log.e(TAG, "Subtitle search failed", it)
-                    onShowToast("Search failed")
+                .onFailure { error ->
+                    if (error is CancellationException) return@launch
+                    Log.e(TAG, "Subtitle search failed", error)
+                    _wyzieSearchResults.value = emptyList()
+                    _hasSearched.value = false
+                    reportError(error)
                 }
             _isSearchingSub.value = false
         }
@@ -291,8 +359,9 @@ class SubtitleManager(
                 .onSuccess { uri ->
                     addSubtitle(uri)
                 }
-                .onFailure {
-                    Log.e(TAG, "Subtitle download failed", it)
+                .onFailure { error ->
+                    if (error is CancellationException) return@launch
+                    Log.e(TAG, "Subtitle download failed", error)
                     onShowToast("Download failed")
                 }
             _isDownloadingSub.value = false
@@ -300,12 +369,26 @@ class SubtitleManager(
     }
 
     fun clearMediaSelection() {
+        tvDetailsJob?.cancel()
+        episodesJob?.cancel()
         _selectedTvShow.value = null
         _selectedSeason.value = null
         _selectedEpisode.value = null
         _seasonEpisodes.value = emptyList()
         _mediaSearchResults.value = emptyList()
         _wyzieSearchResults.value = emptyList()
+        _hasSearched.value = false
+        clearSearchError()
+    }
+
+    private fun reportError(error: Throwable) {
+        val kind = (error as? WyzieException)?.kind
+            ?: if (error is java.io.IOException) WyzieErrorKind.NetworkError else WyzieErrorKind.ServerError
+        _searchError.value = kind
+        // The sheet renders these states inline; the toast is a fallback for when it is not.
+        if (kind == WyzieErrorKind.MissingApiKey || kind == WyzieErrorKind.InvalidApiKey) {
+            onShowToast(context.getString(R.string.subtitle_search_api_key_required_title))
+        }
     }
 
     // ==================== Utilities = ====================

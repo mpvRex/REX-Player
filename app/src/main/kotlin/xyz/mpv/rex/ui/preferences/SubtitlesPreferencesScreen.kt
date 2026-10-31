@@ -529,6 +529,62 @@ object SubtitlesPreferencesScreen : Screen {
             GroupedListColumn {
               GroupedPreferenceCard(
                 position = GroupPosition.FIRST,
+                highlightKey = R.string.pref_subtitles_wyzie_api_key_title,
+              ) {
+                Column {
+                  TextFieldPreference(
+                    value = wyzieApiKey,
+                    onValueChange = { newKey ->
+                      preferences.wyzieApiKey.set(newKey)
+                    },
+                    textToValue = { it.trim() },
+                    title = { Text(stringResource(R.string.pref_subtitles_wyzie_api_key_title)) },
+                    summary = {
+                      val summaryText = if (wyzieApiKey.isNotBlank()) {
+                        stringResource(R.string.pref_subtitles_wyzie_api_key_masked)
+                      } else {
+                        stringResource(R.string.pref_subtitles_wyzie_api_key_not_set)
+                      }
+                      Text(summaryText, color = MaterialTheme.colorScheme.outline)
+                    },
+                    textField = { value, onValueChange, _ ->
+                      SubtitleApiKeyField(
+                        value = value.text,
+                        onValueChange = { newText -> onValueChange(value.copy(text = newText)) },
+                      )
+                    },
+                  )
+
+                  PreferenceDivider()
+                  
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Text(
+                      text = "Subtitle Search provided by",
+                      style = MaterialTheme.typography.bodySmall,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                      text = "sub.wyzie.io",
+                      style = MaterialTheme.typography.bodySmall,
+                      color = MaterialTheme.colorScheme.primary,
+                      fontWeight = FontWeight.Bold,
+                      modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sub.wyzie.io"))
+                        context.startActivity(intent)
+                      }
+                    )
+                  }
+                }
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_save_location,
               ) {
                 Box(
@@ -723,105 +779,28 @@ object SubtitlesPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(
-                position = GroupPosition.LAST,
-                highlightKey = R.string.pref_subtitles_wyzie_api_key_title,
-              ) {
-                Column {
-                  TextFieldPreference(
-                    value = wyzieApiKey,
-                    onValueChange = preferences.wyzieApiKey::set,
-                    textToValue = { it.trim() },
-                    title = { Text(stringResource(R.string.pref_subtitles_wyzie_api_key_title)) },
-                    summary = {
-                      val summaryText = if (wyzieApiKey.isNotBlank()) {
-                        stringResource(R.string.pref_subtitles_wyzie_api_key_masked)
-                      } else {
-                        stringResource(R.string.pref_subtitles_wyzie_api_key_not_set)
-                      }
-                      Text(summaryText, color = MaterialTheme.colorScheme.outline)
-                    },
-                    textField = { value, onValueChange, _ ->
-                      val uriHandler = LocalUriHandler.current
-                      val fullString = stringResource(R.string.pref_subtitles_wyzie_api_key_summary)
-                      val linkText = "sub.wyzie.io/redeem"
-                      
-                      val annotatedString = buildAnnotatedString {
-                          val startIndex = fullString.indexOf(linkText)
-                          if (startIndex >= 0) {
-                              append(fullString.substring(0, startIndex))
-                              pushStringAnnotation(tag = "URL", annotation = "https://$linkText")
-                              withStyle(style = SpanStyle(
-                                  color = MaterialTheme.colorScheme.primary,
-                                  textDecoration = TextDecoration.Underline,
-                                  fontWeight = FontWeight.Bold
-                              )) {
-                                  append(linkText)
-                              }
-                              pop()
-                              append(fullString.substring(startIndex + linkText.length))
-                          } else {
-                              append(fullString)
-                          }
-                      }
-
-                      Column(modifier = Modifier.padding(top = 8.dp)) {
-                        ClickableText(
-                            text = annotatedString,
-                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                            onClick = { offset ->
-                                annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                                    .firstOrNull()?.let { annotation ->
-                                        uriHandler.openUri(annotation.item)
-                                    }
-                            }
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        OutlinedTextField(
-                          value = value,
-                          onValueChange = onValueChange,
-                          modifier = Modifier.fillMaxWidth(),
-                          singleLine = true,
-                          placeholder = { Text(stringResource(R.string.pref_subtitles_wyzie_api_key_hint)) },
-                          shape = RoundedCornerShape(12.dp),
-                          colors = OutlinedTextFieldDefaults.colors(
-                              focusedBorderColor = MaterialTheme.colorScheme.primary,
-                              unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                              focusedContainerColor = MaterialTheme.colorScheme.surface,
-                              unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                          )
-                        )
-                      }
-                    },
+              GroupedPreferenceCard(position = GroupPosition.LAST) {
+                Row(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  Text(
+                    text = "Subtitle Search provided by",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                   )
-
-                  PreferenceDivider()
-                  
-                  Row(
-                    modifier = Modifier
-                      .fillMaxWidth()
-                      .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                  ) {
-                    Text(
-                      text = "Subtitle Search provided by",
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                      text = "sub.wyzie.io",
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.primary,
-                      fontWeight = FontWeight.Bold,
-                      modifier = Modifier.clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sub.wyzie.io"))
-                        context.startActivity(intent)
-                      }
-                    )
-                  }
+                  Text(
+                    text = "sub.wyzie.io",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable {
+                      context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://sub.wyzie.io")))
+                    }
+                  )
                 }
               }
             }
@@ -907,6 +886,76 @@ fun MultiChoicePreference(
           Text(stringResource(android.R.string.ok))
         }
       }
+    )
+  }
+}
+
+/**
+ * The Wyzie API key input plus its "where do I get a key" link.
+ *
+ * Rendered as the first card of the subtitle search section, because without a key every
+ * online search fails: the app ships no key of its own.
+ */
+@Composable
+private fun SubtitleApiKeyField(
+  value: String,
+  onValueChange: (String) -> Unit,
+) {
+  val uriHandler = LocalUriHandler.current
+  val fullString = stringResource(R.string.pref_subtitles_wyzie_api_key_summary)
+  val linkText = "sub.wyzie.io/redeem"
+
+  val annotatedString = buildAnnotatedString {
+    val startIndex = fullString.indexOf(linkText)
+    if (startIndex >= 0) {
+      append(fullString.substring(0, startIndex))
+      pushStringAnnotation(tag = "URL", annotation = "https://$linkText")
+      withStyle(
+        style = SpanStyle(
+          color = MaterialTheme.colorScheme.primary,
+          textDecoration = TextDecoration.Underline,
+          fontWeight = FontWeight.Bold
+        )
+      ) {
+        append(linkText)
+      }
+      pop()
+      append(fullString.substring(startIndex + linkText.length))
+    } else {
+      append(fullString)
+    }
+  }
+
+  val hasKey = value.isNotBlank()
+
+  Column(modifier = Modifier.padding(top = 8.dp)) {
+    ClickableText(
+      text = annotatedString,
+      style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+      onClick = { offset ->
+        annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+          .firstOrNull()?.let { annotation ->
+            uriHandler.openUri(annotation.item)
+          }
+      }
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    OutlinedTextField(
+      value = value,
+      onValueChange = onValueChange,
+      modifier = Modifier.fillMaxWidth(),
+      singleLine = true,
+      isError = !hasKey,
+      placeholder = { Text(stringResource(R.string.pref_subtitles_wyzie_api_key_hint)) },
+      shape = RoundedCornerShape(12.dp),
+      colors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+        focusedContainerColor = MaterialTheme.colorScheme.surface,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+      )
     )
   }
 }
