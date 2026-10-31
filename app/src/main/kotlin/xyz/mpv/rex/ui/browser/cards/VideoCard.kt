@@ -119,8 +119,16 @@ fun VideoCard(
     }
   }
 
+  val displayTitle = if (uiSettings.showFileExtension) {
+      video.displayName
+  } else {
+      val extensionIndex = video.displayName.lastIndexOf('.')
+      if (extensionIndex > 0) video.displayName.substring(0, extensionIndex)
+      else video.displayName
+  }
+
   BaseMediaCard(
-    title = video.displayName,
+    title = displayTitle,
     listTitleStyle = MaterialTheme.typography.bodyMedium,
     modifier = modifier,
     thumbnailAspectRatio = 16f / 9f,
