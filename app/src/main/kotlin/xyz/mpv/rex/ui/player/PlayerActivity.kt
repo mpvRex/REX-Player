@@ -2059,7 +2059,7 @@ class PlayerActivity :
       setIntentExtras(intent.extras)
       pendingIntentExtras = false
     }
-    // Reset aspect ration to preferred and pan to neutral
+    // Reset pan and advanced zoom; aspect ratio and regular zoom are finalized with playback state.
     viewModel.resetVisualPreferences()
     viewModel.clearResumePrompt()
     needsAspectReapply = true
@@ -2112,19 +2112,7 @@ class PlayerActivity :
       // Apply track selection logic (defaults only apply when no saved state)
       trackSelector.onFileLoaded(hasState)
 
-      // Apply default zoom only if there's no saved state
-      if (!hasState) {
-        withContext(Dispatchers.Main) {
-          val zoomPreference = playerPreferences.defaultVideoZoom.get()
-          if (zoomPreference != 0f) {
-            MPVLib.setPropertyDouble("video-zoom", zoomPreference.toDouble())
-            viewModel.setVideoZoom(zoomPreference)
-          } else {
-            val currentZoom = MPVLib.getPropertyDouble("video-zoom")?.toFloat() ?: 0f
-            viewModel.setVideoZoom(currentZoom)
-          }
-        }
-      }
+
 
       // Re-apply OSD level option on file load to prevent resets
       runCatching {
