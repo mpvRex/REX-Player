@@ -34,7 +34,49 @@ class MPVView(
   private val subtitlesPreferences: SubtitlesPreferences by inject()
   private val anime4kManager: Anime4KManager by inject()
 
+  // PRELOAD-RESUME-STATE-V1
+  private data class PendingOptionedLoad(
+    val filePath: String,
+    val loadOptions: String,
+    val beforeLoad: (issueLoad: () -> Unit) -> Boolean,
+    val onLoadFailure: (Throwable) -> Unit,
+  )
+
+  private val pendingOptionedLoadLock = Any()
+  private var pendingOptionedLoad: PendingOptionedLoad? = null
+
   var isExiting = false
+
+  /**
+   * Loads with per-file options while preserving BaseMPVView's deferred-first-load behavior.
+   * When the SurfaceView is not ready, only the newest requested item is retained.
+   */
+  fun playFileWithOptions(
+    filePath: String,
+    loadOptions: String,
+    beforeLoad: (issueLoad: () -> Unit) -> Boolean,
+    onLoadFailure: (Throwable) -> Unit,
+  ) {
+    val pending = PendingOptionedLoad(filePath, loadOptions, beforeLoad, onLoadFailure)
+    val loadNow = synchronized(pendingOptionedLoadLock) {
+      if (holder.surface.isValid) {
+        pendingOptionedLoad = null
+        true
+      } else {
+        pendingOptionedLoad = pending
+        false
+      }
+    }
+    if (loadNow) executeOptionedLoad(pending)
+  }
+
+  private fun executeOptionedLoad(load: PendingOptionedLoad) {
+    runCatching {
+      load.beforeLoad {
+        MPVLib.command("loadfile", load.filePath, "replace", "-1", load.loadOptions)
+      }
+    }.onFailure(load.onLoadFailure)
+  }
 
   /**
    * When the activity handles rotation itself (see `configChanges` in the manifest) the
@@ -194,6 +236,10 @@ class MPVView(
   override fun surfaceCreated(holder: SurfaceHolder) {
     super.surfaceCreated(holder)
     if (!MPVLifecycleLock.isNativeInitialized || MPVLifecycleLock.isTearingDown.value || isExiting) return
+    val pendingLoad = synchronized(pendingOptionedLoadLock) {
+      pendingOptionedLoad.also { pendingOptionedLoad = null }
+    }
+    pendingLoad?.let(::executeOptionedLoad)
 
     // Audio may have been loaded while vo=null with no video track selected. Unlike vid=auto,
     // selecting the attached-picture track by ID reliably starts its single-frame decoder.

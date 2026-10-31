@@ -101,6 +101,8 @@ import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Main player activity that handles video playback using the MPV library.
@@ -320,6 +322,14 @@ class PlayerActivity :
         webSubtitlesJob?.cancel()
         webSubtitlesJob = null
         if (!isQualitySwitching) {
+          playbackStateLoadJob?.cancel()
+          activePlaybackLoadState = pendingPlaybackLoadStates.poll()
+          if (activePlaybackLoadState != null && pendingPlaybackLoadGeneration == activePlaybackLoadState?.generation) {
+            pendingPlaybackLoadGeneration = null
+          } else if (activePlaybackLoadState == null && pendingPlaybackLoadGeneration == null) {
+            // An MPV-native playlist transition has no app-prepared state of its own.
+            playbackLoadGeneration.incrementAndGet()
+          }
           val currentPath = runCatching { MPVLib.getPropertyString("path") }.getOrNull()
           val isNetwork = currentPath?.let { path ->
             HttpUtils.isNetworkStream(runCatching { Uri.parse(path) }.getOrNull())
@@ -334,7 +344,16 @@ class PlayerActivity :
         Log.d(TAG, "onFileLoaded called")
         lastFileLoadedTimeMs = SystemClock.elapsedRealtime()
         isAutoAdvancing = false
-        handleFileLoaded()
+        val preparedState = if (isQualitySwitching) {
+          null
+        } else {
+          activePlaybackLoadState.also { activePlaybackLoadState = null }
+        }
+        if (preparedState != null && !isPlaybackLoadRequestCurrent(preparedState.generation)) {
+          Log.d(TAG, "Ignoring stale FILE_LOADED restoration for generation ${preparedState.generation}")
+          return
+        }
+        handleFileLoaded(preparedState)
         isReady = true
 
         val subs = pendingWebSubtitles
@@ -492,7 +511,13 @@ class PlayerActivity :
   internal var isReady = false // Single flag: true when video loaded and ready
   private var isAutoAdvancing = false
   private var lastFileLoadedTimeMs = 0L
-  internal var startedAtSavedPosition = false
+  // PRELOAD-RESUME-STATE-V1
+  private val playbackLoadGeneration = AtomicLong(0L)
+  private var playbackStateLoadJob: kotlinx.coroutines.Job? = null
+  private val pendingPlaybackLoadStates = ConcurrentLinkedQueue<PlayerPlaybackStateController.PreparedPlaybackState>()
+  @Volatile private var pendingPlaybackLoadGeneration: Long? = null
+  @Volatile private var activePlaybackLoadState: PlayerPlaybackStateController.PreparedPlaybackState? = null
+  private val playbackLoadCommandLock = Any()
   private var pendingWebSubtitles: Map<String, String>? = null
   private var pendingRemoteAudio: List<xyz.mpv.rex.domain.ytdl.model.AudioTrack>? = null
   private var currentActiveWebSubtitles: Map<String, String>? = null
@@ -832,28 +857,118 @@ class PlayerActivity :
     )
   }
 
-  internal fun playDirectMedia(playableUri: String) {
+  internal fun beginPlaybackLoadRequest(): Long {
+    return synchronized(playbackLoadCommandLock) {
+      val generation = playbackLoadGeneration.incrementAndGet()
+      pendingPlaybackLoadGeneration = generation
+      playbackStateLoadJob?.cancel()
+      generation
+    }
+  }
+
+  internal fun clearPendingPlaybackLoadRequest(generation: Long) {
+    synchronized(playbackLoadCommandLock) {
+      if (pendingPlaybackLoadGeneration == generation) {
+        pendingPlaybackLoadGeneration = null
+      }
+    }
+  }
+
+  internal fun isPlaybackLoadRequestCurrent(generation: Long): Boolean =
+    playbackLoadGeneration.get() == generation
+
+  private fun getInitialIntentPosition(): Pair<Long?, Int?> {
+    if (!pendingIntentExtras) return null to null
+
+    val externalPositionMs = jellyfinExternalInfo?.positionMs
+    if (externalPositionMs != null) {
+      val positionMs = externalPositionMs.coerceAtLeast(0)
+      return positionMs.toLong() to positionMs
+    }
+
+    val positionMs = intent.getIntExtra("position", POSITION_NOT_SET)
+    return positionMs.takeIf { it > POSITION_NOT_SET }?.toLong() to null
+  }
+
+  internal suspend fun loadMediaWithPlaybackState(
+    playableUri: String,
+    generation: Long,
+    additionalOptions: List<String> = emptyList(),
+  ) {
+    if (!isPlaybackLoadRequestCurrent(generation)) return
+
+    runCatching { MPVLib.setPropertyBoolean("pause", true) }
+      .onFailure { Log.w(TAG, "Could not pause before preparing playback load", it) }
+
+    val loadIdentifier = mediaIdentifier
+    val (explicitPositionMs, jellyfinPositionMs) = getInitialIntentPosition()
+    val preparedState = playbackStateController.preparePlaybackState(
+      mediaIdentifier = loadIdentifier,
+      generation = generation,
+      explicitPositionMs = explicitPositionMs,
+      jellyfinPositionMs = jellyfinPositionMs,
+    )
+
+    if (!isPlaybackLoadRequestCurrent(generation)) return
+    if (mediaIdentifier != loadIdentifier) {
+      clearPendingPlaybackLoadRequest(generation)
+      return
+    }
+
+    val loadOptions = buildList {
+      add("pause=yes")
+      preparedState.startPositionSeconds?.let { add("start=$it") }
+      addAll(additionalOptions)
+    }.joinToString(",")
+
+    withContext(Dispatchers.Default) {
+      player.playFileWithOptions(
+        filePath = playableUri,
+        loadOptions = loadOptions,
+        beforeLoad = { issueLoad ->
+          synchronized(playbackLoadCommandLock) {
+            if (!isPlaybackLoadRequestCurrent(generation)) {
+              false
+            } else if (mediaIdentifier != loadIdentifier) {
+              if (pendingPlaybackLoadGeneration == generation) pendingPlaybackLoadGeneration = null
+              false
+            } else {
+              pendingPlaybackLoadStates.add(preparedState)
+              try {
+                issueLoad()
+                true
+              } catch (error: Throwable) {
+                pendingPlaybackLoadStates.remove(preparedState)
+                throw error
+              }
+            }
+          }
+        },
+        onLoadFailure = { error ->
+          pendingPlaybackLoadStates.remove(preparedState)
+          clearPendingPlaybackLoadRequest(generation)
+          Log.e(TAG, "Failed to load media with prepared playback state", error)
+        },
+      )
+    }
+  }
+
+  internal fun playDirectMedia(playableUri: String, generation: Long) {
     isReady = false
     currentResolvedStream = null
     currentActiveWebSubtitles = null
     viewModel.clearVideoQualities()
-    if (!playerPreferences.autoplayOnOpen.get() || playerPreferences.savePositionOnQuit.get() || playerPreferences.resumePlaybackMode.get() != ResumePlaybackMode.Never) {
-      runCatching { MPVLib.setPropertyBoolean("pause", true) }
-    }
-    if (mpvInitialized && player.holder.surface.isValid) {
-      lifecycleScope.launch(Dispatchers.Default) {
-        MPVLib.command("loadfile", playableUri)
-      }
-    } else {
-      player.playFile(playableUri)
+    lifecycleScope.launch {
+      loadMediaWithPlaybackState(playableUri, generation)
     }
   }
 
   internal fun loadMediaOrResolveWebStream(playableUri: String) {
+    val generation = beginPlaybackLoadRequest()
     val isNetwork = HttpUtils.isNetworkStream(runCatching { Uri.parse(playableUri) }.getOrNull()) || ytDlClient.requiresYtdl(playableUri)
     viewModel.onFileStartLoading(isNetwork = isNetwork)
     if (ytDlClient.requiresYtdl(playableUri)) {
-      resolveWebStream(playableUri)
+      resolveWebStream(playableUri, generation)
       return
     }
 
@@ -864,21 +979,22 @@ class PlayerActivity :
     if (!isDirectMedia && ytDlClient.isAddonInstalled() && ytdlPreferences.autoDetectWebPages.get()) {
       lifecycleScope.launch {
         val isWebPage = HttpUtils.probeIsHtmlWebPage(playableUri)
+        if (!isPlaybackLoadRequestCurrent(generation)) return@launch
         if (isWebPage) {
           Log.d(TAG, "Auto-detected HTML web page for unknown URL: $playableUri. Resolving via yt-dlp.")
-          resolveWebStream(playableUri)
+          resolveWebStream(playableUri, generation)
         } else {
           Log.d(TAG, "Probed URL is direct media/stream: $playableUri. Playing directly via MPV.")
-          playDirectMedia(playableUri)
+          playDirectMedia(playableUri, generation)
         }
       }
       return
     }
 
-    playDirectMedia(playableUri)
+    playDirectMedia(playableUri, generation)
   }
 
-  private fun resolveWebStream(playableUri: String) {
+  private fun resolveWebStream(playableUri: String, generation: Long) {
     if (!ytDlClient.isAddonInstalled()) {
       Log.w(TAG, "Web stream URL requires REX Ytdlp, but addon is not installed: $playableUri")
       android.widget.Toast.makeText(
@@ -890,6 +1006,7 @@ class PlayerActivity :
       return
     }
 
+    if (!isPlaybackLoadRequestCurrent(generation)) return
     isReady = false
     viewModel.onFileStartLoading(isNetwork = true)
     runCatching { MPVLib.setPropertyString("idle", "yes") }
@@ -897,6 +1014,7 @@ class PlayerActivity :
     lifecycleScope.launch {
       Log.d(TAG, "Resolving web stream URL via REX Ytdlp: $playableUri")
       val resolved = ytDlClient.resolveStream(playableUri, ytdlPreferences.buildExtractionOptions())
+      if (!isPlaybackLoadRequestCurrent(generation)) return@launch
       if (resolved.isSuccess && !resolved.videoUrl.isNullOrBlank()) {
         Log.d(TAG, "Stream resolved successfully: ${resolved.title}, isDASH=${resolved.isDASH}")
 
@@ -951,46 +1069,14 @@ class PlayerActivity :
         android.util.Log.i("YtdlIpc", "attach point: resolved.audioTracks=${resolved.audioTracks.size}")
         pendingRemoteAudio = resolved.audioTracks.takeIf { it.isNotEmpty() }
 
-        val autoplay = playerPreferences.autoplayOnOpen.get()
-        if (!autoplay) {
-          runCatching { MPVLib.setPropertyBoolean("pause", true) }
-        } else {
-          runCatching { MPVLib.setPropertyBoolean("pause", false) }
-        }
-
-        // Check if there is a saved resume position
-        val resumeMode = playerPreferences.resumePlaybackMode.get()
-        val shouldAutoResume = (resumeMode == ResumePlaybackMode.Always) ||
-            (resumeMode == ResumePlaybackMode.Ask && playerPreferences.autoResumeOnAsk.get())
-        val savedPos = if (playerPreferences.savePositionOnQuit.get() && shouldAutoResume) {
-          withContext(Dispatchers.IO) {
-            playbackStateRepository.getVideoDataByTitle(mediaIdentifier)?.lastPosition?.takeIf { it > 3 }
-          }
-        } else null
-
-        val hasMpvStarted = mpvInitialized
-        val loadOptions = buildList {
-          add(if (!autoplay) "pause=yes" else "pause=no")
-          if (hasMpvStarted && savedPos != null) {
-            add("start=$savedPos")
-            startedAtSavedPosition = true
-          }
-          if (resolved.isDASH) {
-            add("flatten-editions=yes")
-          }
-        }.joinToString(",")
-
-        if (hasMpvStarted) {
-          lifecycleScope.launch(Dispatchers.Default) {
-            Log.d(TAG, "Executing MPVLib.command loadfile for web stream with options: $loadOptions")
-            MPVLib.command("loadfile", streamToPlay, "replace", "-1", loadOptions)
-          }
-        } else {
-          player.playFile(streamToPlay)
-        }
+        loadMediaWithPlaybackState(
+          streamToPlay,
+          generation,
+          if (resolved.isDASH) listOf("flatten-editions=yes") else emptyList(),
+        )
       } else {
         Log.w(TAG, "Failed to resolve stream via yt-dlp: ${resolved.errorMessage}. Attempting direct MPV playback as fallback.")
-        playDirectMedia(playableUri)
+        playDirectMedia(playableUri, generation)
       }
     }
   }
@@ -1599,9 +1685,6 @@ class PlayerActivity :
   private fun setIntentExtras(extras: Bundle?) {
     if (extras == null) return
 
-    extras.getInt("position", POSITION_NOT_SET).takeIf { it != POSITION_NOT_SET }?.let {
-      MPVLib.setPropertyInt("time-pos", it / MILLISECONDS_TO_SECONDS)
-    }
 
     addSubtitlesFromExtras(extras)
     setHttpHeadersFromExtras(extras)
@@ -1913,7 +1996,7 @@ class PlayerActivity :
    * Initializes playback state, loads saved playback data, restores custom settings,
    * applies user preferences, and sets up metadata and media session.
    */
-  private fun handleFileLoaded() {
+  private fun handleFileLoaded(preparedState: PlayerPlaybackStateController.PreparedPlaybackState? = null) {
     if (isQualitySwitching) {
       isQualitySwitching = false
       val loadedDurationSec = MPVLib.getPropertyDouble("duration") ?: 0.0
@@ -1981,23 +2064,17 @@ class PlayerActivity :
     needsAspectReapply = true
     isPlaybackStateLoaded = false
 
+    val loadedMediaIdentifier = mediaIdentifier
+    val loadedMediaTitle = fileName
+    val loadGeneration = preparedState?.generation ?: playbackLoadGeneration.get()
     val shouldAutoplay = playerPreferences.autoplayOnOpen.get() || isAutoplayNextTriggered
     isAutoplayNextTriggered = false
     isAutoAdvancing = false
 
-    lifecycleScope.launch(Dispatchers.IO) {
-      val externalPosMs = jellyfinExternalInfo?.positionMs
-      val isJellyfinExternal = jellyfinExternalInfo != null && externalPosMs != null
-      val hasState = if (isJellyfinExternal) {
-        val s = loadVideoPlaybackState(fileName)
-        val sec = externalPosMs!! / MILLISECONDS_TO_SECONDS
-        MPVLib.setPropertyInt("time-pos", sec)
-        xyz.mpv.rex.jellyfin.JellyfinExternalHelper.logSeekApplied(externalPosMs)
-        viewModel.clearResumePrompt()
-        s
-      } else {
-        loadVideoPlaybackState(fileName)
-      }
+    playbackStateLoadJob?.cancel()
+    playbackStateLoadJob = lifecycleScope.launch(Dispatchers.IO) {
+      val hasState = loadVideoPlaybackState(loadedMediaTitle, preparedState, loadedMediaIdentifier)
+      if (!isPlaybackLoadRequestCurrent(loadGeneration)) return@launch
 
       // Re-enable the video/album-art track when loading a file in the foreground.
       // onNewIntent loads new files with vid="no"; if we're not in background
@@ -2465,8 +2542,12 @@ class PlayerActivity :
    * @param mediaTitle The title of the media being played
    * @return true if saved state was found and applied, false otherwise
    */
-  internal suspend fun loadVideoPlaybackState(mediaTitle: String): Boolean {
-    return playbackStateController.loadVideoPlaybackState(mediaTitle)
+  internal suspend fun loadVideoPlaybackState(
+    mediaTitle: String,
+    preparedState: PlayerPlaybackStateController.PreparedPlaybackState? = null,
+    expectedMediaIdentifier: String = mediaIdentifier,
+  ): Boolean {
+    return playbackStateController.loadVideoPlaybackState(mediaTitle, preparedState, expectedMediaIdentifier)
   }
 
   /**
