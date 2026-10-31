@@ -100,6 +100,7 @@ class PlayerPipController(
         enterPipUIMode()
         handlePipBrightness(true)
       } else {
+	    activity.viewModel.hideControls()
         exitPipUIMode()
         handlePipBrightness(false)
       }
