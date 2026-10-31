@@ -97,6 +97,7 @@ object PlayerPreferencesScreen : Screen {
             val playlistMode by preferences.playlistMode.collectAsState()
             val rememberBrightness by preferences.rememberBrightness.collectAsState()
             val autoPiPOnNavigation by preferences.autoPiPOnNavigation.collectAsState()
+            val pipOnHome by preferences.pipOnHome.collectAsState()
             val keepScreenOnWhenPaused by preferences.keepScreenOnWhenPaused.collectAsState()
 
             GroupedListColumn {
@@ -280,6 +281,30 @@ object PlayerPreferencesScreen : Screen {
                     Text(
                       text = stringResource(R.string.pref_player_auto_pip_summary),
                       color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_player_pip_on_home,
+              ) {
+                SwitchPreference(
+                  value = pipOnHome,
+                  onValueChange = preferences.pipOnHome::set,
+                  enabled = autoPiPOnNavigation,
+                  title = { Text(stringResource(R.string.pref_player_pip_on_home)) },
+                  titleStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
+                      alpha = if (autoPiPOnNavigation) 1f else 0.38f,
+                    ),
+                  ),
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_player_pip_on_home_summary),
+                      color = MaterialTheme.colorScheme.outline.copy(
+                        alpha = if (autoPiPOnNavigation) 1f else 0.38f,
+                      ),
                     )
                   },
                 )

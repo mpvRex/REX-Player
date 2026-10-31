@@ -1293,7 +1293,9 @@
     <string name="pref_player_keep_screen_on_when_paused_summary_on">Screen stays awake while video is paused</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">Screen can turn off while video is paused</string>
     <string name="pref_player_auto_pip">Auto Picture-in-Picture</string>
-    <string name="pref_player_auto_pip_summary">Automatically enter PIP mode when pressing home or back</string>
+    <string name="pref_player_auto_pip_summary">Automatically enter PIP mode when pressing Back</string>
+    <string name="pref_player_pip_on_home">PiP on Home</string>
+    <string name="pref_player_pip_on_home_summary">Automatically enter PiP mode when pressing Home</string>
     <string name="pref_player_dynamic_speed_overlay">Dynamic Speed Overlay</string>
     <string name="pref_player_dynamic_speed_overlay_summary">Show advance overlay for speed control during long press and swipe</string>
     <string name="pref_player_show_speed_indicator_overlay">Show Speed Indicator Overlay</string>
