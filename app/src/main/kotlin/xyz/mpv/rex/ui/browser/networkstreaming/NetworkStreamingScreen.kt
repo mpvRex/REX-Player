@@ -34,6 +34,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import xyz.mpv.rex.R
@@ -184,7 +185,7 @@ object NetworkStreamingScreen : Screen {
           start = 0.dp,
           end = 0.dp,
           top = 4.dp,
-          bottom = navigationBarHeight
+          bottom = navigationBarHeight + 12.dp
         ),
       ) {
           // Section 1: Stream Link
@@ -205,10 +206,21 @@ object NetworkStreamingScreen : Screen {
           // Section 1b: Played Links History Section
           if (playedLinks.isNotEmpty()) {
             item(key = "recent_links_header") {
-              PreferenceSectionHeader(
-                title = stringResource(R.string.network_recent_links),
-                modifier = Modifier.padding(top = 16.dp),
-              )
+              Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                PreferenceSectionHeader(
+                  title = stringResource(R.string.network_recent_links),
+                  modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                  onClick = { browserPreferences.playedNetworkLinks.set("") },
+                  modifier = Modifier.padding(end = 12.dp),
+                ) {
+                  Text(stringResource(R.string.network_clear_all_links))
+                }
+              }
             }
 
             item(key = "recent_links_list") {
@@ -269,16 +281,29 @@ object NetworkStreamingScreen : Screen {
                           )
                         }
                       }
-                      Text(
-                        text = link,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                      Column(
                         modifier = Modifier
                           .weight(1f)
                           .padding(horizontal = 12.dp),
-                      )
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                      ) {
+                        Text(
+                          text = android.net.Uri.parse(link).lastPathSegment
+                            ?.takeIf { it.isNotBlank() } ?: link,
+                          style = MaterialTheme.typography.bodyMedium,
+                          fontWeight = FontWeight.Medium,
+                          color = MaterialTheme.colorScheme.onSurface,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                          text = link,
+                          style = MaterialTheme.typography.bodySmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant,
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                        )
+                      }
                       IconButton(
                         onClick = {
                           val currentList = playedLinks.toMutableList()
