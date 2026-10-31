@@ -321,7 +321,14 @@ class PlayerActivity :
         isReady = false
         webSubtitlesJob?.cancel()
         webSubtitlesJob = null
+        
         if (!isQualitySwitching) {
+           if (isAutoplayNextTriggered) {
+              viewModel.showControls()
+           } else {
+               viewModel.hideControls()
+           }
+          
           playbackStateLoadJob?.cancel()
           activePlaybackLoadState = pendingPlaybackLoadStates.poll()
           if (activePlaybackLoadState != null && pendingPlaybackLoadGeneration == activePlaybackLoadState?.generation) {
@@ -2187,10 +2194,6 @@ class PlayerActivity :
       viewModel.setMediaTitle(fileName)
     } else {
       viewModel.setMediaTitle(fileName)
-    }
-
-    if (!shouldAutoplay || playerPreferences.showControlsOnPlay.get()) {
-      viewModel.showControls()
     }
 
     val isWebStream = ytDlClient.requiresYtdl(parsePathFromIntent(intent) ?: "")
