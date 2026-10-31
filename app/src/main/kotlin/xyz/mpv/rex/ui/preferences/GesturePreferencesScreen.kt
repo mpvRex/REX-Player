@@ -20,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -241,33 +242,39 @@ object GesturePreferencesScreen : Screen {
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_gestures_hold_for_multiple_speed,
               ) {
-                SliderPreference(
-                  value = holdForMultipleSpeed,
-                  onValueChange = { playerPreferences.holdForMultipleSpeed.set(it.toFixed(2)) },
-                  title = { Text(stringResource(R.string.pref_player_gestures_hold_for_multiple_speed)) },
-                  valueRange = 0f..6f,
-                  summary = {
-                    Text(
-                      if (holdForMultipleSpeed == 0F) {
-                        stringResource(R.string.generic_disabled)
-                      } else {
-                        "%.2fx".format(holdForMultipleSpeed)
-                      },
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onSliderValueChange = { playerPreferences.holdForMultipleSpeed.set(it.toFixed(2)) },
-                  sliderValue = holdForMultipleSpeed,
-                )
+                key(longPressSpeedMemoryMode) {
+                  SliderPreference(
+                    value = holdForMultipleSpeed,
+                    onValueChange = { playerPreferences.holdForMultipleSpeed.set(it.toFixed(2)) },
+                    title = { Text(stringResource(R.string.pref_player_gestures_hold_for_multiple_speed)) },
+                    valueRange = 0f..6f,
+                    summary = {
+                      Text(
+                        if (holdForMultipleSpeed == 0F) {
+                          stringResource(R.string.generic_disabled)
+                        } else {
+                          "%.2fx".format(holdForMultipleSpeed)
+                        },
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
+                    onSliderValueChange = { playerPreferences.holdForMultipleSpeed.set(it.toFixed(2)) },
+                    sliderValue = holdForMultipleSpeed,
+                  )
+                }
               }
-
               GroupedPreferenceCard(
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_remember_long_press_speed_title,
               ) {
                 ListPreference(
                   value = longPressSpeedMemoryMode,
-                  onValueChange = playerPreferences.longPressSpeedMemoryMode::set,
+                  onValueChange = { mode ->
+                    if (mode != LongPressSpeedMemoryMode.Global) {
+                      playerPreferences.holdForMultipleSpeed.set(2f)
+                    }
+                    playerPreferences.longPressSpeedMemoryMode.set(mode)
+                  },
                   values = LongPressSpeedMemoryMode.entries,
                   valueToText = { AnnotatedString(context.getString(it.titleRes)) },
                   title = { Text(stringResource(R.string.pref_player_remember_long_press_speed_title)) },
