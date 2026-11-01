@@ -2079,6 +2079,7 @@ class PlayerActivity :
     val loadedMediaIdentifier = mediaIdentifier
     val loadedMediaTitle = fileName
     val loadGeneration = preparedState?.generation ?: playbackLoadGeneration.get()
+    val isPlaylistNavigation = isAutoplayNextTriggered
     val shouldAutoplay = playerPreferences.autoplayOnOpen.get() || isAutoplayNextTriggered
     isAutoplayNextTriggered = false
     isAutoAdvancing = false
@@ -2101,6 +2102,23 @@ class PlayerActivity :
           } else {
             safeSetPropertyString("vid", "auto")
           }
+        }
+      }
+
+      // Playlist navigation disables vid before load. Reapply its saved position after the new
+      // video track has been restored, while playback is still paused.
+      val playlistResumePosition = preparedState?.takeIf {
+        isPlaylistNavigation &&
+            it.explicitPositionMs == null &&
+            it.startPositionSeconds != null &&
+            it.resumePosition != null
+      }?.resumePosition
+
+      if (playlistResumePosition != null) {
+        runCatching {
+          MPVLib.command("seek", playlistResumePosition.toString(), "absolute+exact")
+        }.onFailure { error ->
+          Log.e(TAG, "Failed to restore playlist resume position: $playlistResumePosition", error)
         }
       }
 
