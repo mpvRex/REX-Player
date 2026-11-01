@@ -100,9 +100,14 @@ class PlayerPipController(
         enterPipUIMode()
         handlePipBrightness(true)
       } else {
-	    activity.viewModel.hideControls()
         exitPipUIMode()
         handlePipBrightness(false)
+
+        if (activity.viewModel.paused == true) {
+          activity.viewModel.showControls()
+        } else {
+          activity.viewModel.hideControls()
+        }
       }
     }.onFailure { e ->
       Log.e(TAG, "Error handling PiP mode change", e)
