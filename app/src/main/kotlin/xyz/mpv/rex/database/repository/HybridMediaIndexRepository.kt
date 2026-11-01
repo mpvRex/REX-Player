@@ -886,29 +886,31 @@ class HybridMediaIndexRepository(
     // A folder should be hidden (flattened) if it has NO direct media AND only has one child folder with media.
     // This brings nested folders forward in tree navigation.
     val showAudioFiles = browserPreferences.showAudioFiles.get()
-    val sortedForFlattening = tree.keys.sortedBy { it.length }
-    for (path in sortedForFlattening) {
-      val node = tree[path] ?: continue
-      val hasDirectMedia = if (showAudioFiles) {
-        node.directVideoCount > 0 || node.directAudioCount > 0
-      } else {
-        node.directVideoCount > 0
-      }
-      if (hasDirectMedia) continue
-
-      val childrenWithMedia = tree.values.filter {
-        val hasMedia = if (showAudioFiles) {
-          it.videoCount > 0 || it.audioCount > 0
+    if (browserPreferences.flattenFolders.get()) {
+      val sortedForFlattening = tree.keys.sortedBy { it.length }
+      for (path in sortedForFlattening) {
+        val node = tree[path] ?: continue
+        val hasDirectMedia = if (showAudioFiles) {
+          node.directVideoCount > 0 || node.directAudioCount > 0
         } else {
-          it.videoCount > 0
+          node.directVideoCount > 0
         }
-        File(it.path).parent == path && hasMedia
-      }
+        if (hasDirectMedia) continue
 
-      if (childrenWithMedia.size == 1) {
-        val isStorageRoot = StorageVolumeUtils.isStorageRoot(context, path)
-        if (!isStorageRoot) {
-          node.isFlattened = true
+        val childrenWithMedia = tree.values.filter {
+          val hasMedia = if (showAudioFiles) {
+            it.videoCount > 0 || it.audioCount > 0
+          } else {
+            it.videoCount > 0
+          }
+          File(it.path).parent == path && hasMedia
+        }
+
+        if (childrenWithMedia.size == 1) {
+          val isStorageRoot = StorageVolumeUtils.isStorageRoot(context, path)
+          if (!isStorageRoot) {
+            node.isFlattened = true
+          }
         }
       }
     }
