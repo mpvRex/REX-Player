@@ -97,7 +97,7 @@ class MPVPipHelper(
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-          setAutoEnterEnabled(playerPreferences.autoPiPOnNavigation.get() && playerPreferences.pipOnHome.get())
+          setAutoEnterEnabled(playerPreferences.autoPiPOnNavigation.get())
         }
 
         setActions(createPipActions())
