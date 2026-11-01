@@ -80,6 +80,7 @@ object MediaLibraryPreferencesScreen : Screen {
     val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
     val watchedThreshold by browserPreferences.watchedThreshold.collectAsState()
     val showTreeViewPath by browserPreferences.showTreeViewPath.collectAsState()
+    val flattenFolders by browserPreferences.flattenFolders.collectAsState()
     val pinnedItemRepository = koinInject<xyz.mpv.rex.domain.pinned.PinnedItemRepository>()
     val isolatePinsByView by pinnedItemRepository.isolatedPreference.collectAsState()
     val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
@@ -352,7 +353,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
-                position = GroupPosition.LAST,
+                position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_show_tree_view_path_title,
               ) {
                 SwitchPreference(
@@ -362,6 +363,23 @@ object MediaLibraryPreferencesScreen : Screen {
                   summary = {
                     Text(
                       text = stringResource(id = R.string.pref_show_tree_view_path_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  }
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.LAST,
+                highlightKey = R.string.pref_flatten_folders_title,
+              ) {
+                SwitchPreference(
+                  value = flattenFolders,
+                  onValueChange = { browserPreferences.flattenFolders.set(it) },
+                  title = { Text(text = stringResource(id = R.string.pref_flatten_folders_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(id = R.string.pref_flatten_folders_summary),
                       color = MaterialTheme.colorScheme.outline,
                     )
                   }

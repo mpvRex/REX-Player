@@ -21,12 +21,12 @@
     <string name="pref_appearance_tab_playlists_summary">عرض قوائم تشغيل الفيديو المحلية المخصصة</string>
     <string name="pref_appearance_tab_network_title">البث الشبكي</string>
     <string name="pref_appearance_tab_network_summary">الوصول إلى مشاركات SMB وخوادم FTP وWebDAV</string>
-    <string name="pref_appearance_summary">الوضع الداكن ، الألوان الديناميكية</string>
+    <string name="pref_appearance_summary">الوضع الداكن، الألوان الديناميكية</string>
     <string name="pref_appearance_category_theme">السمة</string>
     <string name="pref_appearance_darkmode_system">النظام</string>
     <string name="pref_appearance_darkmode_light">فاتح</string>
     <string name="pref_appearance_darkmode_dark">داكن</string>
-    <string name="pref_appearance_amoled_mode_title">وضع AMOLED الأسود</string>
+    <string name="pref_appearance_amoled_mode_title">وضع الأسود أموليد</string>
     <string name="pref_appearance_amoled_mode_summary">استخدام خلفية سوداء خالصة للسمات الداكنة</string>
     <string name="pref_appearance_unlimited_name_lines_title">عرض الأسماء كاملةً</string>
     <string name="pref_appearance_unlimited_name_lines_summary">عرض أسماء المجلدات والفيديوهات كاملةً دون اقتطاع</string>
@@ -59,7 +59,7 @@
     <string name="theme_default">افتراضي</string>
     <string name="theme_dynamic">ديناميكي</string>
     <string name="theme_cloudflare">Cloudflare</string>
-    <string name="theme_cotton_candy">Cotton Candy</string>
+    <string name="theme_cotton_candy">غزل البنات</string>
     <string name="theme_doom">دوم</string>
     <string name="theme_green_apple">التفاح الأخضر</string>
     <string name="theme_lavender">الخزامى</string>
@@ -80,9 +80,9 @@
     <string name="theme_amber">كهرماني</string>
     <string name="theme_coral">المرجان</string>
     <string name="theme_slate">أردوازي</string>
-    <string name="theme_dracula">دراكولا</string>
-    <string name="theme_monochrome">أحادي اللون</string>
-    <string name="theme_catppuccin">كاتبوتشينو</string>
+    <string name="theme_dracula">th3casablog.blogspot.com</string>
+    <string name="theme_monochrome">أحادية اللون</string>
+    <string name="theme_catppuccin">كاتبوتشين</string>
     <string name="theme_gruvbox">جروفبوكس</string>
     <string name="theme_tokyo_night">ليلة طوكيو</string>
     <string name="theme_kanagawa">كاناجاوا</string>
@@ -103,7 +103,7 @@
     <string name="pref_show_navigation_bar_title">إظهار شريط التنقل مع عناصر التحكم</string>
 
     <!-- Gesture Preferences Hardcoded -->
-    <string name="pref_double_tap_seek_area_width_title">عُرض منطقة التقديم بالنقر المزدوج</string>
+    <string name="pref_double_tap_seek_area_width_title">عُرْض منطقة التقديم بالنقر المزدوج</string>
     <string name="pref_double_tap_seek_area_width_summary">الحالي: %d%%</string>
 
     <!-- Advanced Preferences Hardcoded -->
@@ -129,7 +129,7 @@
     <string name="pref_layout_portrait_bottom_controls">عناصر التحكم السفلية في الوضع العمودي</string>
 
     <string name="pref_player">المشغِّل</string>
-    <string name="pref_player_summary">الاتجاه والإيماءات وعناصر التحكم</string>
+    <string name="pref_player_summary">الاتجاه والتشغيل والعرض</string>
     <string name="pref_player_orientation">الاتجاه</string>
     <string name="pref_player_orientation_free">حر</string>
     <string name="pref_player_orientation_video">الفيديو</string>
@@ -176,7 +176,7 @@
     <string name="pref_player_display_panel_opacity">شفافية اللوح</string>
 
     <string name="pref_gesture">الإيماءات</string>
-    <string name="pref_gesture_summary">النقر المزدوج، عناصر التحكم في الوسائط</string>
+    <string name="pref_gesture_summary">إيماءات الشاشة والنقر المزدوج وعناصر التحكم في الوسائط</string>
     <string name="pref_gesture_double_tap_title">نقر مزدوج</string>
     <string name="pref_gesture_double_tap_none">لا شيء</string>
     <string name="pref_gesture_double_tap_seek">تقديم/إرجاع</string>
@@ -233,9 +233,9 @@
     <string name="pref_decoder_vulkan_not_supported">غير مدعوم (يتطلب اندرويد 13+ مع Vulkan 1.3)</string>
 
     <string name="pref_subtitles">الترجمات</string>
-    <string name="pref_subtitles_summary">اللغات المفضلة، الخطوط، والبحث</string>
-    <string name="pref_subtitle_search_title">البحث عن الترجمة عبر الإنترنت</string>
-    <string name="pref_subtitle_search_summary">البحث عن الترجمات وتنزيلها من مصادر إنترنتية</string>
+    <string name="pref_subtitles_summary">اللغات المفضلة والخطوط والبحث</string>
+    <string name="pref_subtitle_search_title">البحث عن ترجمة عبر الإنترنت</string>
+    <string name="pref_subtitle_search_summary">البحث عن ترجمات وتنزيلها من مصادر إنترنتية</string>
     <string name="pref_custom_lua_title">أزرار Lua المخصصة</string>
     <string name="pref_custom_lua_summary">إدارة أزرار المشغِّل المخصصة باستخدام كود Lua</string>
     <string name="pref_preferred_languages">اللغات المفضلة</string>
@@ -249,7 +249,7 @@
     <string name="pref_subtitles_custom_picker_folder_title">مجلد التحديد الافتراضي</string>
     <string name="pref_subtitles_custom_picker_folder_summary">المجلد الذي يُفتح عند إضافة الترجمات يدويًا</string>
     <string name="pref_subtitles_save_location">موقع حفظ الترجمات</string>
-    <string name="pref_subtitles_search_online">البحث عن الترجمة عبر الإنترنت…</string>
+    <string name="pref_subtitles_search_online">البحث عن ترجمة عبر الإنترنت…</string>
     <string name="pref_subtitles_subdl_languages">لغات الترجمة</string>
     <string name="all_languages">كل اللغات (تصفية انتقائية)</string>
     <string name="pref_subtitles_clear_downloads">مسح تنزيلات الترجمة</string>
@@ -295,7 +295,6 @@
     <string name="pref_advanced_cleared_playback_history">مُسح سجل التشغيل</string>
     <string name="pref_advanced_clear_fonts_cache">مسح الخطوط المخزَّنة مؤقتاً</string>
     <string name="pref_advanced_cleared_fonts_cache">مُسحت الخطوط المخزَّنة مؤقتاً</string>
-    <string name="pref_advanced_clear_fonts_failed">تعذّر مسح الخطوط المخزَّنة مؤقتاً</string>
     <string name="pref_advanced_enable_recently_played_title">المشغَّل مؤخراً</string>
     <string name="pref_advanced_enable_recently_played_summary">تتبع وعرض الفيديوهات وقوائم التشغيل المشغَّلة مؤخراً</string>
 
@@ -363,13 +362,6 @@
     <string name="player_sheets_sub_position">الموضع</string>
     <string name="player_sheets_sub_typography_card_title">التنسيق</string>
     <string name="player_sheets_sub_typography_font">الخط</string>
-    <string name="player_sheets_sub_typography_add_font_file">إضافة ملف خط</string>
-    <string name="fonts_result_added">تمت إضافة %1$d</string>
-    <string name="fonts_result_existing">%1$d موجود مسبقًا</string>
-    <string name="fonts_result_failed">تعذّرت إضافة %1$d (ملف غير صالح أو خطأ في التخزين)</string>
-    <string name="file_picker_import_selected">استيراد (%1$d)</string>
-    <string name="file_picker_clear_selection">مسح التحديد</string>
-    <string name="fonts_result_limit">تم تخطي %1$d (تجاوز الحد الأقصى لحجم الدفعة)</string>
     <string name="player_sheets_sub_typography_font_size">حجم الخط</string>
     <string name="player_sheets_sub_typography_border_size">حجم الحدود</string>
     <string name="player_sheets_sub_colors_card_title">الألوان</string>
@@ -606,7 +598,7 @@
     <string name="password">كلمة المرور</string>
     <string name="selected_long_press_to_reorder">محدد (اضغط مطولاً لإعادة الترتيب)</string>
     <string name="available">متاح</string>
-    <string name="width">العرض</string>
+    <string name="width">العُرض</string>
     <string name="height">الارتفاع</string>
     <string name="filter_presets">إعدادات المرشحات المسبقة</string>
     <string name="no_storage_devices_found">لم يُعثر على أجهزة تخزين</string>
@@ -851,7 +843,7 @@
     <string name="btn_label_ab_loop">تكرار A-B</string>
     <string name="btn_label_custom_skip">تخطي مخصص</string>
     <string name="btn_label_background_playback">التشغيل في الخلفية</string>
-    <string name="btn_label_ambient_mode">وضع الاضائة المحيطة</string>
+    <string name="btn_label_ambient_mode">وضع الإضاءة المحيطة</string>
     <string name="btn_label_sleep_timer">مؤقت النوم</string>
     <string name="btn_label_none">لا شيء</string>
 
@@ -900,7 +892,7 @@
     <string name="repeat_off">التكرار متوقف</string>
     <string name="repeat_one">تكرار العنصر الواحد</string>
     <string name="repeat_all">تكرار الكل</string>
-    <string name="shuffle_on">التشغيل العشوائي مفعّل</string>
+    <string name="shuffle_on">الخلط مفعّل</string>
     <string name="shuffle_off">الخلط متوقف</string>
     <string name="mirrored">معكوس</string>
     <string name="mirror">عكس أفقي</string>
@@ -972,7 +964,7 @@
     <string name="control_layout_edit_title_portrait_bottom">تعديل الأسفل (الوضع الرأسي)</string>
     <string name="control_layout_edit_title_more_sheet">تعديل أزرار قائمة \"المزيد\"</string>
     <string name="control_layout_back">رجوع</string>
-    <string name="control_layout_reset_to_default">إعادة الضبط الافتراضي</string>
+    <string name="control_layout_reset_to_default">إعادة تعيين للافتراضي</string>
     <string name="control_layout_reset_dialog_title">إعادة ضبط التخطيط</string>
     <string name="control_layout_reset_dialog_message">أمتأكد أنك تريد إعادة ضبط هذه المنطقة إلى الإعدادات الافتراضية؟</string>
        <!-- ملاحظة: صياغة معاد كتابتها عمداً (بدل ترجمة حرفية لـ '-') لحل bidi bug ظاهر في اللقطة المرفقة -->
@@ -1022,7 +1014,7 @@
     <string name="pref_player_keep_screen_on_when_paused_summary_on">تبقى الشاشة مضاءة أثناء إيقاف الفيديو مؤقتاً</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">يمكن للشاشة أن تُطفأ أثناء إيقاف الفيديو مؤقتاً</string>
     <string name="pref_player_auto_pip">صورة في صورة تلقائية</string>
-    <string name="pref_player_auto_pip_summary">الدخول تلقائياً لوضع ص.ف.ص عند الضغط على الرئيسية أو الرجوع</string>
+    <string name="pref_player_auto_pip_summary">الدخول تلقائياً لوضع ص.ف.ص عند الضغط على الرجوع</string>
     <string name="pref_player_dynamic_speed_overlay">التغيير الديناميكي للسرعة</string>
     <string name="pref_player_dynamic_speed_overlay_summary">إظهار طبقة متقدمة للتحكم بالسرعة أثناء الضغط المطول والسحب</string>
     <string name="pref_player_display_show_navigation_bar">إظهار شريط التنقل مع عناصر التحكم</string>
@@ -1102,7 +1094,7 @@
     <string name="pref_advanced_thumbnail_cache_cleared">مُسحت ذاكرة تخزين الصور المصغّرة</string>
     <string name="pref_advanced_remove_cached_fonts_summary">إزالة جميع خطوط الترجمة المخزّنة</string>
     <string name="pref_advanced_enable_media_info_title">تفعيل خيار معلومات الوسائط</string>
-    <string name="pref_advanced_enable_media_info_summary">إظهار \"\"معلومات الوسائط\"\" كخيار في قوائم \"\"فتح باستخدام\"\" على مستوى النظام</string>
+    <string name="pref_advanced_enable_media_info_summary">إظهار \"معلومات الوسائط\" كخيار في قوائم \"فتح باستخدام\" على مستوى النظام</string>
 
     <string name="blocked_shorts_empty_state">لا توجد فيديوهات محظورة</string>
     <string name="blocked_shorts_unblock_button">محظور</string>
@@ -1183,7 +1175,7 @@
     <string name="custom_button_long_press_action">إجراء الضغط المطول</string>
     <string name="custom_button_on_startup">عند بدء التشغيل</string>
     <string name="custom_button_settings_label">الإعدادات</string>
-    <string name="custom_button_enabled_label">تفعيل الزر</string>
+    <string name="custom_button_enabled_label">الزر مفعل</string>
     <string name="custom_button_enabled_desc">الزر مفعّل في المشغل</string>
     <string name="custom_button_disabled_desc">الزر محفوظ لكنه مخفي</string>
     <string name="custom_button_add">إضافة زر</string>
@@ -1298,7 +1290,7 @@
     <string name="player_resumed_from_pill">استؤنف من %1$s</string>
     <string name="player_restart_action">إعادة تشغيل</string>
     <string name="pref_player_remember_long_press_speed_title">تذكر السرعة المعدلة</string>
-    <string name="pref_player_remember_long_press_speed_summary">استخدم سرعة التمرير الأخيرة للضغطات المطولة اللاحقة</string>
+    <string name="pref_player_remember_long_press_speed_summary">اختر كيفية إعادة استخدام السرعة المعدلة للضغطات المطولة اللاحقة</string>
     <string name="pref_subtitles_force_ltr_summary">فرض الاتجاه من اليسار إلى اليمين للترجمات</string>
     <string name="community_already_joined">انضممت بالفعل</string>
     <string name="community_not_now">‫ليس الآن‬</string>
@@ -1315,7 +1307,7 @@
     <string name="welcome_get_started">ابدأ الآن</string>
     <string name="pref_player_resume_mode_ask">اسأل في كل مرة</string>
     <string name="pref_player_resume_mode_never">ابدأ دائمًا من جديد</string>
-    <string name="player_resume_prompt_title">استئناف التشغيل ؟</string>
+    <string name="player_resume_prompt_title">استئناف التشغيل؟</string>
     <string name="player_resume_prompt_message_with_duration">لقد شاهدت سابقًا ما يصل إلى %1$s من %2$s.</string>
     <string name="pref_subtitles_force_ltr_title">فرض اتجاه من اليسار إلى اليمين</string>
     <string name="community_never_show_again">لا تظهر مرة أخرى</string>
@@ -1327,7 +1319,7 @@
     <string name="pref_autoplay_on_open_summary">بدء التشغيل تلقائيًا عند فتح الوسائط</string>
     <string name="pref_player_auto_resume_on_ask_title">استئناف التشغيل تلقائيًا</string>
     <string name="pref_player_auto_resume_on_ask_summary_on">الاستئناف تلقائيًا وعرض البدء من جديد</string>
-    <string name="pref_player_auto_resume_on_ask_summary_off">ابدء من جديد واعرض استئناف التشغيل</string>
+    <string name="pref_player_auto_resume_on_ask_summary_off">ابدأ من جديد واعرض استئناف التشغيل</string>
     <string name="player_prompt_resume_pill">شُوهد حتى %1$s</string>
     <string name="pref_player_default_aspect_ratio">نسبة الأبعاد الافتراضية</string>
     <string name="pref_player_remember_aspect_ratio">تذكر نسبة الأبعاد لجميع الفيديوهات</string>
@@ -1429,7 +1421,7 @@
     <string name="video_quality_set_as_default">اجعل \"%1$s\" افتراضيًا</string>
     <string name="video_quality_default_saved">ضُبطت الجودة افتراضيًا على %1$s</string>
     <string name="pref_appearance_tab_you_title">تبويبك</string>
-    <string name="pref_appearance_tab_you_summary">ٍدمج المشغَّلة حديثًا وقوائم التشغيل في تبويب واحد</string>
+    <string name="pref_appearance_tab_you_summary">دمج المشغَّلة حديثًا وقوائم التشغيل في تبويبٍ واحد </string>
     <string name="pref_player_gestures_pinch_to_resize_subtitle_title">تغيير حجم الترجمة بايماءة القرص</string>
     <string name="pref_player_gestures_pinch_to_resize_subtitle_summary">قرص الترجمة بإصبعين لتغيير حجمها، وقرص ما سواها يكبر الفيديو ويصغره</string>
     <string name="pref_gesture_double_tap_chapter_skip_title">النقر المزدوج على الفصل لتخطيه</string>
@@ -1451,7 +1443,7 @@
     <string name="pref_playback_controls_position_hide">مخفي</string>
     <string name="network_stream_link_hint">اكتب أو ألصق الرابط</string>
     <string name="auto_playlists">قوائم تشغيل تلقائية</string>
-    <string name="auto_playlists_desc">تهيئة قوائم التشغيل الديناميكية المُولّدة آلي</string>
+    <string name="auto_playlists_desc">تهيئة قوائم التشغيل الديناميكية المُولّدة آليًا</string>
     <string name="playlist_recently_added">أُضيفت مؤخرًا</string>
     <string name="playlist_recently_added_desc">قائمة تشغيل ديناميكية لآخر الوسائط المُضافة</string>
     <string name="playlist_most_played">الأكثر تشغيلاً</string>
@@ -1475,4 +1467,58 @@
     <string name="web_share_step_1">وصّل الهاتف المستقبِل بنقطة الاتصال هذه أو بشبكة الواي-فاي</string>
     <string name="web_share_stop_sharing">إيقاف المشاركة</string>
     <string name="web_share_step_2">امسح رمز الاستجابة السريعة أو أدخل الرابط في أي متصفح</string>
+    <string name="pref_player_remember_long_press_speed_reset">إعادة تعيين للافتراضي</string>
+    <string name="pref_player_remember_long_press_speed_global">تذكر للكل</string>
+    <string name="pref_player_remember_long_press_speed_per_video">تذكر لكل فيديو</string>
+    <string name="pref_gesture_screen_gestures_title">إيماءات الشاشة</string>
+    <string name="pref_gesture_instant_controls_toggle_title">عناصر تحكم فورية</string>
+    <string name="pref_gesture_instant_controls_toggle_on_summary">تظهر عناصر التحكم في اللحظة التي تنقر فيها. قد تومض لفترة وجيزة أثناء التقديم بنقرة مزدوجة.</string>
+    <string name="fonts_result_existing">%1$d مُثبت بالفعل</string>
+    <string name="fonts_result_failed">%1$d لم يُضف (خط غير صالح أو خطأ في التخزين)</string>
+    <string name="file_picker_import_selected">استيراد (%1$d)</string>
+    <string name="file_picker_clear_selection">مسح</string>
+    <string name="fonts_result_limit">تم تخطي %1$d (وصل لحجم دفعة أقصى)</string>
+    <string name="pref_player_speed_adjusted_remaining_title">الوقت المتبقي على أساس السرعة</string>
+    <string name="pref_player_speed_adjusted_remaining_summary">اضبط الوقت المتبقي حسب سرعة التشغيل (يعرض دقيقة واحدة متبقية لفيديو من دقيقتين على سرعة 2x)</string>
+    <string name="pref_flatten_folders_title">تسطيح المجلدات في عرض الشجرة</string>
+    <string name="pref_flatten_folders_summary">إخفاء المجلدات بدون وسائط عندما تؤدي فقط إلى مجلد وسائط واحد</string>
+    <string name="media_info_date_added">تاريخ الإضافة</string>
+    <string name="media_info_date_modified">تاريخ التعديل</string>
+    <string name="pin_to_top">تثبيت في الأعلى</string>
+    <string name="unpin_from_top">إلغاء التثبيت</string>
+    <string name="pinned_badge">ثُبت</string>
+    <string name="pref_pins_isolate_title">مثبتات منفصلة لكل عرض</string>
+    <string name="pref_pins_isolate_summary">ابقاء مجموعة منفصلة من المجلدات والملفات المثبتة لعرض الشجرة وعرض المجلد. عند إيقافها، يتشارك كلا العرضين نفس المثبتات.</string>
+    <string name="update_whats_changed">ما تغير</string>
+    <string name="update_more_commits">...وأكثر من %1$d تعديلاً (يظهر فقط آخر 20)</string>
+    <string name="permission_settings_unavailable">تعذر فتح إعدادات النظام على هذا الجهاز. يرجى منح \"الوصول إلى جميع الملفات\" لـ REX Player يدويًا في → تطبيقات الإعدادات.</string>
+    <string name="bookmarks">الإشارات المرجعية</string>
+    <string name="bookmark_add">أضف إشارة مرجعية هنا</string>
+    <string name="bookmark_added">أُضيفت إشارة مرجعية</string>
+    <string name="bookmark_exists">توجد إشارة مرجعية هنا مسبقًا</string>
+    <string name="bookmark_default_title">إشارة مرجعية في %1$s</string>
+    <string name="bookmark_rename">إعادة التسمية</string>
+    <string name="bookmark_delete">حذف</string>
+    <string name="bookmark_rename_title">اسم الإشارة المرجعية</string>
+    <string name="bookmark_deleted">حُذفت الإشارة المرجعية</string>
+    <string name="bookmark_saved">أُعيد تسمية الإشارة المرجعية</string>
+    <string name="bookmark_needs_media">تحتاج الإشارة المرجعية إلى فيديو محمّل</string>
+    <string name="network_clear_all_links">مسح الكل</string>
+    <string name="pref_player_pip_on_home">ص.ف.ص على الشاشة الرئيسية</string>
+    <string name="pref_player_pip_on_home_summary">الدخول تلقائيًا إلى وضع ص.ف.ص عند الضغط على الصفحة الرئيسية</string>
+    <string name="pref_custom_lua_disabled_toast">تمكين برمجيات Lua في الإعدادات المتقدمة أولاً</string>
+    <string name="pref_gesture_instant_controls_toggle_off_summary">تنتظر عناصر التحكم نافذة النقر المزدوج، لذلك التقديم لا يظهرهم أبدًا.</string>
+    <string name="subtitle_search_retry">أعد المحاولة</string>
+    <string name="subtitle_search_api_key_required_title">مفتاح API مطلوب</string>
+    <string name="subtitle_search_api_key_required_summary">يحتاج بحث الترجمة إلى مفتاح Wyzie API مجاني. أضفه في الإعدادات › الترجمات › البحث عن ترجمة.</string>
+    <string name="subtitle_search_rate_limited_title">عمليات بحث كثيرة</string>
+    <string name="subtitle_search_rate_limited_summary">خادم الترجمة يقيد معدل الطلبات. انتظر دقيقة قبل المحاولة مرة أخرى.</string>
+    <string name="subtitle_search_network_error_title">لا يمكن الوصول إلى خادم الترجمة</string>
+    <string name="subtitle_search_network_error_summary">تحقق من اتصالك بالإنترنت وحاول مرة أخرى.</string>
+    <string name="subtitle_search_failed_title">لم يُعثر على ترجمات</string>
+    <string name="subtitle_search_failed_summary">جرّب العنوان الكامل للفيلم أو العرض، أو اختر العنوان المناسب من الاقتراحات.</string>
+    <string name="pref_advanced_clear_fonts_failed">تعذر مسح الخطوط المخزنة مؤقتًا</string>
+    <string name="player_sheets_sub_typography_add_font_file">إضافة ملف الخط</string>
+    <string name="fonts_result_added">أضيف %1$d</string>
+    <string name="field_file_extension">امتداد الملف</string>
 </resources>

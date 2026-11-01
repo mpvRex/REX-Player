@@ -28,6 +28,7 @@ object CoreMediaScanner {
     private var cacheTimestamp: Long = 0
     private var cachedShowAudioFiles: Boolean? = null
     private var cachedIncludeNoMediaContent: Boolean? = null
+    private var cachedFlattenFolders: Boolean? = null
     private const val CACHE_TTL_MS = 180_000L // 3 minutes for standard refreshes
     
     /**
@@ -39,6 +40,7 @@ object CoreMediaScanner {
         cacheTimestamp = 0
         cachedShowAudioFiles = null
         cachedIncludeNoMediaContent = null
+        cachedFlattenFolders = null
     }
     
     /**
@@ -312,21 +314,24 @@ object CoreMediaScanner {
         val browserPreferences = org.koin.core.context.GlobalContext.get().get<BrowserPreferences>()
         val showAudioFiles = browserPreferences.showAudioFiles.get()
         val includeNoMediaContent = browserPreferences.includeNoMediaContent.get()
+        val flattenFolders = browserPreferences.flattenFolders.get()
         val now = System.currentTimeMillis()
         cachedMediaData?.let { cached ->
             if (now - cacheTimestamp < CACHE_TTL_MS &&
                 cachedShowAudioFiles == showAudioFiles &&
-                cachedIncludeNoMediaContent == includeNoMediaContent
+                cachedIncludeNoMediaContent == includeNoMediaContent &&
+                cachedFlattenFolders == flattenFolders
             ) {
                 return cached
             }
         }
         
-        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders, browserPreferences, showAudioFiles, includeNoMediaContent)
+        val tree = buildFullMediaTree(context, playbackStates, thresholdDays, blacklistedFolders, browserPreferences, showAudioFiles, includeNoMediaContent, flattenFolders)
         cachedMediaData = tree
         cacheTimestamp = now
         cachedShowAudioFiles = showAudioFiles
         cachedIncludeNoMediaContent = includeNoMediaContent
+        cachedFlattenFolders = flattenFolders
         return tree
     }
 
@@ -341,6 +346,7 @@ object CoreMediaScanner {
         browserPreferences: BrowserPreferences,
         showAudioFiles: Boolean,
         includeNoMediaContent: Boolean,
+        flattenFolders: Boolean,
     ): Map<String, FolderNode> {
         val allNodes = mutableMapOf<String, FolderNode>()
         val rawMediaByFolder = mutableMapOf<String, MutableList<ScannedItem>>()
@@ -444,7 +450,7 @@ object CoreMediaScanner {
         }
 
         // Step 4: Build Hierarchy and Calculate Recursive Counts
-        buildHierarchy(context, allNodes, blacklistedFolders, showAudioFiles)
+        buildHierarchy(context, allNodes, blacklistedFolders, showAudioFiles, flattenFolders)
         
         return allNodes
     }
@@ -568,6 +574,7 @@ object CoreMediaScanner {
         nodes: MutableMap<String, FolderNode>,
         blacklistedFolders: Set<String>,
         showAudioFiles: Boolean = true,
+        enableFlattening: Boolean = true,
     ) {
         val sortedPaths = nodes.keys.sortedByDescending { it.length }
         
@@ -636,39 +643,41 @@ object CoreMediaScanner {
         // SMART TREE FLATTENING (User Logic)
         // Logic: A folder should be hidden (flattened) if it has NO direct media AND only has one child folder with media.
         // This avoids deep nesting of single folders in Tree View.
-        val sortedForFlattening = nodes.keys.sortedBy { it.length } // Shortest paths first to check from root down
-        
-        for (path in sortedForFlattening) {
-            val node = nodes[path] ?: continue
-            
-            val hasDirectMedia = if (showAudioFiles) {
-                node.directVideoCount > 0 || node.directAudioCount > 0
-            } else {
-                node.directVideoCount > 0
-            }
-            if (hasDirectMedia) continue
-            
-            // Count direct children that actually contain media (recursive count > 0)
-            val childrenWithMedia = nodes.values.filter { 
-                val hasMedia = if (showAudioFiles) {
-                    it.recursiveVideoCount > 0 || it.recursiveAudioCount > 0
+        if (enableFlattening) {
+            val sortedForFlattening = nodes.keys.sortedBy { it.length } // Shortest paths first to check from root down
+
+            for (path in sortedForFlattening) {
+                val node = nodes[path] ?: continue
+
+                val hasDirectMedia = if (showAudioFiles) {
+                    node.directVideoCount > 0 || node.directAudioCount > 0
                 } else {
-                    it.recursiveVideoCount > 0
+                    node.directVideoCount > 0
                 }
-                File(it.path).parent == path && hasMedia
-            }
-            
-            // Logic: Mark as flattened if it only has one media child (e.g. Music/Recordings)
-            // AND we are NOT at the storage root (roots should always be shown if they have media)
-            if (childrenWithMedia.size == 1) {
-                // Determine if this is a storage root - they are special
-                val isStorageRoot = StorageVolumeUtils.isStorageRoot(context, path)
-                if (!isStorageRoot) {
-                    node.isFlattened = true
+                if (hasDirectMedia) continue
+
+                // Count direct children that actually contain media (recursive count > 0)
+                val childrenWithMedia = nodes.values.filter {
+                    val hasMedia = if (showAudioFiles) {
+                        it.recursiveVideoCount > 0 || it.recursiveAudioCount > 0
+                    } else {
+                        it.recursiveVideoCount > 0
+                    }
+                    File(it.path).parent == path && hasMedia
+                }
+
+                // Logic: Mark as flattened if it only has one media child (e.g. Music/Recordings)
+                // AND we are NOT at the storage root (roots should always be shown if they have media)
+                if (childrenWithMedia.size == 1) {
+                    // Determine if this is a storage root - they are special
+                    val isStorageRoot = StorageVolumeUtils.isStorageRoot(context, path)
+                    if (!isStorageRoot) {
+                        node.isFlattened = true
+                    }
                 }
             }
         }
-        
+
         // Final pass to clean up empty folders that might have been left over
         nodes.entries.removeIf { it.value.recursiveVideoCount == 0 && it.value.recursiveAudioCount == 0 && !it.value.isFlattened }
     }

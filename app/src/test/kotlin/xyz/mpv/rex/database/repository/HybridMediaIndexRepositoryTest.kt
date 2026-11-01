@@ -25,6 +25,7 @@ class HybridMediaIndexRepositoryTest {
   private val metadataCacheRepository = mockk<VideoMetadataCacheRepository>()
   private val browserPreferences = mockk<BrowserPreferences>(relaxed = true) {
     every { showAudioFiles.get() } returns false
+    every { flattenFolders.get() } returns true
   }
   private val repository = HybridMediaIndexRepository(
     context = mockk<Context>(relaxed = true),

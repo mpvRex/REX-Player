@@ -178,6 +178,13 @@ class FileSystemBrowserViewModel(
       }
     }
 
+    // Refresh when folder flattening changes
+    viewModelScope.launch {
+      browserPreferences.flattenFolders.changes().drop(1).collectLatest {
+        refresh(silent = true)
+      }
+    }
+
   }
 
   override fun loadData() {
