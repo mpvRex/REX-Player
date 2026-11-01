@@ -323,11 +323,15 @@ class PlayerActivity :
         webSubtitlesJob = null
         
         if (!isQualitySwitching) {
-           if (isAutoplayNextTriggered) {
-              viewModel.showControls()
-           } else {
-               viewModel.hideControls()
-           }
+          if (
+            isAutoplayNextTriggered ||
+            !playerPreferences.autoplayOnOpen.get() ||
+            playerPreferences.showControlsOnPlay.get()
+          ) {
+            viewModel.showControls()
+          } else {
+            viewModel.hideControls()
+          }
           
           playbackStateLoadJob?.cancel()
           activePlaybackLoadState = pendingPlaybackLoadStates.poll()
