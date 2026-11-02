@@ -129,7 +129,7 @@
     <string name="pref_layout_portrait_bottom_controls">Controles inferiores en vertical</string>
 
     <string name="pref_player">Reproductor</string>
-    <string name="pref_player_summary">Orientación, gestos y controles</string>
+    <string name="pref_player_summary">Orientación, reproducción y visualización</string>
     <string name="pref_player_orientation">Orientación</string>
     <string name="pref_player_orientation_free">Libre</string>
     <string name="pref_player_orientation_video">Video</string>
@@ -174,7 +174,7 @@
     <string name="pref_player_display_panel_opacity">Opacidad del panel</string>
 
     <string name="pref_gesture">Gestos</string>
-    <string name="pref_gesture_summary">Doble toque, controles multimedia</string>
+    <string name="pref_gesture_summary">Gestos en la pantalla, doble toque, controles multimedia</string>
     <string name="pref_gesture_double_tap_title">Doble toque</string>
     <string name="pref_gesture_double_tap_none">Ninguno</string>
     <string name="pref_gesture_double_tap_seek">Buscar en video</string>
@@ -982,7 +982,7 @@
     <string name="pref_player_keep_screen_on_when_paused_summary_on">La pantalla permanece activa mientras el video está en pausa</string>
     <string name="pref_player_keep_screen_on_when_paused_summary_off">La pantalla puede apagarse mientras el vídeo está en pausa</string>
     <string name="pref_player_auto_pip">Imagen en imagen automática</string>
-    <string name="pref_player_auto_pip_summary">Ingrese automáticamente al modo PIP al presionar Inicio o Atrás</string>
+    <string name="pref_player_auto_pip_summary">Entrar automáticamente al modo PIP al presionar Atrás o Inicio</string>
     <string name="pref_player_dynamic_speed_overlay">Superposición dinámica de velocidad</string>
     <string name="pref_player_dynamic_speed_overlay_summary">Mostrar superposición avanzada para el control de velocidad al presionar y deslizar prolongadamente</string>
     <string name="pref_player_display_show_navigation_bar">Mostrar barra de navegación con controles</string>
@@ -1198,7 +1198,7 @@
     <string name="pref_player_remember_aspect_ratio_summary">Guardar la relación de aspecto utilizada en el reproductor para los videos siguientes</string>
 
     <string name="pref_player_remember_long_press_speed_title">Recuerda la velocidad ajustada</string>
-    <string name="pref_player_remember_long_press_speed_summary">Utiliza la última velocidad de deslizamiento para las presiones prolongadas siguientes</string>
+    <string name="pref_player_remember_long_press_speed_summary">Elige cómo se reutilizará la velocidad ajustada para las siguientes pulsaciones prolongadas</string>
     <string name="pref_subtitles_force_ltr_title">Forzar dirección LTR</string>
     <string name="pref_subtitles_force_ltr_summary">Fuerza la dirección de izquierda a derecha para los subtítulos RTL</string>
 
@@ -1367,4 +1367,72 @@
     <string name="web_share_step_1">Conecta el teléfono receptor a este punto de acceso o a la red Wi-Fi</string>
     <string name="web_share_stop_sharing">Dejar de compartir</string>
 
+    <string name="pref_player_gestures_pinch_to_resize_subtitle_title">Pellizca el subtítulo para cambiar el tamaño</string>
+    <string name="pref_player_gestures_pinch_to_resize_subtitle_summary">Pellizca con dos dedos el subtítulo para cambiar su tamaño. Al pellizcar en otra parte se amplía el vídeo.</string>
+    <string name="pref_player_remember_long_press_speed_reset">Restablecer valores predeterminados</string>
+    <string name="pref_player_remember_long_press_speed_global">Recuerda globalmente</string>
+    <string name="pref_player_remember_long_press_speed_per_video">Recordar por video</string>
+    <string name="pref_gesture_screen_gestures_title">Gestos en pantalla</string>
+    <string name="pref_gesture_double_tap_chapter_skip_title">Toca dos veces el capítulo para saltar</string>
+    <string name="pref_gesture_double_tap_chapter_skip_summary">Toca dos veces el botón de capítulo para pasar al siguiente capítulo</string>
+    <string name="pref_gesture_instant_controls_toggle_title">Controles instantáneos</string>
+    <string name="pref_gesture_instant_controls_toggle_on_summary">Los controles aparecen en el momento en que tocas la pantalla. Pueden parpadear brevemente durante una búsqueda con doble toque.</string>
+    <string name="pref_gesture_instant_controls_toggle_off_summary">Los controles esperan a que aparezca la ventana de doble toque, por lo que la búsqueda nunca los hace parpadear.</string>
+    <string name="subtitle_search_retry">Reintentar</string>
+    <string name="subtitle_search_api_key_required_title">Se requiere una clave de API</string>
+    <string name="subtitle_search_api_key_required_summary">La búsqueda de subtítulos requiere una clave API gratuita de Wyzie. Agregala en Configuración › Subtítulos › Búsqueda de subtítulos.</string>
+    <string name="subtitle_search_rate_limited_title">Demasiadas búsquedas</string>
+    <string name="subtitle_search_rate_limited_summary">El servidor de subtítulos está limitando la frecuencia de las solicitudes. Espera un minuto antes de volver a intentarlo.</string>
+    <string name="subtitle_search_network_error_title">No puedo acceder al servidor de subtítulos</string>
+    <string name="subtitle_search_network_error_summary">Verifique su conexión a Internet e inténtelo nuevamente.</string>
+    <string name="subtitle_search_failed_title">No se encontraron subtítulos</string>
+    <string name="subtitle_search_failed_summary">Intenta escribir el título completo de la película o la serie, o elige el correcto de entre las sugerencias.</string>
+    <string name="pref_advanced_clear_fonts_failed">No se pudieron borrar las fuentes almacenadas en la caché</string>
+    <string name="player_sheets_sub_typography_add_font_file">Agregar archivo de fuente</string>
+    <string name="fonts_result_added">%1$d agregado</string>
+    <string name="fonts_result_existing">%1$d ya está instalado</string>
+    <string name="fonts_result_failed">No se pudo agregar %1$d (fuente no válida o error de almacenamiento)</string>
+    <string name="file_picker_import_selected">Importar (%1$d)</string>
+    <string name="file_picker_clear_selection">Borrar</string>
+    <string name="fonts_result_limit">%1$d omitidos (se ha alcanzado el límite de tamaño del lote)</string>
+    <string name="pref_player_speed_adjusted_remaining_title">Tiempo restante basado en la velocidad</string>
+    <string name="pref_player_speed_adjusted_remaining_summary">Ajusta el tiempo restante según la velocidad de reproducción (un video de 2 minutos a 2x muestra que queda 1 minuto)</string>
+    <string name="pref_appearance_hide_play_fab_show_in_header_title">Mostrar el botón de reproducción en el encabezado</string>
+    <string name="pref_appearance_hide_play_fab_show_in_header_summary">Ocultar el botón de reproducción flotante y mostrar, en su lugar, un ícono de reproducción en la barra superior</string>
+    <string name="pref_flatten_folders_title">Aplanar carpetas en la vista de árbol</string>
+    <string name="pref_flatten_folders_summary">Ocultar las carpetas sin archivos multimedia cuando solo conduzcan a una única carpeta de archivos multimedia</string>
+    <string name="media_info_date_added">Fecha agregada</string>
+    <string name="media_info_date_modified">Fecha de modificación</string>
+    <string name="network_status_connected">Conectado</string>
+    <string name="network_status_offline">Sin conexión</string>
+    <string name="pin_to_top">Fijar arriba</string>
+    <string name="unpin_from_top">Desanclar</string>
+    <string name="pinned_badge">Fijado</string>
+    <string name="pref_pins_isolate_title">Pines distintos por vista</string>
+    <string name="pref_pins_isolate_summary">Mantén un conjunto separado de carpetas y archivos fijados para la vista de árbol y la vista de carpetas. Cuando están desactivadas, ambas vistas comparten los mismos elementos fijados.</string>
+    <string name="update_whats_changed">¿Qué ha cambiado?</string>
+    <string name="update_more_commits">…y %1$d confirmaciones más (solo se muestran las últimas 20)</string>
+    <string name="permission_settings_unavailable">No se pudieron abrir las configuraciones del sistema en este dispositivo. Por favor, otorga manualmente a REX Player «Acceso a todos los archivos» en Configuración → Aplicaciones.</string>
+    <string name="bookmarks">Marcadores</string>
+    <string name="bookmark_add">Añadir marcador aquí</string>
+    <string name="bookmark_added">Marcador agregado</string>
+    <string name="bookmark_exists">Ya existe un marcador aquí.</string>
+    <string name="bookmark_default_title">Marcador en %1$s</string>
+    <string name="bookmark_rename">Renombrar</string>
+    <string name="bookmark_delete">Borrar</string>
+    <string name="bookmark_rename_title">Nombre del marcador</string>
+    <string name="bookmark_deleted">Marcador eliminado</string>
+    <string name="bookmark_saved">Marcador renombrado</string>
+    <string name="bookmark_needs_media">El marcador necesita un video cargado</string>
+    <string name="pref_playback_controls_position_title">Posición de los controles de reproducción</string>
+    <string name="pref_playback_controls_position_summary">Coloque los controles de reproducción en el centro o en la barra inferior.</string>
+    <string name="pref_playback_controls_position_center">Pantalla central</string>
+    <string name="pref_playback_controls_position_bottom">barra inferior</string>
+    <string name="pref_playback_controls_position_hide">Oculto</string>
+    <string name="network_clear_all_links">Borrar todo</string>
+    <string name="network_stream_link_hint">Escribe o pega una URL</string>
+    <string name="pref_player_pip_on_home">PiP en el Inicio</string>
+    <string name="pref_player_pip_on_home_summary">Ingrese PiP solo al presionar Inicio, Atrás cierra el reproductor</string>
+    <string name="pref_custom_lua_disabled_toast">Activa primero los scripts de Lua en la sección Avanzado</string>
+    <string name="field_file_extension">Extensión de archivo</string>
 </resources>
