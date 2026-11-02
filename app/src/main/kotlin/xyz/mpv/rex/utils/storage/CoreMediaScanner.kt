@@ -6,6 +6,7 @@ import android.util.Log
 import xyz.mpv.rex.database.entities.PlaybackStateEntity
 import xyz.mpv.rex.domain.media.model.MediaFolder
 import xyz.mpv.rex.preferences.BrowserPreferences
+import xyz.mpv.rex.utils.media.PlaybackStateIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -366,6 +367,9 @@ object CoreMediaScanner {
         val allNodes = mutableMapOf<String, FolderNode>()
         val rawMediaByFolder = mutableMapOf<String, MutableList<ScannedItem>>()
 
+        // Built once per scan: playback history is large and used to be scanned per media item.
+        val playbackIndex = PlaybackStateIndex.of(playbackStates)
+
         // Step 1: MediaStore Scan
         scanMediaStore(context, rawMediaByFolder)
         
@@ -401,7 +405,7 @@ object CoreMediaScanner {
                         currentTime = currentTime,
                         thresholdMillis = thresholdMillis,
                         watchedThreshold = watchedThreshold,
-                        playbackStates = playbackStates,
+                        playbackIndex = playbackIndex,
                     )
                 }
             }
@@ -436,7 +440,7 @@ object CoreMediaScanner {
                 currentTime = currentTime,
                 thresholdMillis = thresholdMillis,
                 watchedThreshold = watchedThreshold,
-                playbackStates = playbackStates,
+                playbackIndex = playbackIndex,
                 isFolderWithinNoMedia = ::isFolderWithinNoMedia,
             )
         }
@@ -467,7 +471,7 @@ object CoreMediaScanner {
         currentTime: Long,
         thresholdMillis: Long,
         watchedThreshold: Int,
-        playbackStates: List<PlaybackStateEntity>,
+        playbackIndex: PlaybackStateIndex,
     ) {
         if (item.dateModified > stats.latestModified) stats.latestModified = item.dateModified
 
@@ -484,9 +488,7 @@ object CoreMediaScanner {
         if (!showAudioFiles && isAudio) return
 
         // Calculate unwatched status for all media (audio and video)
-        val playbackState = playbackStates.find {
-            it.mediaTitle == item.path || it.mediaTitle == item.name || it.mediaTitle == File(item.path).name
-        }
+        val playbackState = playbackIndex.forPath(item.path) ?: playbackIndex.forName(item.name)
         var isWatched = false
 
         if (playbackState != null) {
@@ -549,7 +551,7 @@ object CoreMediaScanner {
         currentTime: Long,
         thresholdMillis: Long,
         watchedThreshold: Int,
-        playbackStates: List<PlaybackStateEntity>,
+        playbackIndex: PlaybackStateIndex,
         isFolderWithinNoMedia: (File) -> Boolean,
     ): Boolean {
         var discoveredUnindexedMedia = false
@@ -598,7 +600,7 @@ object CoreMediaScanner {
                         currentTime = currentTime,
                         thresholdMillis = thresholdMillis,
                         watchedThreshold = watchedThreshold,
-                        playbackStates = playbackStates,
+                        playbackIndex = playbackIndex,
                     )
                 }
 

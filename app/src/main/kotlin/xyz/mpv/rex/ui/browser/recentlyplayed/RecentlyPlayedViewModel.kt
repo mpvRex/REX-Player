@@ -16,6 +16,7 @@ import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.domain.recentlyplayed.repository.RecentlyPlayedRepository
 import xyz.mpv.rex.ui.browser.base.BaseBrowserViewModel
 import xyz.mpv.rex.utils.media.MediaFormatter
+import xyz.mpv.rex.utils.media.PlaybackStateIndex
 import xyz.mpv.rex.utils.permission.PermissionUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +62,7 @@ class RecentlyPlayedViewModel(application: Application) :
       try {
         val entities = recentlyPlayedRepository.getRecentlyPlayed(limit = 50)
         val playbackStates = playbackStateRepository.getAllPlaybackStates()
+        val playbackIndex = PlaybackStateIndex.of(playbackStates)
         
         val db = org.koin.core.context.GlobalContext.get().get<MpvExDatabase>()
         val playlistInfos = db.recentlyPlayedDao().getRecentlyPlayedPlaylists(limit = 20)
@@ -85,7 +87,7 @@ class RecentlyPlayedViewModel(application: Application) :
             var video = createVideoFromEntity(entity, autoRemoveDeleted)
             if (video != null) {
               // Map saved orientation and progress info if available
-              val state = playbackStates.find { it.mediaTitle == video.displayName || it.mediaTitle == video.path }
+              val state = playbackIndex.forVideoPathOrName(video.path, video.displayName)
               
               var progress: Float? = null
               var isWatched = false
