@@ -67,6 +67,9 @@ class ThumbnailRepository(
   private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val maxconcurrentfolders = 3
 
+  /** How many thumbnails a folder open pre-generates beyond what the visible cards request. */
+  private val FOLDER_PREFETCH_LIMIT = 24
+
   private data class FolderState(
     val signature: String,
     @Volatile var nextIndex: Int = 0,
@@ -495,11 +498,17 @@ class ThumbnailRepository(
     folderJobs.remove(folderId)?.cancel()
     folderJobs[folderId] =
       repositoryScope.launch {
+        // Only pre-generate what is about to scroll into view. VideoCard already requests a
+        // thumbnail for every visible item on its own, so walking the whole folder here just
+        // duplicated that work: opening a 124-video folder used to fire hundreds of disk reads
+        // and froze the list for ~40s. The remaining items are covered as they are composed.
         var i = state.nextIndex
-        while (i < filteredVideos.size) {
+        var generated = 0
+        while (i < filteredVideos.size && generated < FOLDER_PREFETCH_LIMIT) {
           val video = filteredVideos[i]
           getThumbnail(video, widthPx, heightPx)
           i++
+          generated++
           state.nextIndex = i
         }
       }
