@@ -554,8 +554,9 @@
     "translated_value": "Reproductor"
   },
   "pref_player_summary": {
-    "source_hash": "83dff0ed3b2441b2954dffd28959f2e9f26be827d4d85d0e54135ea77107e7e1",
-    "translated_value": "Orientación, gestos y controles"
+    "source_hash": "0ee27746ec32b9200eaeb13342a9024567e5b727552fd486819335a4601d9d0a",
+    "translated_value": "Orientación, reproducción y visualización",
+    "ignore_warnings": false
   },
   "pref_player_orientation": {
     "source_hash": "e3d11242200fe8f2f21c2e5334ba0e0a7aa4dcd2a4533f92f4ec921fa9ff16a4",
@@ -722,8 +723,9 @@
     "translated_value": "Gestos"
   },
   "pref_gesture_summary": {
-    "source_hash": "db47d1a0268a6228a7208cf2fd781f333a2a0e0549397aa51905c08868b6e632",
-    "translated_value": "Doble toque, controles multimedia"
+    "source_hash": "510e247b3a2f3dee57b0a2575bbc10605f037bac212814d08324c25d777ab5a5",
+    "translated_value": "Gestos en la pantalla, doble toque, controles multimedia",
+    "ignore_warnings": false
   },
   "pref_gesture_double_tap_title": {
     "source_hash": "b7f18903d7ca55dde65f4cd88cf7ee05ab86ce74e1fa4872bf6da4f569791574",
@@ -3815,8 +3817,9 @@
     "translated_value": "Imagen en imagen automática"
   },
   "pref_player_auto_pip_summary": {
-    "source_hash": "5ad6b5dc4df87526ab0468d2430463132737f39be0a796d4c392ee2ef473301c",
-    "translated_value": "Ingrese automáticamente al modo PIP al presionar Inicio o Atrás"
+    "source_hash": "918c6de06657726f9bce2f23593280db6a9d310b4030a623a263b1385c7d035d",
+    "translated_value": "Entrar automáticamente al modo PIP al presionar Atrás o Inicio",
+    "ignore_warnings": false
   },
   "pref_player_dynamic_speed_overlay": {
     "source_hash": "0833cc3858eda92366c0b49c6c5df8f79456393203981703797adf09f8ea1b39",
@@ -4649,8 +4652,8 @@
     "ignore_warnings": false
   },
   "pref_player_remember_long_press_speed_summary": {
-    "source_hash": "68f06eadb95c4a04a72b3dbe9228219cc7b6d402fd11ac31a3d9a50d6788fe3d",
-    "translated_value": "Utiliza la última velocidad de deslizamiento para las presiones prolongadas siguientes",
+    "source_hash": "6d161fe6c0f48d9b1233cdf1b4754078dd4bb130c2a3fc814843004eb0a96687",
+    "translated_value": "Elige cómo se reutilizará la velocidad ajustada para las siguientes pulsaciones prolongadas",
     "ignore_warnings": false
   },
   "pref_subtitles_force_ltr_title": {
@@ -5458,6 +5461,346 @@
   "web_share_stop_sharing": {
     "source_hash": "042afa22248968fdcaed8522959441cf87fb4ec09f8fcdf1359c1ba481a03b71",
     "translated_value": "Dejar de compartir",
+    "ignore_warnings": false
+  },
+  "pref_player_gestures_pinch_to_resize_subtitle_title": {
+    "source_hash": "8aa6ef4821199a948f6d4d2856abbd21984f6b2326fcc12535e1b67bb5c52637",
+    "translated_value": "Pellizca el subtítulo para cambiar el tamaño",
+    "ignore_warnings": false
+  },
+  "pref_player_gestures_pinch_to_resize_subtitle_summary": {
+    "source_hash": "67ab02f77b796d8d4f6fb9848093f2464e00b30904144bd0f5f26eae31ab72ff",
+    "translated_value": "Pellizca con dos dedos el subtítulo para cambiar su tamaño. Al pellizcar en otra parte se amplía el vídeo.",
+    "ignore_warnings": false
+  },
+  "pref_player_remember_long_press_speed_reset": {
+    "source_hash": "bc5b45ae7b60692ade0bb26ebe5b6830f150d97134153e3c3091882eb72e7c25",
+    "translated_value": "Restablecer valores predeterminados",
+    "ignore_warnings": false
+  },
+  "pref_player_remember_long_press_speed_global": {
+    "source_hash": "d2df76f5d99a09aea520658cee2f6e4ed18db3a63860cc4e4b2c215f5c5ad287",
+    "translated_value": "Recuerda globalmente",
+    "ignore_warnings": false
+  },
+  "pref_player_remember_long_press_speed_per_video": {
+    "source_hash": "792533a32d1c937e5f31dea7af870ed3163f8fb3636c2b06de1c7b20436771cf",
+    "translated_value": "Recordar por video",
+    "ignore_warnings": false
+  },
+  "pref_gesture_screen_gestures_title": {
+    "source_hash": "8dd85a34935c3610aa28bdb8d7f4f91c111b7c20a5347a56eea632440c7f9689",
+    "translated_value": "Gestos en pantalla",
+    "ignore_warnings": false
+  },
+  "pref_gesture_double_tap_chapter_skip_title": {
+    "source_hash": "3bda3aec1bdc69b38a166a6fdd8612f849182421cc927a539400d8afe9da8d88",
+    "translated_value": "Toca dos veces el capítulo para saltar",
+    "ignore_warnings": false
+  },
+  "pref_gesture_double_tap_chapter_skip_summary": {
+    "source_hash": "2345e871cfbf5b284bd0ad0c565e428e647a332e7ce27e1c17cd53c69ab80554",
+    "translated_value": "Toca dos veces el botón de capítulo para pasar al siguiente capítulo",
+    "ignore_warnings": false
+  },
+  "pref_gesture_instant_controls_toggle_title": {
+    "source_hash": "bfec87939379c69e0dcaddd558a57c447de129aae18d7d203952e187af7ce9dc",
+    "translated_value": "Controles instantáneos",
+    "ignore_warnings": false
+  },
+  "pref_gesture_instant_controls_toggle_on_summary": {
+    "source_hash": "fa0812ec16171a44d5b820f1fdc42d86f4c3aaa9293264ccf9e322efbf5b47f9",
+    "translated_value": "Los controles aparecen en el momento en que tocas la pantalla. Pueden parpadear brevemente durante una búsqueda con doble toque.",
+    "ignore_warnings": false
+  },
+  "pref_gesture_instant_controls_toggle_off_summary": {
+    "source_hash": "7f3e38a6d9122bfef93ed55e53062971082a5ff1caeb1b14a15d654769e58800",
+    "translated_value": "Los controles esperan a que aparezca la ventana de doble toque, por lo que la búsqueda nunca los hace parpadear.",
+    "ignore_warnings": false
+  },
+  "subtitle_search_retry": {
+    "source_hash": "942087cc2d41e01304b7195558d093d10c72af8e838c7556d6a02d471ee71852",
+    "translated_value": "Reintentar",
+    "ignore_warnings": false
+  },
+  "subtitle_search_api_key_required_title": {
+    "source_hash": "3b855d546e918ef6af1a98c3fb1524f1614e182442aff02379da02787e1335c5",
+    "translated_value": "Se requiere una clave de API",
+    "ignore_warnings": false
+  },
+  "subtitle_search_api_key_required_summary": {
+    "source_hash": "33a8275fc55f8fd7dfc15bb03554ca0cf6f95fed42aee35fccd47be9e6082ed3",
+    "translated_value": "La búsqueda de subtítulos requiere una clave API gratuita de Wyzie. Agregala en Configuración › Subtítulos › Búsqueda de subtítulos.",
+    "ignore_warnings": false
+  },
+  "subtitle_search_rate_limited_title": {
+    "source_hash": "f5006e8afc6dd735c9ac824033f1e356530c37e67ec80f8208bac51d460563f6",
+    "translated_value": "Demasiadas búsquedas",
+    "ignore_warnings": false
+  },
+  "subtitle_search_rate_limited_summary": {
+    "source_hash": "80488668049c26bb4f03949bba0cc658b806b968d7fca3eed6121748f8640ab8",
+    "translated_value": "El servidor de subtítulos está limitando la frecuencia de las solicitudes. Espera un minuto antes de volver a intentarlo.",
+    "ignore_warnings": false
+  },
+  "subtitle_search_network_error_title": {
+    "source_hash": "299950ddfbc398e5f02c9b73c4efc6176b598a89e5bdc1cf8457177bbbed192f",
+    "translated_value": "No puedo acceder al servidor de subtítulos",
+    "ignore_warnings": false
+  },
+  "subtitle_search_network_error_summary": {
+    "source_hash": "176afd02072f8b0fe647ff9931fd76bae960430fe6aca8c64f7e7effda579c35",
+    "translated_value": "Verifique su conexión a Internet e inténtelo nuevamente.",
+    "ignore_warnings": false
+  },
+  "subtitle_search_failed_title": {
+    "source_hash": "e4a4f98d51899071545c126bb56db41f55249125e764e394c6b99282d4740616",
+    "translated_value": "No se encontraron subtítulos",
+    "ignore_warnings": false
+  },
+  "subtitle_search_failed_summary": {
+    "source_hash": "7708e161eb82d5b2a84af4a1cc1dc43c748bc3b66643a8042cecde10709a126c",
+    "translated_value": "Intenta escribir el título completo de la película o la serie, o elige el correcto de entre las sugerencias.",
+    "ignore_warnings": false
+  },
+  "pref_advanced_clear_fonts_failed": {
+    "source_hash": "c63c69f29b6da85c6175912d66eb4556c6896022ff07cb10c97ffb198459eeba",
+    "translated_value": "No se pudieron borrar las fuentes almacenadas en la caché",
+    "ignore_warnings": false
+  },
+  "player_sheets_sub_typography_add_font_file": {
+    "source_hash": "22810166f0fd8c7d8809c8543078bf6551dd8364c1c0a7b15b54114ed7d4cac5",
+    "translated_value": "Agregar archivo de fuente",
+    "ignore_warnings": false
+  },
+  "fonts_result_added": {
+    "source_hash": "eecc33a870b5e0382db8247073f483bedd8db25aaaf4fcc89aa88adbfca0f53a",
+    "translated_value": "%1$d agregado",
+    "ignore_warnings": false
+  },
+  "fonts_result_existing": {
+    "source_hash": "8690ab6faa199ce9f18c286bbee9502c176b3b6916a57d8133c46a9168cdefb4",
+    "translated_value": "%1$d ya está instalado",
+    "ignore_warnings": false
+  },
+  "fonts_result_failed": {
+    "source_hash": "fbee9248beaab06d6103be51abdb9faf6875a53ef9b782aeedef3c3081648b42",
+    "translated_value": "No se pudo agregar %1$d (fuente no válida o error de almacenamiento)",
+    "ignore_warnings": false
+  },
+  "file_picker_import_selected": {
+    "source_hash": "38b53a8ecb1783ef17e9ae8fa1296eff7a3942721530f66992ba66bcc451c082",
+    "translated_value": "Importar (%1$d)",
+    "ignore_warnings": false
+  },
+  "file_picker_clear_selection": {
+    "source_hash": "83b12c2216efb4fdc924e1deb5182e905e4926ed0c1c324d467107f46d5a26a9",
+    "translated_value": "Borrar",
+    "ignore_warnings": false
+  },
+  "fonts_result_limit": {
+    "source_hash": "82ab07cc5e2436bc5e98ceb8b345e41f71c4e9ae444a8b5cb1150082f0b69100",
+    "translated_value": "%1$d omitidos (se ha alcanzado el límite de tamaño del lote)",
+    "ignore_warnings": false
+  },
+  "pref_player_speed_adjusted_remaining_title": {
+    "source_hash": "2af8c515527b96e2ea4ac7e4e6671672bf29c93a0b2b9103dd0e7d652483884e",
+    "translated_value": "Tiempo restante basado en la velocidad",
+    "ignore_warnings": false
+  },
+  "pref_player_speed_adjusted_remaining_summary": {
+    "source_hash": "41b6330f0472d39f63132d71f5233545c7a710c5acd72c68e20a41d44b87e3c9",
+    "translated_value": "Ajusta el tiempo restante según la velocidad de reproducción (un video de 2 minutos a 2x muestra que queda 1 minuto)",
+    "ignore_warnings": false
+  },
+  "pref_appearance_hide_play_fab_show_in_header_title": {
+    "source_hash": "7c0182761c356111cf45a4eef8145e80be1d3ac958c61b03116d16c7ec044593",
+    "translated_value": "Mostrar el botón de reproducción en el encabezado",
+    "ignore_warnings": false
+  },
+  "pref_appearance_hide_play_fab_show_in_header_summary": {
+    "source_hash": "bc1717a8c41c5acd5fdc3a98d6586b9b495cedc10308252a73c25dff450982b0",
+    "translated_value": "Ocultar el botón de reproducción flotante y mostrar, en su lugar, un ícono de reproducción en la barra superior",
+    "ignore_warnings": false
+  },
+  "pref_flatten_folders_title": {
+    "source_hash": "8262022c3108cb0390ebacb8f38499f2b16cff47c23d43b90137353ec9a84e3a",
+    "translated_value": "Aplanar carpetas en la vista de árbol",
+    "ignore_warnings": false
+  },
+  "pref_flatten_folders_summary": {
+    "source_hash": "c6109a9de5b26db859e1727bf4b4ca6cbd6fe379484a8a061dee6bc5567edb0f",
+    "translated_value": "Ocultar las carpetas sin archivos multimedia cuando solo conduzcan a una única carpeta de archivos multimedia",
+    "ignore_warnings": false
+  },
+  "media_info_date_added": {
+    "source_hash": "3321b9f6e65c542a423a049278597337af3e485c1badd1a8210c1326024ffb68",
+    "translated_value": "Fecha agregada",
+    "ignore_warnings": false
+  },
+  "media_info_date_modified": {
+    "source_hash": "eb5e7a5e3d6890dcf14dc744427076a3dce87b48f7c19dd760a39238f99d708e",
+    "translated_value": "Fecha de modificación",
+    "ignore_warnings": false
+  },
+  "network_status_connected": {
+    "source_hash": "22965568d22a14ee17af055d2870b50afcfe9fd94a83eec3196e266932297bb2",
+    "translated_value": "Conectado",
+    "ignore_warnings": false
+  },
+  "network_status_offline": {
+    "source_hash": "a1794783aab72d205dc532b1170d1be63ebdce8816b57c21acb451c15dab969a",
+    "translated_value": "Sin conexión",
+    "ignore_warnings": false
+  },
+  "pin_to_top": {
+    "source_hash": "e961fa7ba88517f8d1c747778c046179ff6972e4ce3bfbaad617b88f09bab5ea",
+    "translated_value": "Fijar arriba",
+    "ignore_warnings": false
+  },
+  "unpin_from_top": {
+    "source_hash": "ee3c716130546a45492c899f7486b67f880e5631a2b8b8065bb16be9956d0b43",
+    "translated_value": "Desanclar",
+    "ignore_warnings": false
+  },
+  "pinned_badge": {
+    "source_hash": "f20c879465551f0d1457a13d4390d0f1ece456b115d75463169c5d55341b9b1e",
+    "translated_value": "Fijado",
+    "ignore_warnings": false
+  },
+  "pref_pins_isolate_title": {
+    "source_hash": "864a132f74091241d95abb80f34ca64ee824ac7f935b0f77e8e3dd08f1ebd4f0",
+    "translated_value": "Pines distintos por vista",
+    "ignore_warnings": false
+  },
+  "pref_pins_isolate_summary": {
+    "source_hash": "ab9b48bcbea36ea7693e7cc77422b187200b45da1d18e1fc2275c0c84a9a0046",
+    "translated_value": "Mantén un conjunto separado de carpetas y archivos fijados para la vista de árbol y la vista de carpetas. Cuando están desactivadas, ambas vistas comparten los mismos elementos fijados.",
+    "ignore_warnings": false
+  },
+  "update_whats_changed": {
+    "source_hash": "814a49660ff756302fb6def8d8d4e077883a474b646f9527bcd5068139c18d57",
+    "translated_value": "¿Qué ha cambiado?",
+    "ignore_warnings": false
+  },
+  "update_more_commits": {
+    "source_hash": "f885a6a21e475d7e0997d057102691012cc73f0549ad681b3578c6e8260e2f18",
+    "translated_value": "…y %1$d confirmaciones más (solo se muestran las últimas 20)",
+    "ignore_warnings": false
+  },
+  "permission_settings_unavailable": {
+    "source_hash": "6a1dd485ed4743d674556910d128a88b20e48e58f2fe1d4399a1fe0764aed85c",
+    "translated_value": "No se pudieron abrir las configuraciones del sistema en este dispositivo. Por favor, otorga manualmente a REX Player «Acceso a todos los archivos» en Configuración → Aplicaciones.",
+    "ignore_warnings": false
+  },
+  "bookmarks": {
+    "source_hash": "96316f0f6404dbe1655965995c00874f695fc1a4332bb8edf77c9821db111b0b",
+    "translated_value": "Marcadores",
+    "ignore_warnings": false
+  },
+  "bookmark_add": {
+    "source_hash": "3c42bd1211c20630abcff438718190ff0efb116dd535c61a1818ba48b9e4fd0f",
+    "translated_value": "Añadir marcador aquí",
+    "ignore_warnings": false
+  },
+  "bookmark_added": {
+    "source_hash": "fad969240dc21472ecd69b221975d5847d35f0e4ca4e1076506272c288f08a7c",
+    "translated_value": "Marcador agregado",
+    "ignore_warnings": false
+  },
+  "bookmark_exists": {
+    "source_hash": "04e14b4e82cec10f820f45850c90b86aa6caa0dfd4ed03ce4a2c365709f54564",
+    "translated_value": "Ya existe un marcador aquí.",
+    "ignore_warnings": false
+  },
+  "bookmark_default_title": {
+    "source_hash": "67f5f3978dbb2a19e7263573113fd9cafcb91f85e828f73ab25d461089cde4b9",
+    "translated_value": "Marcador en %1$s",
+    "ignore_warnings": false
+  },
+  "bookmark_rename": {
+    "source_hash": "3064d79a295cefe4b384b8fe5cb29fd6b06d7eb1ad94b8895f4148039d06b330",
+    "translated_value": "Renombrar",
+    "ignore_warnings": false
+  },
+  "bookmark_delete": {
+    "source_hash": "e2d0a54968ead24efc0dffa6ac78fc606dceec34a0f586177a74a54cc2272cf8",
+    "translated_value": "Borrar",
+    "ignore_warnings": false
+  },
+  "bookmark_rename_title": {
+    "source_hash": "fc90d783f9d28502de63f9f269e84d9cbc67f352a02da59c650ebb6e3fdc0751",
+    "translated_value": "Nombre del marcador",
+    "ignore_warnings": false
+  },
+  "bookmark_deleted": {
+    "source_hash": "8a82bb0e5a57d083fcfd71b998084db04906b80d2bcf9cb7bce1b14df7e65cff",
+    "translated_value": "Marcador eliminado",
+    "ignore_warnings": false
+  },
+  "bookmark_saved": {
+    "source_hash": "8b4ef0387314f4695f59eb0776809a602df03a92c07559c694b1838082ffba8b",
+    "translated_value": "Marcador renombrado",
+    "ignore_warnings": false
+  },
+  "bookmark_needs_media": {
+    "source_hash": "16c9ee210898ba5317ffaf8788839114b92b2f1a5708378d8a1ff9156c8f7c59",
+    "translated_value": "El marcador necesita un video cargado",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_title": {
+    "source_hash": "861f91d7e073fe4bfb186c3e398c1eae7b673f0ad2bd4ece72944c8d9584c48b",
+    "translated_value": "Posición de los controles de reproducción",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_summary": {
+    "source_hash": "0fcde7b0ada1ffd3dd8dab1ba9f7152ce9c75c4be2fed42950bacaa183bc7558",
+    "translated_value": "Coloque los controles de reproducción en el centro o en la barra inferior.",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_center": {
+    "source_hash": "b08c49dc4893a5c63e7240a078bcdc51d11265f7e2a635267388d14984e8bfee",
+    "translated_value": "Pantalla central",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_bottom": {
+    "source_hash": "4da0e3b1fe6a86a6b8889eb9aff151ab1112c937fd3d4b2e1209bddd5c732010",
+    "translated_value": "barra inferior",
+    "ignore_warnings": false
+  },
+  "pref_playback_controls_position_hide": {
+    "source_hash": "7e6fefff0f0aeb6ca93086d3855d0406bdd0ee53b56771f8c794cf07af6598b7",
+    "translated_value": "Oculto",
+    "ignore_warnings": false
+  },
+  "network_clear_all_links": {
+    "source_hash": "29a390f9237e3c84e5641785eca25199620e53f7b6f4b9d843b23dcb5c12904f",
+    "translated_value": "Borrar todo",
+    "ignore_warnings": false
+  },
+  "network_stream_link_hint": {
+    "source_hash": "a237bf5e34c2624c73c6020ab46622c059092d5d76e2361a0e678c0bde825d25",
+    "translated_value": "Escribe o pega una URL",
+    "ignore_warnings": false
+  },
+  "pref_player_pip_on_home": {
+    "source_hash": "40547b268a847ecb4916508ddc4ce08666f5b1487a8c0611734e6ab89190273f",
+    "translated_value": "PiP en el Inicio",
+    "ignore_warnings": false
+  },
+  "pref_player_pip_on_home_summary": {
+    "source_hash": "ded73da4366d0fce44a174f4351addd8c4c6415a127b845fc4ac5526f28fd70b",
+    "translated_value": "Ingrese PiP solo al presionar Inicio, Atrás cierra el reproductor",
+    "ignore_warnings": false
+  },
+  "pref_custom_lua_disabled_toast": {
+    "source_hash": "70e01f7be872a8e059f0a79050881728c5a0be4a8012e2d591dc290a0f81ab25",
+    "translated_value": "Activa primero los scripts de Lua en la sección Avanzado",
+    "ignore_warnings": false
+  },
+  "field_file_extension": {
+    "source_hash": "2c10abe777d88039b2d78b7af37cd3acb0fa6832cf14abd2021d142e03d86c69",
+    "translated_value": "Extensión de archivo",
     "ignore_warnings": false
   }
 }
