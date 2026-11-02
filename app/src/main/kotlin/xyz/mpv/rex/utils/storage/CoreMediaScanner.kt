@@ -89,6 +89,21 @@ object CoreMediaScanner {
     )
 
     /**
+     * Aggregated direct-media stats for a single folder.
+     */
+    private class DirectStats(
+        var videoCount: Int = 0,
+        var audioCount: Int = 0,
+        var newCount: Int = 0,
+        var unwatchedCount: Int = 0,
+        var videoSize: Long = 0L,
+        var audioSize: Long = 0L,
+        var videoDuration: Long = 0L,
+        var audioDuration: Long = 0L,
+        var latestModified: Long = 0L
+    )
+
+    /**
      * Get all folders that contain media files (flat list for Album View)
      */
     suspend fun getFlatMediaFolders(
@@ -374,85 +389,243 @@ object CoreMediaScanner {
                 continue
             }
             val isBlacklisted = blacklistedFolders.contains(folderPath)
-            var videoCount = 0
-            var audioCount = 0
-            var newCount = 0
-            var unwatchedCount = 0
-            var videoSize = 0L
-            var audioSize = 0L
-            var videoDuration = 0L
-            var audioDuration = 0L
-            var latestModified = 0L
-            
+
+            val stats = DirectStats()
             if (!isBlacklisted) {
                 for (item in items) {
-                    if (item.dateModified > latestModified) latestModified = item.dateModified
-                    
-                    if (item.isAudio) {
-                        audioCount++
-                        audioSize += item.size
-                        audioDuration += item.duration
-                    } else {
-                        videoCount++
-                        videoSize += item.size
-                        videoDuration += item.duration
-                    }
-
-                    if (!showAudioFiles && item.isAudio) continue
-
-                    // Calculate unwatched status for all media (audio and video)
-                    val playbackState = playbackStates.find {
-                        it.mediaTitle == item.path || it.mediaTitle == item.name || it.mediaTitle == File(item.path).name
-                    }
-                    var isWatched = false
-                    
-                    if (playbackState != null) {
-                        if (playbackState.hasBeenWatched) {
-                            isWatched = true
-                        } else if (item.duration > 0 && playbackState.timeRemaining != -1) {
-                            val durationSeconds = item.duration / 1000
-                            val watched = durationSeconds - playbackState.timeRemaining.toLong()
-                            val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
-                            if (progressValue >= (watchedThreshold / 100f)) {
-                                 isWatched = true
-                            }
-                        }
-                    }
-                    
-                    if (!isWatched) {
-                        unwatchedCount++
-                    }
-
-                    // Calculate NEW status: unplayed videos within the time threshold
-                    val videoAge = currentTime - (item.dateModified * 1000)
-                    val isNew = (playbackState == null && videoAge <= thresholdMillis) || (playbackState != null && playbackState.timeRemaining == -1)
-                    if (isNew) {
-                        newCount++
-                    }
+                    addItemToStats(
+                        stats = stats,
+                        item = item,
+                        isAudio = item.isAudio,
+                        showAudioFiles = showAudioFiles,
+                        currentTime = currentTime,
+                        thresholdMillis = thresholdMillis,
+                        watchedThreshold = watchedThreshold,
+                        playbackStates = playbackStates,
+                    )
                 }
             }
             
             allNodes[folderPath] = FolderNode(
                 path = folderPath,
                 name = file.name,
-                directVideoCount = videoCount,
-                directAudioCount = audioCount,
-                directNewCount = newCount,
-                directUnwatchedCount = unwatchedCount,
-                directVideoSize = videoSize,
-                directAudioSize = audioSize,
-                directVideoDuration = videoDuration,
-                directAudioDuration = audioDuration,
-                directSize = videoSize + audioSize,
-                directDuration = videoDuration + audioDuration,
-                lastModified = latestModified
+                directVideoCount = stats.videoCount,
+                directAudioCount = stats.audioCount,
+                directNewCount = stats.newCount,
+                directUnwatchedCount = stats.unwatchedCount,
+                directVideoSize = stats.videoSize,
+                directAudioSize = stats.audioSize,
+                directVideoDuration = stats.videoDuration,
+                directAudioDuration = stats.audioDuration,
+                directSize = stats.videoSize + stats.audioSize,
+                directDuration = stats.videoDuration + stats.audioDuration,
+                lastModified = stats.latestModified
             )
         }
 
-        // Step 4: Build Hierarchy and Calculate Recursive Counts
-        buildHierarchy(context, allNodes, blacklistedFolders, showAudioFiles, flattenFolders)
+        // Step 3b: Primary/internal storage is never walked by scanExternalVolumes, so folders
+        // MediaStore has not indexed yet would look empty. Without that, smart flattening promotes
+        // the only *indexed* subfolder and hides the still-unindexed one (e.g. Download/Flud).
+        var snapshotWasIncomplete = false
+        if (needsFileSystemReconciliation(allNodes)) {
+            snapshotWasIncomplete = reconcileFromFileSystem(
+                allNodes = allNodes,
+                blacklistedFolders = blacklistedFolders,
+                includeNoMediaContent = includeNoMediaContent,
+                showAudioFiles = showAudioFiles,
+                currentTime = currentTime,
+                thresholdMillis = thresholdMillis,
+                watchedThreshold = watchedThreshold,
+                playbackStates = playbackStates,
+                isFolderWithinNoMedia = ::isFolderWithinNoMedia,
+            )
+        }
+
+        // Step 4: Build Hierarchy and Calculate Recursive Counts.
+        // While the snapshot is still incomplete (nested folders are only reconciled one level at
+        // a time), skip flattening: collapsing a partially indexed branch hides real media.
+        buildHierarchy(
+            context,
+            allNodes,
+            blacklistedFolders,
+            showAudioFiles,
+            enableFlattening = flattenFolders && !snapshotWasIncomplete,
+        )
         
         return allNodes
+    }
+
+    /**
+     * Per-file accumulation shared by the MediaStore and filesystem paths so both
+     * produce identical counts, sizes and watched/new flags.
+     */
+    private fun addItemToStats(
+        stats: DirectStats,
+        item: ScannedItem,
+        isAudio: Boolean,
+        showAudioFiles: Boolean,
+        currentTime: Long,
+        thresholdMillis: Long,
+        watchedThreshold: Int,
+        playbackStates: List<PlaybackStateEntity>,
+    ) {
+        if (item.dateModified > stats.latestModified) stats.latestModified = item.dateModified
+
+        if (isAudio) {
+            stats.audioCount++
+            stats.audioSize += item.size
+            stats.audioDuration += item.duration
+        } else {
+            stats.videoCount++
+            stats.videoSize += item.size
+            stats.videoDuration += item.duration
+        }
+
+        if (!showAudioFiles && isAudio) return
+
+        // Calculate unwatched status for all media (audio and video)
+        val playbackState = playbackStates.find {
+            it.mediaTitle == item.path || it.mediaTitle == item.name || it.mediaTitle == File(item.path).name
+        }
+        var isWatched = false
+
+        if (playbackState != null) {
+            if (playbackState.hasBeenWatched) {
+                isWatched = true
+            } else if (item.duration > 0 && playbackState.timeRemaining != -1) {
+                val durationSeconds = item.duration / 1000
+                val watched = durationSeconds - playbackState.timeRemaining.toLong()
+                val progressValue = (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+                if (progressValue >= (watchedThreshold / 100f)) {
+                    isWatched = true
+                }
+            }
+        }
+
+        if (!isWatched) {
+            stats.unwatchedCount++
+        }
+
+        // Calculate NEW status: unplayed videos within the time threshold
+        val videoAge = currentTime - (item.dateModified * 1000)
+        val isNew =
+            (playbackState == null && videoAge <= thresholdMillis) ||
+                (playbackState != null && playbackState.timeRemaining == -1)
+        if (isNew) {
+            stats.newCount++
+        }
+    }
+
+    /**
+     * Only pay for a filesystem walk when the MediaStore snapshot is clearly incomplete:
+     * a folder that is about to be flattened (no direct media, exposing exactly one branch)
+     * or that currently has no known media at all.
+     */
+    private fun needsFileSystemReconciliation(allNodes: Map<String, FolderNode>): Boolean {
+        // Maps a parent path to the number of indexed direct children.
+        val childCounts = HashMap<String, Int>()
+        for (node in allNodes.values) {
+            val parent = File(node.path).parent ?: continue
+            childCounts[parent] = (childCounts[parent] ?: 0) + 1
+        }
+        return allNodes.values.any { node ->
+            val hasMedia = node.directVideoCount > 0 || node.directAudioCount > 0
+            !hasMedia && (childCounts[node.path] ?: 0) <= 1
+        }
+    }
+
+    /**
+     * Merges direct children of already-known folders from the filesystem into the tree.
+     * This only adds/updates one level below known paths; deeper folders are picked up by
+     * the next refresh once their parent is visible.
+     *
+     * @return true when a folder gained media it did not have in the MediaStore snapshot.
+     */
+    private suspend fun reconcileFromFileSystem(
+        allNodes: MutableMap<String, FolderNode>,
+        blacklistedFolders: Set<String>,
+        includeNoMediaContent: Boolean,
+        showAudioFiles: Boolean,
+        currentTime: Long,
+        thresholdMillis: Long,
+        watchedThreshold: Int,
+        playbackStates: List<PlaybackStateEntity>,
+        isFolderWithinNoMedia: (File) -> Boolean,
+    ): Boolean {
+        var discoveredUnindexedMedia = false
+        val policy = MediaScanPolicy(includeNoMediaContent = includeNoMediaContent)
+        val parentPaths = allNodes.keys.toList()
+        for (parentPath in parentPaths) {
+            currentCoroutineContext().ensureActive()
+            if (parentPath in blacklistedFolders) continue
+            val parentDir = File(parentPath)
+            val children = parentDir.listFiles() ?: continue
+
+            for (child in children) {
+                currentCoroutineContext().ensureActive()
+                if (!child.isDirectory) continue
+                if (child.absolutePath in blacklistedFolders) continue
+                if (FileFilterUtils.shouldSkipFolder(child, policy)) continue
+
+                val childPath = child.absolutePath
+                if (allNodes[childPath]?.let { it.directVideoCount > 0 || it.directAudioCount > 0 } == true) {
+                    continue
+                }
+
+                val childFiles = child.listFiles() ?: continue
+                if (!includeNoMediaContent && isFolderWithinNoMedia(child)) continue
+
+                val stats = DirectStats()
+                for (entry in childFiles) {
+                    if (!entry.isFile) continue
+                    if (FileFilterUtils.shouldSkipFile(entry)) continue
+                    val isVideo = FileTypeUtils.isVideoFile(entry)
+                    val isAudio = FileTypeUtils.isAudioFile(entry)
+                    if (!isVideo && !isAudio) continue
+
+                    addItemToStats(
+                        stats = stats,
+                        item = ScannedItem(
+                            name = entry.name,
+                            path = entry.absolutePath,
+                            size = entry.length(),
+                            duration = 0L,
+                            dateModified = entry.lastModified() / 1000,
+                            isAudio = isAudio,
+                        ),
+                        isAudio = isAudio,
+                        showAudioFiles = showAudioFiles,
+                        currentTime = currentTime,
+                        thresholdMillis = thresholdMillis,
+                        watchedThreshold = watchedThreshold,
+                        playbackStates = playbackStates,
+                    )
+                }
+
+                if (stats.videoCount == 0 && stats.audioCount == 0) continue
+
+                discoveredUnindexedMedia = true
+                val existing = allNodes[childPath]
+                allNodes[childPath] = FolderNode(
+                    path = childPath,
+                    name = child.name,
+                    directVideoCount = stats.videoCount,
+                    directAudioCount = stats.audioCount,
+                    directNewCount = stats.newCount,
+                    directUnwatchedCount = stats.unwatchedCount,
+                    directVideoSize = stats.videoSize,
+                    directAudioSize = stats.audioSize,
+                    directVideoDuration = stats.videoDuration,
+                    directAudioDuration = stats.audioDuration,
+                    directSize = stats.videoSize + stats.audioSize,
+                    directDuration = stats.videoDuration + stats.audioDuration,
+                    lastModified = stats.latestModified,
+                    // Preserve hierarchy bits already derived by an earlier pass, if any.
+                    hasDirectSubfolders = existing?.hasDirectSubfolders ?: false,
+                )
+            }
+        }
+        return discoveredUnindexedMedia
     }
 
     private fun scanMediaStore(
