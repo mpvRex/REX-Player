@@ -1,7 +1,7 @@
 {
   "tag_name": "r${COMMIT_COUNT}",
   "name": "REX Player Preview r${COMMIT_COUNT}",
-  "body": "Nightly preview build automatically generated from master branch.",
+  "body": "Nightly preview build automatically generated from the ${BRANCH_NAME} branch.",
   "published_at": "${BUILD_TIME}",
   "html_url": "https://mpvrex.github.io/REX-Player/",
   "assets": [

@@ -155,6 +155,7 @@ jobs:
         run: |
           export COMMIT_COUNT=${{ needs.build.outputs.commit_count }}
           export BUILD_TIME="${{ needs.build.outputs.build_time }}"
+          export BRANCH_NAME="${{ github.ref_name }}"
           export UNIVERSAL_SIZE="${{ needs.build.outputs.universal_size }}"
           export ARM64_SIZE="${{ needs.build.outputs.arm64-v8a_size }}"
           export ARMV7_SIZE="${{ needs.build.outputs.armeabi-v7a_size }}"
