@@ -911,6 +911,14 @@ class PlayerViewModel(
     _isLoadingFile.value = true
     _isLoadingUrl.value = isNetwork
     _isNetworkStream.value = isNetwork
+
+    if (
+        playerUpdate.value is PlayerUpdates.ResumedFrom ||
+        playerUpdate.value is PlayerUpdates.PromptResume
+    ) {
+      playerUpdate.value = PlayerUpdates.None
+    }
+
     if (externalAudioTracks.isEmpty()) {
       _precisePosition.value = 0f
       if (primaryVideoDuration.value == null) {
