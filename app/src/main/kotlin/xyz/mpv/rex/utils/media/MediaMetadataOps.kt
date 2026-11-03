@@ -47,7 +47,7 @@ object MediaMetadataOps {
                 )
                 folders
                     .filter { folder -> 
-                        (isAudioEnabled || folder.videoCount > 0) &&
+                        folder.activeCount(isAudioEnabled) > 0 &&
                         folder.path !in blacklistedFolders &&
                         (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
                     }

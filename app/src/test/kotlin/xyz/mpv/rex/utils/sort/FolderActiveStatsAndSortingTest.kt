@@ -458,14 +458,10 @@ class FolderActiveStatsAndSortingTest {
       currentPath: String,
       showAudio: Boolean,
     ): List<FileSystemItem> {
-      return if (!showAudio) {
-        items.filterNot {
-          (it is FileSystemItem.VideoFile && it.video.isAudio) ||
-          (currentPath != FileSystemBrowserViewModel.STORAGE_ROOTS_MARKER &&
-            it is FileSystemItem.Folder && it.videoCount == 0)
-        }
-      } else {
-        items
+      return items.filterNot { item ->
+        (item is FileSystemItem.VideoFile && !showAudio && item.video.isAudio) ||
+        (currentPath != FileSystemBrowserViewModel.STORAGE_ROOTS_MARKER &&
+          item is FileSystemItem.Folder && item.activeCount(showAudio) == 0)
       }
     }
 
@@ -500,6 +496,24 @@ class FolderActiveStatsAndSortingTest {
       showAudio = true,
     )
     assertEquals(subItems, subItemsVisibleWhenAudioShown)
+
+    // Empty folder (no video, no audio) must be filtered out even when showAudio is true
+    val emptyFolder = FileSystemItem.Folder(
+      name = "Empty",
+      path = "/storage/emulated/0/Empty",
+      lastModified = 0L,
+      videoCount = 0,
+      audioCount = 0,
+      videoSize = 0L,
+      audioSize = 0L,
+      totalSize = 0L,
+    )
+    val emptyFolderVisibleWhenAudioShown = filterVisible(
+      items = listOf(emptyFolder),
+      currentPath = "/storage/emulated/0",
+      showAudio = true,
+    )
+    assertEquals(emptyList<FileSystemItem>(), emptyFolderVisibleWhenAudioShown)
   }
 
   @Test

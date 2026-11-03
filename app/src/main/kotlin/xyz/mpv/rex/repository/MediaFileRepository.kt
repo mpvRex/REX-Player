@@ -176,7 +176,7 @@ object MediaFileRepository {
         }
         folders
           .filter { data ->
-            (isAudioEnabled || data.videoCount > 0) &&
+            data.activeCount(isAudioEnabled) > 0 &&
             (scanPolicy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(data.path)))
           }
           .forEach { folderData ->

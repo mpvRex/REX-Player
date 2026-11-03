@@ -1189,12 +1189,12 @@ suspend fun searchRecursively(
           }
         }
         is FileSystemItem.Folder -> {
-          if ((isAudioFilesVisible || item.videoCount > 0) && item.name.contains(query, ignoreCase = true)) {
+          if (item.activeCount(isAudioFilesVisible) > 0 && item.name.contains(query, ignoreCase = true)) {
             Log.d("FileSystemBrowserScreen", "Found matching folder: ${item.name}")
             results.add(item)
           }
           // Recursively search in subdirectories if they have content we care about
-          if (isAudioFilesVisible || item.videoCount > 0) {
+          if (item.activeCount(isAudioFilesVisible) > 0) {
             try {
               val subResults = searchRecursively(context, item.path, query)
               results.addAll(subResults)
@@ -1240,7 +1240,7 @@ private suspend fun collectVideosRecursively(
 
     // Recursively scan subfolders that have relevant content
     items.filterIsInstance<FileSystemItem.Folder>().forEach { folder ->
-      if (isAudioFilesVisible || folder.videoCount > 0) {
+      if (folder.activeCount(isAudioFilesVisible) > 0) {
         val subVideos = collectVideosRecursively(context, folder.path)
         videos.addAll(subVideos)
       }

@@ -153,13 +153,9 @@ class FileSystemBrowserViewModel(
         browserPreferences.folderSortOrder.changes(),
         browserPreferences.showAudioFiles.changes(),
       ) { items, currentPath, sortType, sortOrder, showAudioFiles ->
-        val visibleItems = if (!showAudioFiles) {
-          items.filterNot {
-            (it is FileSystemItem.VideoFile && it.video.isAudio) ||
-            (currentPath != STORAGE_ROOTS_MARKER && it is FileSystemItem.Folder && it.videoCount == 0)
-          }
-        } else {
-          items
+        val visibleItems = items.filterNot { item ->
+          (item is FileSystemItem.VideoFile && !showAudioFiles && item.video.isAudio) ||
+          (currentPath != STORAGE_ROOTS_MARKER && item is FileSystemItem.Folder && item.activeCount(showAudioFiles) == 0)
         }
         SortUtils.sortFileSystemItems(visibleItems, sortType, sortOrder, showAudioFiles)
       }.collectLatest { sortedItems ->
@@ -354,7 +350,11 @@ class FileSystemBrowserViewModel(
       val cachedFolders = snapshot
         .effectiveChildren(folderKey(path), flattenForNavigation = false)
         .filter { node ->
-          browserPreferences.showAudioFiles.get() || node.recursiveVideoCount > 0
+          if (browserPreferences.showAudioFiles.get()) {
+            node.recursiveVideoCount > 0 || node.recursiveAudioCount > 0
+          } else {
+            node.recursiveVideoCount > 0
+          }
         }
         .map { node ->
           val folderData = snapshot.toMediaFolder(node, recursive = true)
@@ -417,13 +417,10 @@ class FileSystemBrowserViewModel(
               }
               itemCountByPath[path] = items.size
 
-              val filteredItems = if (!browserPreferences.showAudioFiles.get()) {
-                items.filterNot { 
-                  (it is FileSystemItem.VideoFile && it.video.isAudio) ||
-                  (it is FileSystemItem.Folder && it.videoCount == 0)
-                }
-              } else {
-                items
+              val showAudio = browserPreferences.showAudioFiles.get()
+              val filteredItems = items.filterNot { item ->
+                (item is FileSystemItem.VideoFile && !showAudio && item.video.isAudio) ||
+                (path != STORAGE_ROOTS_MARKER && item is FileSystemItem.Folder && item.activeCount(showAudio) == 0)
               }
 
               // Everything below is decided once, with one clock reading, so the list that is

@@ -324,7 +324,12 @@ object CoreMediaScanner {
         val foldersByPath = snapshot
             .effectiveChildren(folderKey(parentPath), flattenForNavigation = false)
             .filter { node ->
-                policy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(node.path))
+                val hasMedia = if (showAudioFiles) {
+                    node.recursiveVideoCount > 0 || node.recursiveAudioCount > 0
+                } else {
+                    node.recursiveVideoCount > 0
+                }
+                hasMedia && (policy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(node.path)))
             }
             .associate { node -> node.path to snapshot.toMediaFolder(node, recursive = true) }
             .toMutableMap()
@@ -464,27 +469,7 @@ object CoreMediaScanner {
             }
         }
 
-        // 5. Ensure direct subdirectories of `directory` are also present as anchors so empty folders appear
-        val directChildren = directory.listFiles()
-            ?.filter { it.isDirectory }
-            ?.filterNot { it.absolutePath in blacklistedFolders }
-            ?.filterNot { FileFilterUtils.shouldSkipFolder(it, policy) }
-            .orEmpty()
-
-        for (child in directChildren) {
-            val childPath = folderKey(child.absolutePath)
-            if (childPath !in indexedPaths && anchorPaths.add(childPath)) {
-                rows += FolderAggregateEntity(
-                    path = childPath,
-                    parentPath = rootPath,
-                    name = child.name,
-                    lastModified = child.lastModified() / 1000,
-                    isAnchor = true,
-                )
-            }
-        }
-
-        // 6. Ensure root itself is present as an anchor if still not added
+        // 5. Ensure root itself is present as an anchor if still not added
         if (rootPath !in indexedPaths && rootPath !in anchorPaths) {
             rows += FolderAggregateEntity(
                 path = rootPath,

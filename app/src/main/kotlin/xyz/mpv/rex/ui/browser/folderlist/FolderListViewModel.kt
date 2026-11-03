@@ -121,7 +121,7 @@ class FolderListViewModel(
       ) { folders, blacklist, showAudio, includeNoMedia ->
         folders.filter { folder -> 
           folder.path !in blacklist &&
-          (showAudio || folder.videoCount > 0) &&
+          folder.activeCount(showAudio) > 0 &&
           (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }
       }.collectLatest { filteredFolders ->
@@ -278,7 +278,7 @@ class FolderListViewModel(
         val includeNoMedia = browserPreferences.includeNoMediaContent.get()
         val filteredFolders = folders.filter { folder -> 
           folder.path !in blacklist &&
-          (showAudio || folder.videoCount > 0) &&
+          folder.activeCount(showAudio) > 0 &&
           (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }
         _videoFolders.value = filteredFolders
