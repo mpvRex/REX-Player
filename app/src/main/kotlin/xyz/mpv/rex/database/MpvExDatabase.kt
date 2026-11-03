@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import xyz.mpv.rex.database.converters.NetworkProtocolConverter
 import xyz.mpv.rex.database.dao.BookmarkDao
+import xyz.mpv.rex.database.dao.FolderAggregateDao
 import xyz.mpv.rex.database.dao.HybridMediaDao
 import xyz.mpv.rex.database.dao.NetworkConnectionDao
 import xyz.mpv.rex.database.dao.PlaybackStateDao
@@ -13,6 +14,7 @@ import xyz.mpv.rex.database.dao.RecentlyPlayedDao
 import xyz.mpv.rex.database.dao.VideoMetadataDao
 import xyz.mpv.rex.database.dao.ShortsMediaDao
 import xyz.mpv.rex.database.entities.BookmarkEntity
+import xyz.mpv.rex.database.entities.FolderAggregateEntity
 import xyz.mpv.rex.database.entities.HybridMediaEntity
 import xyz.mpv.rex.database.entities.HybridMediaRootEntity
 import xyz.mpv.rex.database.entities.PlaybackStateEntity
@@ -38,8 +40,9 @@ import xyz.mpv.rex.domain.network.NetworkConnection
     HybridMediaRootEntity::class,
     MediaPlayCountEntity::class,
     BookmarkEntity::class,
+    FolderAggregateEntity::class,
   ],
-  version = 19,
+  version = 20,
   exportSchema = true,
 )
 @TypeConverters(NetworkProtocolConverter::class)
@@ -61,4 +64,6 @@ abstract class MpvExDatabase : RoomDatabase() {
   abstract fun mediaPlayCountDao(): MediaPlayCountDao
 
   abstract fun bookmarkDao(): BookmarkDao
+
+  abstract fun folderAggregateDao(): FolderAggregateDao
 }

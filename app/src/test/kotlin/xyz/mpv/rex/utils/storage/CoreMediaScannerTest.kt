@@ -35,12 +35,15 @@ class CoreMediaScannerTest {
 
     mockkObject(StorageVolumeUtils)
     every { StorageVolumeUtils.getExternalStorageVolumes(any()) } returns listOf(mockVolume)
+    every { StorageVolumeUtils.getAllStorageVolumes(any()) } returns listOf(mockVolume)
     every { StorageVolumeUtils.getVolumePath(mockVolume) } returns tempDir.absolutePath
 
     startKoin {
       modules(
         module {
           single { browserPreferences }
+          single<FolderAggregateSource> { FakeFolderAggregateSource() }
+          single { MediaTreeStore(context, get()) }
         },
       )
     }
@@ -331,6 +334,57 @@ class CoreMediaScannerTest {
     assertEquals(1, folders.single().videoCount)
   }
 
+  @Test
+  fun foldersInDirectory_indexesOnlyTheOpenedBranch() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns true
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val nested = File(download, "Nested").apply { mkdirs() }
+    File(nested, "clip.mkv").apply { writeText("video") }
+
+    // 50 unrelated sibling folders, each holding media.
+    val unrelated = (1..50).map { index ->
+      File(tempDir, "Unrelated$index").apply { mkdirs() }.also {
+        File(it, "movie$index.mkv").apply { writeText("video") }
+      }
+    }
+
+    CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
+
+    // The index is the observable artifact: opening Download must leave no row for its siblings.
+    val stored = org.koin.core.context.GlobalContext.get()
+      .get<FolderAggregateSource>()
+      .loadAll()
+      .map { it.path }
+
+    val downloadRoot = folderKey(download.absolutePath)
+    val foreign = stored.filterNot { it == downloadRoot || it.startsWith("$downloadRoot/") }
+    assertTrue("Opening Download indexed rows outside its branch: $foreign", foreign.isEmpty())
+    assertTrue("The opened branch itself must be indexed", stored.contains(folderKey(nested.absolutePath)))
+    assertEquals(
+      "Siblings must not appear in the listing",
+      listOf("Nested"),
+      CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath).map { it.name },
+    )
+    assertTrue(unrelated.isNotEmpty())
+  }
+
+  @Test
+  fun foldersInDirectory_stillReadsTheOpenedBranch() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns true
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val nested = File(download, "Nested").apply { mkdirs() }
+    File(nested, "clip.mkv").apply { writeText("video") }
+
+    mockMediaStoreRows(videoFiles = listOf(File(nested, "clip.mkv")))
+
+    val folders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
+
+    assertEquals(listOf("Nested"), folders.map { it.name })
+    assertEquals(1, folders.single().videoCount)
+  }
+
   /**
    * Answers the MediaStore video/audio queries with exactly [videoFiles]/[audioFiles].
    */
@@ -340,10 +394,21 @@ class CoreMediaScannerTest {
   ) {
     val videoUri = android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
     val audioUri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-    every { context.contentResolver.query(videoUri, any(), any(), any(), any()) } returns
-      mediaCursor(videoFiles)
-    every { context.contentResolver.query(audioUri, any(), any(), any(), any()) } returns
-      mediaCursor(audioFiles)
+    every { context.contentResolver.query(videoUri, any(), any(), any(), any()) } answers {
+      mediaCursor(videoFiles.filter { it.absolutePath.startsWith(likePrefix(arg<Array<String>>(3))) })
+    }
+    every { context.contentResolver.query(audioUri, any(), any(), any(), any()) } answers {
+      mediaCursor(audioFiles.filter { it.absolutePath.startsWith(likePrefix(arg<Array<String>>(3))) })
+    }
+  }
+
+  /**
+   * The scanner narrows its query to one directory with a `DATA LIKE` prefix argument. The fake
+   * cursor has no SQL engine, so apply that one prefix filter here instead.
+   */
+  private fun likePrefix(args: Array<String>?): String {
+    val raw = args?.getOrNull(1) ?: return ""
+    return raw.removeSuffix("%").replace("\\", "")
   }
 
   private fun mediaCursor(files: List<File>): android.database.Cursor {

@@ -14,6 +14,8 @@ import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.domain.bookmark.repository.BookmarkRepository
 import xyz.mpv.rex.domain.recentlyplayed.repository.RecentlyPlayedRepository
 import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
+import xyz.mpv.rex.utils.storage.FolderAggregateRepository
+import xyz.mpv.rex.utils.storage.MediaTreeStore
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
@@ -597,6 +599,36 @@ val MIGRATION_18_19 = object : Migration(18, 19) {
   }
 }
 
+val MIGRATION_19_20 = object : Migration(19, 20) {
+  override fun migrate(db: SupportSQLiteDatabase) {
+    db.execSQL(
+      """
+      CREATE TABLE IF NOT EXISTS `folder_aggregates` (
+        `path` TEXT NOT NULL,
+        `parentPath` TEXT NOT NULL,
+        `name` TEXT NOT NULL,
+        `lastModified` INTEGER NOT NULL,
+        `directVideoCount` INTEGER NOT NULL,
+        `directAudioCount` INTEGER NOT NULL,
+        `directNewCount` INTEGER NOT NULL,
+        `directUnwatchedCount` INTEGER NOT NULL,
+        `directVideoSize` INTEGER NOT NULL,
+        `directAudioSize` INTEGER NOT NULL,
+        `directVideoDuration` INTEGER NOT NULL,
+        `directAudioDuration` INTEGER NOT NULL,
+        `fromFileSystem` INTEGER NOT NULL,
+        `indexedGeneration` INTEGER NOT NULL,
+        `isAnchor` INTEGER NOT NULL,
+        PRIMARY KEY(`path`)
+      )
+      """.trimIndent(),
+    )
+    db.execSQL(
+      "CREATE INDEX IF NOT EXISTS `index_folder_aggregates_parentPath` ON `folder_aggregates` (`parentPath`)",
+    )
+  }
+}
+
 val DatabaseModule =
   module {
     single<Json> {
@@ -611,12 +643,15 @@ val DatabaseModule =
       Room
         .databaseBuilder(context, MpvExDatabase::class.java, "mpvex.db")
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
         .fallbackToDestructiveMigration(false) // This is now safe
         .build()
     }
 
     singleOf(::PlaybackStateRepositoryImpl).bind(PlaybackStateRepository::class)
+
+    single { FolderAggregateRepository(get<MpvExDatabase>().folderAggregateDao()) }
+    single { MediaTreeStore(androidContext(), get()) }
 
     single {
       BookmarkRepositoryImpl(get<MpvExDatabase>().bookmarkDao())
