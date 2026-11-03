@@ -23,6 +23,82 @@ internal object MediaStoreDirectorySource {
     private const val TAG = "MediaStoreDirSource"
 
     /**
+     * Reads all media in the subtree rooted at [directory] in a single query pass.
+     * Returns a map from folder path to the media files directly within that folder.
+     */
+    suspend fun readBranch(
+        context: Context,
+        directory: File,
+    ): Map<String, List<ScannedItem>>? = withContext(Dispatchers.IO) {
+        val folderPath = normalizedPath(directory)
+        val videoUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI ?: return@withContext null
+        val audioUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        val result = LinkedHashMap<String, MutableList<ScannedItem>>()
+        val videosOk = queryBranchCollection(context, videoUri, folderPath, audio = false, result)
+        val audioOk = if (audioUri != null) {
+            queryBranchCollection(context, audioUri, folderPath, audio = true, result)
+        } else true
+        if (!videosOk && !audioOk) return@withContext null
+        result
+    }
+
+    private suspend fun queryBranchCollection(
+        context: Context,
+        uri: android.net.Uri,
+        folderPath: String,
+        audio: Boolean,
+        target: MutableMap<String, MutableList<ScannedItem>>,
+    ): Boolean {
+        val projection = arrayOf(
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.SIZE,
+            MediaStore.MediaColumns.DURATION,
+            MediaStore.MediaColumns.DATE_MODIFIED,
+        )
+
+        val bucketId = folderPath.hashCode().toString()
+        val selection = "(${MediaStore.MediaColumns.BUCKET_ID} = ? OR ${MediaStore.MediaColumns.DATA} LIKE ? ESCAPE '\\')"
+        val likeArgument = folderPath
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_") + "/%"
+        val args = arrayOf(bucketId, likeArgument)
+
+        try {
+            context.contentResolver.query(uri, projection, selection, args, null)?.use { cursor ->
+                val nameIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+                val dataIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
+                val sizeIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
+                val durationIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DURATION)
+                val dateIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
+
+                while (cursor.moveToNext()) {
+                    currentCoroutineContext().ensureActive()
+                    val path = cursor.getString(dataIdx) ?: continue
+                    val file = File(path)
+                    val parentFile = file.parentFile ?: continue
+                    val parentPath = folderKey(parentFile.absolutePath)
+                    if (!file.exists()) continue
+                    val items = target.getOrPut(parentPath) { mutableListOf() }
+                    items += ScannedItem(
+                        name = cursor.getString(nameIdx) ?: file.name,
+                        path = path,
+                        size = cursor.getLong(sizeIdx),
+                        duration = cursor.getLong(durationIdx),
+                        dateModified = cursor.getLong(dateIdx),
+                        isAudio = audio,
+                    )
+                }
+            }
+            return true
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore branch query failed for $folderPath", e)
+            return false
+        }
+    }
+
+    /**
      * Reads the media directly inside [directory].
      *
      * @return the rows, or `null` if the provider could not be queried at all (in which case the

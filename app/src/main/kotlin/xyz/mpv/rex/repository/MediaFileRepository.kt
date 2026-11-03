@@ -224,6 +224,7 @@ object MediaFileRepository {
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
+        android.util.Log.e("MediaFileRepository", "Error scanning directory: $path", e)
         Result.failure(e)
       }
     }

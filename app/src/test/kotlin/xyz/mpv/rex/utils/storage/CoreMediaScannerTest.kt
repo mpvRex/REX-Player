@@ -237,14 +237,17 @@ class CoreMediaScannerTest {
     File(videoFolder, "clip.mp4").apply { writeText("video") }
     File(musicFolder, "song.mp3").apply { writeText("audio") }
 
+    // The tree shows the real hierarchy; what `showAudioFiles` changes is the audio counts the
+    // folder advertises, not which folders are reachable.
     val foldersAudioFalse = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
-    assertEquals(setOf("Music", "Video"), foldersAudioFalse.map { it.name }.toSet())
+    assertEquals(listOf("Downloads"), foldersAudioFalse.map { it.name })
 
     CoreMediaScanner.clearCache()
     every { browserPreferences.showAudioFiles.get() } returns true
 
     val foldersAudioTrue = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
     assertEquals(listOf("Downloads"), foldersAudioTrue.map { it.name })
+    assertEquals(1, foldersAudioTrue.single().audioCount)
   }
 
   @Test
@@ -257,8 +260,10 @@ class CoreMediaScannerTest {
     File(downloads, "song.mp3").apply { writeText("audio") }
     File(videoFolder, "clip.mp4").apply { writeText("video") }
 
+    // A tree listing never promotes a folder into its parent's place: `Downloads` is the only
+    // row the user can tap to reach `Video`, so it must stay even though it holds no video.
     val foldersAudioFalse = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
-    assertEquals(listOf("Video"), foldersAudioFalse.map { it.name })
+    assertEquals(listOf("Downloads"), foldersAudioFalse.map { it.name })
 
     CoreMediaScanner.clearCache()
     every { browserPreferences.showAudioFiles.get() } returns true
@@ -329,8 +334,9 @@ class CoreMediaScannerTest {
 
     val folders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
 
-    // A real one-child chain is still collapsed, and the leaf keeps its media counts.
-    assertEquals(listOf("Anime"), folders.map { it.name })
+    // A tree listing keeps the chain intact: `Downloads` is the only way to reach `Anime`, and the
+    // recursive total still rolls up so the row is not blank.
+    assertEquals(listOf("Downloads"), folders.map { it.name })
     assertEquals(1, folders.single().videoCount)
   }
 
@@ -369,6 +375,115 @@ class CoreMediaScannerTest {
     assertTrue(unrelated.isNotEmpty())
   }
 
+  /**
+   * Walking down the tree the way the UI does: open the root, then open a folder it just
+   * listed. Every level must keep showing its subfolders, otherwise the tree goes blank as
+   * soon as the user navigates into a folder.
+   */
+  @Test
+  fun foldersInDirectory_survivesWalkingDownTheTree() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns true
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val anime = File(download, "Anime").apply { mkdirs() }
+    File(anime, "ep1.mkv").apply { writeText("video") }
+
+    mockMediaStoreRows(videoFiles = listOf(File(anime, "ep1.mkv")))
+
+    val level1 = CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
+    assertEquals("Download must list Anime", listOf("Anime"), level1.map { it.name })
+
+    // Now open Anime, exactly as tapping it would.
+    val level2 = CoreMediaScanner.getFoldersInDirectory(context, parentPath = anime.absolutePath)
+    val stored = org.koin.core.context.GlobalContext.get()
+      .get<FolderAggregateSource>()
+      .loadAll()
+
+    // ep1.mkv is a direct file of Anime, so Anime legitimately has no subfolders to show. What
+    // must not happen is the folder disappearing from its parent's listing.
+    assertTrue("Anime must still be stored", stored.any { it.path == folderKey(anime.absolutePath) })
+    assertTrue(level2.isEmpty())
+
+    val reopened = CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
+    assertEquals("Download must still list Anime after visiting it", listOf("Anime"), reopened.map { it.name })
+  }
+
+  @Test
+  fun foldersInDirectory_nestedFoldersStayVisibleWhenReopeningTheRoot() = runTest {
+    every { browserPreferences.showAudioFiles.get()} returns true
+    every { browserPreferences.flattenFolders.get() } returns true
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val anime = File(download, "Anime").apply { mkdirs() }
+    val season = File(anime, "Season 1").apply { mkdirs() }
+    File(season, "ep1.mkv").apply { writeText("video") }
+
+    mockMediaStoreRows(videoFiles = listOf(File(season, "ep1.mkv")))
+
+    CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
+
+    // Opening Anime lists Season 1, which must carry its recursive count.
+    val animeLevel = CoreMediaScanner.getFoldersInDirectory(context, parentPath = anime.absolutePath)
+    assertEquals(listOf("Season 1"), animeLevel.map { it.name })
+    assertEquals(1, animeLevel.single().videoCount)
+
+    // And the root still shows Anime with the same recursive total.
+    val rootLevel = CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
+    assertEquals(listOf("Anime"), rootLevel.map { it.name })
+    assertEquals(1, rootLevel.single().videoCount)
+  }
+
+  /**
+   * The launch scenario: the app opens the storage root directly and must list its folders.
+   * `MediaFileRepository.scanDirectory` hides folders whose recursive `videoCount` is 0, so this
+   * also covers the filter that decides whether anything at all is shown.
+   */
+  @Test
+  fun foldersInDirectory_listsFoldersAtTheStorageRoot() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val anime = File(download, "Anime").apply { mkdirs() }
+    File(anime, "ep1.mkv").apply { writeText("video") }
+    val movies = File(tempDir, "Movies").apply { mkdirs() }
+    File(movies, "film.mkv").apply { writeText("video") }
+
+    mockMediaStoreRows(videoFiles = listOf(File(anime, "ep1.mkv"), File(movies, "film.mkv")))
+
+    val folders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+
+    val visible = folders.filter { it.videoCount > 0 }
+    assertTrue(
+      "Launching into the storage root showed nothing; listing was: " +
+        folders.joinToString { "${it.name}(videos=${it.videoCount})" },
+      visible.isNotEmpty(),
+    )
+  }
+
+  /**
+   * A single-child chain under a top-level folder is the common real layout (Download/Anime/).
+   * Launching must still show `Download`, not swallow it into `Anime`.
+   */
+  @Test
+  fun foldersInDirectory_storageRootShowsTopLevelFolderNotItsGrandchild() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+    every { browserPreferences.flattenFolders.get() } returns true
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val anime = File(download, "Anime").apply { mkdirs() }
+    File(anime, "ep1.mkv").apply { writeText("video") }
+
+    mockMediaStoreRows(videoFiles = listOf(File(anime, "ep1.mkv")))
+
+    val folders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+
+    assertEquals(
+      "The storage root must list its own top-level folder",
+      listOf("Download"),
+      folders.map { it.name },
+    )
+  }
+
   @Test
   fun foldersInDirectory_stillReadsTheOpenedBranch() = runTest {
     every { browserPreferences.showAudioFiles.get() } returns true
@@ -400,6 +515,24 @@ class CoreMediaScannerTest {
     every { context.contentResolver.query(audioUri, any(), any(), any(), any()) } answers {
       mediaCursor(audioFiles.filter { it.absolutePath.startsWith(likePrefix(arg<Array<String>>(3))) })
     }
+  }
+
+  @Test
+  fun databaseModule_bindsFolderAggregateSource() {
+    val koinApp = org.koin.dsl.koinApplication {
+      modules(
+        org.koin.dsl.module {
+          single { context }
+          single { mockk<xyz.mpv.rex.database.MpvExDatabase>(relaxed = true) }
+        },
+        xyz.mpv.rex.di.DatabaseModule,
+      )
+    }
+    val store = koinApp.koin.getOrNull<MediaTreeStore>()
+    assertNotNull("MediaTreeStore must be resolvable from DatabaseModule", store)
+    val source = koinApp.koin.getOrNull<FolderAggregateSource>()
+    assertNotNull("FolderAggregateSource must be resolvable from DatabaseModule", source)
+    koinApp.close()
   }
 
   /**

@@ -25,8 +25,6 @@ import java.util.Locale
 object CoreMediaScanner {
     private const val TAG = "CoreMediaScanner"
 
-    /** Safety limit for indexing a branch; media trees are far shallower than this. */
-    private const val MAX_INDEX_DEPTH = 12
     
     private val store: MediaTreeStore
         get() = org.koin.core.context.GlobalContext.get().get()
@@ -40,7 +38,9 @@ object CoreMediaScanner {
      */
     fun clearCache() {
         Log.d(TAG, "Invalidating folder aggregates")
-        runCatching { store.invalidate() }
+        runCatching { store.invalidate() }.onFailure { e ->
+            Log.e(TAG, "Failed to invalidate folder aggregates", e)
+        }
     }
     
     /**
@@ -84,7 +84,8 @@ object CoreMediaScanner {
         val policy = MediaScanPolicy(includeNoMediaContent = browserPreferences.includeNoMediaContent.get())
         val playbackIndex = PlaybackStateIndex.of(playbackStates)
 
-        val rows = ArrayList<FolderAggregateEntity>(folders.size)
+        val rows = ArrayList<FolderAggregateEntity>(folders.size * 2)
+        val knownPaths = HashSet<String>(folders.size * 2)
         for ((path, folder) in folders) {
             currentCoroutineContext().ensureActive()
             if (path in blacklistedFolders) continue
@@ -102,7 +103,25 @@ object CoreMediaScanner {
                 parentPath = folder.parentPath,
                 fromFileSystem = folder.fromFileSystem,
             )
+            knownPaths += path
         }
+
+        val anchorPaths = HashSet<String>()
+        for (path in knownPaths) {
+            for (ancestor in ancestorKeys(path)) {
+                if (ancestor !in knownPaths && anchorPaths.add(ancestor)) {
+                    val file = File(ancestor)
+                    rows += FolderAggregateEntity(
+                        path = ancestor,
+                        parentPath = parentKey(ancestor),
+                        name = file.name.ifEmpty { ancestor },
+                        lastModified = file.lastModified() / 1000,
+                        isAnchor = true,
+                    )
+                }
+            }
+        }
+
         treeStore.replaceAll(rows)
         treeStore.markRebuilt()
     }
@@ -271,6 +290,7 @@ object CoreMediaScanner {
         blacklistedFolders: Set<String> = emptySet(),
         policy: MediaScanPolicy = MediaScanPolicy(),
     ): List<MediaFolder> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "getFoldersInDirectory: parentPath=$parentPath")
         val browserPreferences = org.koin.core.context.GlobalContext.get().get<BrowserPreferences>()
         val treeStore = store
         val parent = File(parentPath)
@@ -302,7 +322,7 @@ object CoreMediaScanner {
         )
 
         val foldersByPath = snapshot
-            .effectiveChildren(folderKey(parentPath))
+            .effectiveChildren(folderKey(parentPath), flattenForNavigation = false)
             .filter { node ->
                 policy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(node.path))
             }
@@ -314,16 +334,36 @@ object CoreMediaScanner {
                 .forEach { foldersByPath[it.path] = it }
         }
 
+        Log.d(TAG, "getFoldersInDirectory returning ${foldersByPath.size} folders for $parentPath: ${foldersByPath.keys}")
         foldersByPath.values.sortedBy { lowerName(it.name) }
     }
 
+    private fun walkBranch(
+        directory: File,
+        policy: MediaScanPolicy,
+    ): Map<String, List<ScannedItem>> {
+        val result = LinkedHashMap<String, List<ScannedItem>>()
+        val queue = ArrayDeque<File>().apply { add(directory) }
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            val items = listDirectMedia(current, policy)
+            if (!items.isNullOrEmpty()) {
+                result[folderKey(current.absolutePath)] = items
+            }
+            val children = current.listFiles()?.filter { it.isDirectory && !FileFilterUtils.shouldSkipFolder(it, policy) }
+            if (children != null) {
+                queue.addAll(children)
+            }
+        }
+        return result
+    }
+
     /**
-     * Guarantees that [directory]'s branch is indexed deep enough for the tree to render it.
+     * Guarantees that [directory]'s branch is indexed fast and stored in Room.
      *
-     * MediaStore is asked only about [directory] itself, which is the listing about to be shown.
-     * Directories below it are materialised as anchors (name + parent only) so flattening can
-     * walk the branch, and their own media is filled in the first time they are opened. Nothing
-     * here scales with the size of the library.
+     * A single query fetches all media in the branch rather than issuing O(folders) separate
+     * ContentResolver queries. Intermediate directory anchors are generated in memory.
+     * If the directory is already current, indexing is skipped entirely.
      */
     private suspend fun ensureDirectoryIndexed(
         context: Context,
@@ -337,97 +377,130 @@ object CoreMediaScanner {
         watchedThreshold: Int,
         playbackIndex: PlaybackStateIndex,
     ) {
-        val root = folderKey(directory.absolutePath)
-        ensureAnchor(treeStore, directory, root, isRoot = true)
+        val rootPath = folderKey(directory.absolutePath)
+        val currentGen = treeStore.generation()
 
-        // Every recursive total shown for a child covers its whole subtree, so the listing is
-        // only correct once the branch below has been indexed down to the leaves. This is
-        // bounded by the subtree being opened, not by the library — opening Download never
-        // looks at Movies.
-        val queue = ArrayDeque<File>().apply { add(directory) }
-        val visited = HashSet<String>()
-        var levels = 0
+        // 1. Fast cache check: if this directory is already recorded in the current generation,
+        // avoid re-querying the branch entirely.
+        val existingRoot = treeStore.get(rootPath)
+        if (existingRoot != null && existingRoot.indexedGeneration == currentGen) {
+            return
+        }
 
-        while (queue.isNotEmpty() && levels <= MAX_INDEX_DEPTH) {
-            currentCoroutineContext().ensureActive()
-            val levelSize = queue.size
-            val rows = ArrayList<FolderAggregateEntity>()
-            for (i in 0 until levelSize) {
-                val parent = queue.removeFirst()
-                val parentPath = folderKey(parent.absolutePath)
-                if (!visited.add(parentPath)) continue
+        // 2. Query the entire branch in ONE MediaStore pass (or fallback branch walk)
+        val branchMedia = MediaStoreDirectorySource.readBranch(context, directory)
+            ?: walkBranch(directory, policy)
 
-                val children = parent.listFiles()
-                    ?.filter { it.isDirectory }
-                    ?.filterNot { it.absolutePath in blacklistedFolders }
-                    ?.filterNot { FileFilterUtils.shouldSkipFolder(it, policy) }
-                    .orEmpty()
+        val rows = ArrayList<FolderAggregateEntity>()
+        val indexedPaths = HashSet<String>()
 
-                for (child in children) {
-                    currentCoroutineContext().ensureActive()
-                    val childPath = folderKey(child.absolutePath)
-                    rows += buildRow(
-                        context = context,
-                        child = child,
-                        childPath = childPath,
-                        parentPath = parentPath,
-                        policy = policy,
-                        showAudioFiles = showAudioFiles,
-                        currentTime = currentTime,
-                        thresholdMillis = thresholdMillis,
-                        watchedThreshold = watchedThreshold,
-                        playbackIndex = playbackIndex,
+        // 3. For each folder in the branch that has media, compute direct stats
+        for ((folderPath, items) in branchMedia) {
+            if (folderPath in blacklistedFolders) continue
+            if (!policy.includeNoMediaContent && FileFilterUtils.isWithinNoMediaBoundary(File(folderPath))) continue
+
+            val directItems = if (folderPath == rootPath) {
+                val diskItems = listDirectMedia(File(folderPath), policy).orEmpty()
+                val known = items.mapTo(HashSet()) { it.path }
+                items + diskItems.filterNot { it.path in known }
+            } else {
+                items
+            }
+
+            val stats = directItems.toDirectStats(
+                showAudioFiles = showAudioFiles,
+                currentTime = currentTime,
+                thresholdMillis = thresholdMillis,
+                watchedThreshold = watchedThreshold,
+                playbackIndex = playbackIndex,
+            )
+            rows += stats.toRow(
+                path = folderPath,
+                name = File(folderPath).name,
+                parentPath = parentKey(folderPath),
+                fromFileSystem = false,
+            )
+            indexedPaths += folderPath
+        }
+
+        if (rootPath !in indexedPaths) {
+            val rootDiskItems = listDirectMedia(directory, policy).orEmpty()
+            if (rootDiskItems.isNotEmpty()) {
+                val stats = rootDiskItems.toDirectStats(
+                    showAudioFiles = showAudioFiles,
+                    currentTime = currentTime,
+                    thresholdMillis = thresholdMillis,
+                    watchedThreshold = watchedThreshold,
+                    playbackIndex = playbackIndex,
+                )
+                rows += stats.toRow(
+                    path = rootPath,
+                    name = directory.name,
+                    parentPath = parentKey(rootPath),
+                    fromFileSystem = true,
+                )
+                indexedPaths += rootPath
+            }
+        }
+
+        // 4. Ensure anchors exist for intermediate ancestor directories within this branch
+        val anchorPaths = HashSet<String>()
+        for (path in indexedPaths) {
+            var current = parentKey(path)
+            while (current.isNotEmpty() && (rootPath == "/" || current.startsWith(rootPath))) {
+                if (current !in indexedPaths && anchorPaths.add(current)) {
+                    val file = File(current)
+                    rows += FolderAggregateEntity(
+                        path = current,
+                        parentPath = parentKey(current),
+                        name = file.name.ifEmpty { current },
+                        lastModified = file.lastModified() / 1000,
+                        isAnchor = true,
                     )
-                    queue.add(child)
                 }
+                val next = parentKey(current)
+                if (next == current || next.isEmpty()) break
+                current = next
             }
-            if (rows.isNotEmpty()) treeStore.upsert(rows)
-            levels++
+        }
+
+        // 5. Ensure direct subdirectories of `directory` are also present as anchors so empty folders appear
+        val directChildren = directory.listFiles()
+            ?.filter { it.isDirectory }
+            ?.filterNot { it.absolutePath in blacklistedFolders }
+            ?.filterNot { FileFilterUtils.shouldSkipFolder(it, policy) }
+            .orEmpty()
+
+        for (child in directChildren) {
+            val childPath = folderKey(child.absolutePath)
+            if (childPath !in indexedPaths && anchorPaths.add(childPath)) {
+                rows += FolderAggregateEntity(
+                    path = childPath,
+                    parentPath = rootPath,
+                    name = child.name,
+                    lastModified = child.lastModified() / 1000,
+                    isAnchor = true,
+                )
+            }
+        }
+
+        // 6. Ensure root itself is present as an anchor if still not added
+        if (rootPath !in indexedPaths && rootPath !in anchorPaths) {
+            rows += FolderAggregateEntity(
+                path = rootPath,
+                parentPath = parentKey(rootPath),
+                name = directory.name,
+                lastModified = directory.lastModified() / 1000,
+                isAnchor = true,
+            )
+        }
+
+        if (rows.isNotEmpty()) {
+            treeStore.upsert(rows)
         }
     }
 
-    /**
-     * Aggregates one directory from the provider, reconciling with its own listing so files the
-     * provider has not indexed yet still count.
-     */
-    private suspend fun buildRow(
-        context: Context,
-        child: File,
-        childPath: String,
-        parentPath: String,
-        policy: MediaScanPolicy,
-        showAudioFiles: Boolean,
-        currentTime: Long,
-        thresholdMillis: Long,
-        watchedThreshold: Int,
-        playbackIndex: PlaybackStateIndex,
-    ): FolderAggregateEntity {
-        val providerRows = MediaStoreDirectorySource.read(context, child)
-        val items = when {
-            providerRows == null -> listDirectMedia(child, policy).orEmpty()
-            else -> {
-                val merged = providerRows.toMutableList()
-                val known = merged.mapTo(HashSet()) { it.path }
-                listDirectMedia(child, policy)
-                    ?.filterNot { it.path in known }
-                    ?.let(merged::addAll)
-                merged
-            }
-        }
-        val stats = items.toDirectStats(
-            showAudioFiles = showAudioFiles,
-            currentTime = currentTime,
-            thresholdMillis = thresholdMillis,
-            watchedThreshold = watchedThreshold,
-            playbackIndex = playbackIndex,
-        )
-        return stats.toRow(
-            path = childPath,
-            name = child.name,
-            parentPath = parentPath,
-            fromFileSystem = providerRows == null,
-        )
-    }
+
 
     /**
      * Discovers only immediate children of the active directory that live behind a `.nomedia`
