@@ -15,6 +15,7 @@ import xyz.mpv.rex.domain.bookmark.repository.BookmarkRepository
 import xyz.mpv.rex.domain.recentlyplayed.repository.RecentlyPlayedRepository
 import xyz.mpv.rex.domain.thumbnail.ThumbnailRepository
 import xyz.mpv.rex.utils.storage.FolderAggregateRepository
+import xyz.mpv.rex.utils.storage.FolderAggregateSource
 import xyz.mpv.rex.utils.storage.MediaTreeStore
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
@@ -650,7 +651,7 @@ val DatabaseModule =
 
     singleOf(::PlaybackStateRepositoryImpl).bind(PlaybackStateRepository::class)
 
-    single { FolderAggregateRepository(get<MpvExDatabase>().folderAggregateDao()) }
+    single { FolderAggregateRepository(get<MpvExDatabase>().folderAggregateDao()) }.bind(FolderAggregateSource::class)
     single { MediaTreeStore(androidContext(), get()) }
 
     single {
