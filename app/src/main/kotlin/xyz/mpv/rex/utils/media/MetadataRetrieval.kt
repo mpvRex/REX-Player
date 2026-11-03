@@ -155,6 +155,22 @@ object MetadataRetrieval {
     }
 
     /**
+     * True when [video] still lacks metadata that the current preferences would display.
+     *
+     * This is the single definition of "needs enrichment": the caller deciding whether to run
+     * [enrichVideosIfNeeded] and [enrichVideosIfNeeded] itself both use it, so the decision to
+     * enrich and the set actually enriched can never disagree.
+     */
+    fun needsMetadata(
+        video: xyz.mpv.rex.domain.media.model.Video,
+        browserPreferences: BrowserPreferences,
+    ): Boolean {
+        if (video.duration <= 0L) return true
+        if (!isVideoMetadataNeeded(browserPreferences)) return false
+        return video.width == 0 || video.height == 0 || video.fps == 0f || video.subtitleCodec.isEmpty()
+    }
+
+    /**
      * Enriches a list of videos with metadata only if needed
      * Processes in batches for better performance
      */
@@ -169,7 +185,7 @@ object MetadataRetrieval {
         // Filter videos that need metadata extraction:
         // Always extract if duration is 0, or if chips are enabled and missing width/height/fps/subtitles
         val videosNeedingMetadata = videos.filter { video ->
-            video.duration <= 0L || (isMetadataNeeded && (video.width == 0 || video.height == 0 || video.fps == 0f || video.subtitleCodec.isEmpty()))
+            needsMetadata(video, browserPreferences)
         }
 
         if (videosNeedingMetadata.isEmpty()) {
