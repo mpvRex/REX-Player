@@ -1,6 +1,7 @@
 package xyz.mpv.rex.ui.browser.filesystem
 
 import android.app.Application
+import android.os.Environment
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -18,6 +19,8 @@ import xyz.mpv.rex.utils.media.MetadataRetrieval
 import xyz.mpv.rex.utils.media.PlaybackStateIndex
 import xyz.mpv.rex.utils.sort.SortUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
+import xyz.mpv.rex.utils.storage.MediaTreeStore
+import xyz.mpv.rex.utils.storage.folderKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,16 +45,16 @@ import java.io.File
  */
 class FileSystemBrowserViewModel(
   application: Application,
-  initialPath: String? = null,
+  private val initialPath: String? = null,
 ) : BaseBrowserViewModel<FileSystemItem>(application),
   KoinComponent {
   private val foldersPreferences: xyz.mpv.rex.preferences.FoldersPreferences by inject()
   private val appearancePreferences: xyz.mpv.rex.preferences.AppearancePreferences by inject()
   private val pinnedItemRepository: xyz.mpv.rex.domain.pinned.PinnedItemRepository by inject()
+  private val treeStore: MediaTreeStore by inject()
 
   // Special marker for "show storage volumes" mode
 
-  private var homeDirectory: String? = null
   private var isRootResolved = false
 
   private val _currentPath = MutableStateFlow(initialPath ?: STORAGE_ROOTS_MARKER)
@@ -91,14 +94,7 @@ class FileSystemBrowserViewModel(
   private val _breadcrumbs = MutableStateFlow<List<PathComponent>>(emptyList())
   val breadcrumbs: StateFlow<List<PathComponent>> = _breadcrumbs.asStateFlow()
 
-  val isAtRoot: StateFlow<Boolean> =
-    MutableStateFlow(initialPath == null).apply {
-      viewModelScope.launch {
-        _currentPath.collect { path ->
-          value = path == STORAGE_ROOTS_MARKER || path == homeDirectory
-        }
-      }
-    }
+  val isAtRoot: StateFlow<Boolean> = MutableStateFlow(initialPath == null).asStateFlow()
 
   private val _itemsWereDeletedOrMoved = MutableStateFlow(false)
   val itemsWereDeletedOrMoved: StateFlow<Boolean> = _itemsWereDeletedOrMoved.asStateFlow()
@@ -121,23 +117,30 @@ class FileSystemBrowserViewModel(
   }
 
   init {
+    val defaultTarget = initialPath ?: runCatching { Environment.getExternalStorageDirectory()?.absolutePath }.getOrNull() ?: "/storage/emulated/0"
+    _currentPath.value = defaultTarget
+    _breadcrumbs.value = if (initialPath == null) emptyList() else MediaFileRepository.getPathComponents(defaultTarget)
+
+    // Cache-first immediate render: load persisted snapshot directly from Room (0 ms spinner)
+    viewModelScope.launch(Dispatchers.IO) {
+      loadCachedSnapshot(defaultTarget)
+    }
+
     if (initialPath == null) {
       viewModelScope.launch(Dispatchers.IO) {
         val roots = MediaFileRepository.getStorageRoots(getApplication())
         if (roots.size == 1) {
           val singleRoot = roots.first()
-          homeDirectory = singleRoot.path
           _currentPath.value = singleRoot.path
         } else {
-          homeDirectory = null
+          _currentPath.value = STORAGE_ROOTS_MARKER
         }
         isRootResolved = true
-        loadData()
+        loadCurrentDirectory(silent = _unsortedItems.value.isNotEmpty())
       }
     } else {
-      homeDirectory = initialPath
       isRootResolved = true
-      loadData()
+      loadCurrentDirectory(silent = _unsortedItems.value.isNotEmpty())
     }
 
     // Note: BaseBrowserViewModel handles reactive updates for media library and playback changes.
@@ -189,7 +192,11 @@ class FileSystemBrowserViewModel(
   }
 
   override fun loadData() {
-    loadCurrentDirectory()
+    loadCurrentDirectory(silent = false)
+  }
+
+  fun loadData(silent: Boolean) {
+    loadCurrentDirectory(silent = silent)
   }
 
   override fun refresh(silent: Boolean) {
@@ -336,22 +343,69 @@ class FileSystemBrowserViewModel(
     return ok
   }
 
-  private fun loadCurrentDirectory() {
+  private suspend fun loadCachedSnapshot(path: String) {
+    try {
+      if (path == STORAGE_ROOTS_MARKER) return
+      val snapshot = treeStore.snapshot(
+        context = getApplication(),
+        flattenFolders = browserPreferences.flattenFolders.get(),
+        showAudioFiles = browserPreferences.showAudioFiles.get(),
+      )
+      val cachedFolders = snapshot
+        .effectiveChildren(folderKey(path), flattenForNavigation = false)
+        .filter { node ->
+          browserPreferences.showAudioFiles.get() || node.recursiveVideoCount > 0
+        }
+        .map { node ->
+          val folderData = snapshot.toMediaFolder(node, recursive = true)
+          FileSystemItem.Folder(
+            name = folderData.name,
+            path = folderData.path,
+            lastModified = folderData.lastModified,
+            videoCount = folderData.videoCount,
+            audioCount = folderData.audioCount,
+            totalSize = folderData.totalSize,
+            totalDuration = folderData.totalDuration,
+            videoSize = folderData.videoSize,
+            audioSize = folderData.audioSize,
+            videoDuration = folderData.videoDuration,
+            audioDuration = folderData.audioDuration,
+            hasSubfolders = folderData.hasSubfolders,
+            newCount = folderData.newCount,
+            unwatchedVideoCount = folderData.unwatchedVideoCount,
+          )
+        }
+      if (cachedFolders.isNotEmpty() && _unsortedItems.value.isEmpty()) {
+        _unsortedItems.value = cachedFolders
+        _isLoading.value = false
+      }
+    } catch (e: Exception) {
+      Log.d(TAG, "Cache-first snapshot load skipped", e)
+    }
+  }
+
+  private fun loadCurrentDirectory(silent: Boolean = false) {
     if (!isRootResolved) return
     directoryLoadJob?.cancel()
     directoryLoadJob = viewModelScope.launch(Dispatchers.IO) {
-      _isLoading.value = true
+      if (!silent && _unsortedItems.value.isEmpty()) {
+        _isLoading.value = true
+      }
       _error.value = null
 
       try {
         val path = _currentPath.value
+        _breadcrumbs.value = if (path == STORAGE_ROOTS_MARKER || initialPath == null) {
+          emptyList()
+        } else {
+          MediaFileRepository.getPathComponents(path)
+        }
+
         if (path == STORAGE_ROOTS_MARKER) {
-          _breadcrumbs.value = emptyList()
           val roots = MediaFileRepository.getStorageRoots(getApplication())
           _unsortedItems.value = roots
           _isLoading.value = false
         } else {
-          _breadcrumbs.value = MediaFileRepository.getPathComponents(path)
           MediaFileRepository
             .scanDirectory(getApplication(), path, showAllFileTypes = false)
             .onSuccess { items ->
