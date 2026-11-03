@@ -14,6 +14,7 @@ import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.repository.MediaFileRepository
 import xyz.mpv.rex.ui.browser.base.BaseBrowserViewModel
 import xyz.mpv.rex.utils.storage.VideoScanUtils
+import xyz.mpv.rex.utils.media.PlaybackStateIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -100,11 +101,12 @@ class PlaylistDetailViewModel(
       _isLoading.value = true
       try {
         val playbackStates = playbackStateRepository.getAllPlaybackStates()
+        val playbackIndex = PlaybackStateIndex.of(playbackStates)
 
         if (playlistId == PlaylistViewModel.ID_RECENTLY_ADDED) {
           val videos = VideoScanUtils.getRecentlyAddedVideos(getApplication(), limit = 100)
           val videoItemsList = videos.mapIndexed { index, v ->
-            val state = playbackStates.find { it.mediaTitle == v.path || it.mediaTitle == v.displayName }
+            val state = playbackIndex.forVideoPathOrName(v.path, v.displayName)
             val video = if (state?.savedOrientation != null) v.copy(savedOrientation = state.savedOrientation) else v
             PlaylistVideoItem(
               playlistItem = PlaylistItemEntity(
@@ -125,7 +127,7 @@ class PlaylistDetailViewModel(
         if (playlistId == PlaylistViewModel.ID_MOST_PLAYED) {
           val videos = mediaPlayCountRepository.getMostPlayedVideos(getApplication(), limit = 100)
           val videoItemsList = videos.mapIndexed { index, v ->
-            val state = playbackStates.find { it.mediaTitle == v.path || it.mediaTitle == v.displayName }
+            val state = playbackIndex.forVideoPathOrName(v.path, v.displayName)
             val video = if (state?.savedOrientation != null) v.copy(savedOrientation = state.savedOrientation) else v
             PlaylistVideoItem(
               playlistItem = PlaylistItemEntity(
@@ -181,7 +183,7 @@ class PlaylistDetailViewModel(
                 )
                 
                 // Map saved orientation
-                val state = playbackStates.find { it.mediaTitle == item.filePath || it.mediaTitle == video.displayName }
+                val state = playbackIndex.forVideoPathOrName(item.filePath, video.displayName)
                 if (state?.savedOrientation != null) {
                   video = video.copy(savedOrientation = state.savedOrientation)
                 }
@@ -199,7 +201,7 @@ class PlaylistDetailViewModel(
               var matchedVideo = allVideos.find { video -> video.path == item.filePath }
               if (matchedVideo != null) {
                 // Map saved orientation
-                val state = playbackStates.find { it.mediaTitle == matchedVideo.path || it.mediaTitle == matchedVideo.displayName }
+                val state = playbackIndex.forVideoPathOrName(matchedVideo.path, matchedVideo.displayName)
                 if (state?.savedOrientation != null) {
                   matchedVideo = matchedVideo.copy(savedOrientation = state.savedOrientation)
                 }

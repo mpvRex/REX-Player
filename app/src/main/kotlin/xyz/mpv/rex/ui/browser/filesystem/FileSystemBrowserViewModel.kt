@@ -15,6 +15,7 @@ import xyz.mpv.rex.repository.MediaFileRepository
 import xyz.mpv.rex.ui.browser.base.BaseBrowserViewModel
 import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.MetadataRetrieval
+import xyz.mpv.rex.utils.media.PlaybackStateIndex
 import xyz.mpv.rex.utils.sort.SortUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import kotlinx.coroutines.CancellationException
@@ -371,8 +372,14 @@ class FileSystemBrowserViewModel(
                 items
               }
 
+              // Publish the directory contents right away so the list is on screen and the loading
+              // indicator stops. Badges (watched/progress/new) are applied just below.
+              _unsortedItems.value = filteredItems
+              _isLoading.value = false
+
               // 1. Map playback info on basic items immediately (fast, local DB query)
               val basicPlaybackStates = playbackStateRepository.getAllPlaybackStates()
+              val basicPlaybackIndex = PlaybackStateIndex.of(basicPlaybackStates)
               val basicPlaybackMap = mutableMapOf<Long, Float>()
               val basicNewIds = mutableSetOf<Long>()
               val basicWatchedIds = mutableSetOf<Long>()
@@ -402,7 +409,7 @@ class FileSystemBrowserViewModel(
               val basicEnrichedItems = preEnrichedItems.map { item ->
                 if (item is FileSystemItem.VideoFile) {
                   val video = item.video
-                  val state = basicPlaybackStates.find { it.mediaTitle == video.path || it.mediaTitle == video.displayName }
+                  val state = basicPlaybackIndex.forVideoPathOrName(video.path, video.displayName)
                   
                   var updatedVideo = video
                   if (state != null) {
@@ -465,6 +472,7 @@ class FileSystemBrowserViewModel(
                   
                   // Re-apply playback states to the enriched videos
                   val finalPlaybackStates = playbackStateRepository.getAllPlaybackStates()
+                  val finalPlaybackIndex = PlaybackStateIndex.of(finalPlaybackStates)
                   val finalPlaybackMap = mutableMapOf<Long, Float>()
                   val finalNewIds = mutableSetOf<Long>()
                   val finalWatchedIds = mutableSetOf<Long>()
@@ -477,7 +485,7 @@ class FileSystemBrowserViewModel(
                     when (item) {
                       is FileSystemItem.VideoFile -> {
                         var video = enrichedVideoMap[item.video.id] ?: item.video
-                        val state = finalPlaybackStates.find { it.mediaTitle == video.path || it.mediaTitle == video.displayName }
+                        val state = finalPlaybackIndex.forVideoPathOrName(video.path, video.displayName)
                         
                         if (state != null) {
                           if (state.savedOrientation != null) {
