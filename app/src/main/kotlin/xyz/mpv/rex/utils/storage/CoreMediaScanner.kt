@@ -322,7 +322,7 @@ object CoreMediaScanner {
         )
 
         val foldersByPath = snapshot
-            .effectiveChildren(folderKey(parentPath), flattenForNavigation = false)
+            .effectiveChildren(folderKey(parentPath))
             .filter { node ->
                 val hasMedia = if (showAudioFiles) {
                     node.recursiveVideoCount > 0 || node.recursiveAudioCount > 0

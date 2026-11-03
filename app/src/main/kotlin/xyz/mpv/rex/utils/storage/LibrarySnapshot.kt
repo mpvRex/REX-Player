@@ -29,29 +29,25 @@ internal class LibrarySnapshot(
     /**
      * Direct children with flattened folders collapsed out of the way.
      *
-     * A folder is only ever collapsed when exactly one of its children bears media, so this can
-     * never promote a sibling into the place of a folder that is merely empty or unindexed.
-     *
-     * Collapsing is **disabled for [parentPath] itself**: in a drill-down tree the folder's own row
-     * is the only way to reach what is below it, so replacing it with a grandchild removes the
-     * only tap target. That is what made the tree appear empty (the root's top-level folders were
-     * consumed, leaving only media-less leaves, which the listing then filters out).
-     * `flattenForNavigation = false` disables the promotion entirely.
+     * A folder is collapsed when it has no direct media and only one media-bearing child,
+     * hoisting that child forward in the tree view.
      */
-    fun effectiveChildren(
-        parentPath: String,
-        flattenForNavigation: Boolean = true,
-    ): List<TreeNode> {
+    fun effectiveChildren(parentPath: String): List<TreeNode> {
         val direct = childrenOf(parentPath)
-        if (!flattenForNavigation) return direct
-        if (direct.none { it.path in flattenedPaths }) return direct
+        if (flattenedPaths.isEmpty() || direct.none { it.path in flattenedPaths }) return direct
         val result = mutableListOf<TreeNode>()
-        for (child in direct) {
-            if (child.path in flattenedPaths) {
-                result += effectiveChildren(child.path, flattenForNavigation = false)
+        val visited = HashSet<String>()
+        fun collect(node: TreeNode) {
+            if (node.path in flattenedPaths && visited.add(node.path)) {
+                for (child in childrenOf(node.path)) {
+                    collect(child)
+                }
             } else {
-                result += child
+                result += node
             }
+        }
+        for (child in direct) {
+            collect(child)
         }
         return result
     }

@@ -237,14 +237,14 @@ class CoreMediaScannerTest {
     File(videoFolder, "clip.mp4").apply { writeText("video") }
     File(musicFolder, "song.mp3").apply { writeText("audio") }
 
-    // The tree shows the real hierarchy; what `showAudioFiles` changes is the audio counts the
-    // folder advertises, not which folders are reachable.
+    // With flattening enabled and showAudioFiles=false, Downloads only leads to Video, so it collapses to Video.
     val foldersAudioFalse = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
-    assertEquals(listOf("Downloads"), foldersAudioFalse.map { it.name })
+    assertEquals(listOf("Video"), foldersAudioFalse.map { it.name })
 
     CoreMediaScanner.clearCache()
     every { browserPreferences.showAudioFiles.get() } returns true
 
+    // With showAudioFiles=true, Downloads leads to both Video and Music, so Downloads does not collapse.
     val foldersAudioTrue = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
     assertEquals(listOf("Downloads"), foldersAudioTrue.map { it.name })
     assertEquals(1, foldersAudioTrue.single().audioCount)
@@ -260,14 +260,14 @@ class CoreMediaScannerTest {
     File(downloads, "song.mp3").apply { writeText("audio") }
     File(videoFolder, "clip.mp4").apply { writeText("video") }
 
-    // A tree listing never promotes a folder into its parent's place: `Downloads` is the only
-    // row the user can tap to reach `Video`, so it must stay even though it holds no video.
+    // With audio disabled, Downloads only leads to Video, so it collapses to Video.
     val foldersAudioFalse = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
-    assertEquals(listOf("Downloads"), foldersAudioFalse.map { it.name })
+    assertEquals(listOf("Video"), foldersAudioFalse.map { it.name })
 
     CoreMediaScanner.clearCache()
     every { browserPreferences.showAudioFiles.get() } returns true
 
+    // With audio enabled, Downloads has direct audio, so it does not collapse.
     val foldersAudioTrue = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
     assertEquals(listOf("Downloads"), foldersAudioTrue.map { it.name })
   }
@@ -334,9 +334,8 @@ class CoreMediaScannerTest {
 
     val folders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
 
-    // A tree listing keeps the chain intact: `Downloads` is the only way to reach `Anime`, and the
-    // recursive total still rolls up so the row is not blank.
-    assertEquals(listOf("Downloads"), folders.map { it.name })
+    // A real one-child chain is collapsed, and the leaf keeps its media counts.
+    assertEquals(listOf("Anime"), folders.map { it.name })
     assertEquals(1, folders.single().videoCount)
   }
 
@@ -427,9 +426,9 @@ class CoreMediaScannerTest {
     assertEquals(listOf("Season 1"), animeLevel.map { it.name })
     assertEquals(1, animeLevel.single().videoCount)
 
-    // And the root still shows Anime with the same recursive total.
+    // Under Download, Anime only leads to Season 1, so it collapses to Season 1.
     val rootLevel = CoreMediaScanner.getFoldersInDirectory(context, parentPath = download.absolutePath)
-    assertEquals(listOf("Anime"), rootLevel.map { it.name })
+    assertEquals(listOf("Season 1"), rootLevel.map { it.name })
     assertEquals(1, rootLevel.single().videoCount)
   }
 
@@ -461,11 +460,12 @@ class CoreMediaScannerTest {
   }
 
   /**
-   * A single-child chain under a top-level folder is the common real layout (Download/Anime/).
-   * Launching must still show `Download`, not swallow it into `Anime`.
+   * Option 2: When flattenFolders is enabled, single-child chains without direct media
+   * collapse directly to the media folder (e.g. Download -> Anime). When disabled,
+   * the full hierarchy is preserved.
    */
   @Test
-  fun foldersInDirectory_storageRootShowsTopLevelFolderNotItsGrandchild() = runTest {
+  fun foldersInDirectory_singleChildChainFlattenedOrPreservedBasedOnPreference() = runTest {
     every { browserPreferences.showAudioFiles.get() } returns false
     every { browserPreferences.flattenFolders.get() } returns true
 
@@ -475,12 +475,23 @@ class CoreMediaScannerTest {
 
     mockMediaStoreRows(videoFiles = listOf(File(anime, "ep1.mkv")))
 
-    val folders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+    val flattenedFolders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
 
     assertEquals(
-      "The storage root must list its own top-level folder",
+      "When flattenFolders is true, single-child Download collapses into Anime",
+      listOf("Anime"),
+      flattenedFolders.map { it.name },
+    )
+
+    CoreMediaScanner.clearCache()
+    every { browserPreferences.flattenFolders.get() } returns false
+
+    val unflattenedFolders = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+
+    assertEquals(
+      "When flattenFolders is false, Download stays unflattened",
       listOf("Download"),
-      folders.map { it.name },
+      unflattenedFolders.map { it.name },
     )
   }
 

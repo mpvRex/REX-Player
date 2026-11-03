@@ -348,7 +348,7 @@ class FileSystemBrowserViewModel(
         showAudioFiles = browserPreferences.showAudioFiles.get(),
       )
       val cachedFolders = snapshot
-        .effectiveChildren(folderKey(path), flattenForNavigation = false)
+        .effectiveChildren(folderKey(path))
         .filter { node ->
           if (browserPreferences.showAudioFiles.get()) {
             node.recursiveVideoCount > 0 || node.recursiveAudioCount > 0
