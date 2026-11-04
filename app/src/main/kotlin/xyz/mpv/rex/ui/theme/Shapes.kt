@@ -1,5 +1,6 @@
 package xyz.mpv.rex.ui.theme
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Shapes
@@ -15,6 +16,16 @@ import kotlin.math.sin
 
 val compactControlShape = RoundedCornerShape(12.dp)
 val pillShape = RoundedCornerShape(percent = 50)
+
+object ExpressiveShapeTokens {
+    val CardRadius = 24.dp
+    val LargeCardRadius = 28.dp
+    val InnerCardRadius = 6.dp
+    val Squircle = RoundedCornerShape(14.dp)
+    val Pill = CircleShape
+    val BottomSheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+    val TopSheet = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 28.dp, bottomEnd = 28.dp)
+}
 
 /**
  * Material 3 Expressive Flower / Clover shape for FABs and badges.
@@ -58,8 +69,8 @@ val AppShapes =
         small = RoundedCornerShape(10.dp),
         medium = RoundedCornerShape(14.dp),
         large = RoundedCornerShape(18.dp),
-        extraLarge = RoundedCornerShape(24.dp),
-        largeIncreased = RoundedCornerShape(22.dp),
-        extraLargeIncreased = RoundedCornerShape(28.dp),
-        extraExtraLarge = RoundedCornerShape(36.dp),
+        extraLarge = RoundedCornerShape(20.dp),
+        largeIncreased = RoundedCornerShape(20.dp),
+        extraLargeIncreased = RoundedCornerShape(24.dp),
+        extraExtraLarge = RoundedCornerShape(28.dp),
     )

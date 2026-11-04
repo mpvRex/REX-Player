@@ -15,6 +15,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -393,6 +394,44 @@ private val pureBlackColorScheme =
 
 internal var darkColorScheme = darkColorScheme()
 
+fun ColorScheme.toAmoledElevationScheme(): ColorScheme = this.copy(
+    background = androidx.compose.ui.graphics.Color.Black,
+    surface = androidx.compose.ui.graphics.Color.Black,
+    surfaceDim = androidx.compose.ui.graphics.Color.Black,
+    surfaceBright = androidx.compose.ui.graphics.Color(0xFF2A2A2A),
+    surfaceContainerLowest = androidx.compose.ui.graphics.Color.Black,
+    surfaceContainerLow = androidx.compose.ui.graphics.Color(0xFF0A0A0A),
+    surfaceContainer = androidx.compose.ui.graphics.Color(0xFF121212),
+    surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
+    surfaceContainerHighest = androidx.compose.ui.graphics.Color(0xFF2A2A2A),
+)
+
+fun resolveColorScheme(
+    appTheme: AppTheme,
+    themePreset: String,
+    themeIntensity: String,
+    useDarkTheme: Boolean,
+    isAmoled: Boolean,
+    context: android.content.Context,
+): ColorScheme {
+    val baseScheme = when {
+        appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        themePreset.isNotEmpty() && themePreset != "Default" -> {
+            getPresetColorScheme(name = themePreset, darkTheme = useDarkTheme, intensity = themeIntensity)
+        }
+        useDarkTheme -> appTheme.getDarkColorScheme()
+        else -> appTheme.getLightColorScheme()
+    }
+
+    return if (isAmoled) {
+        baseScheme.toAmoledElevationScheme()
+    } else {
+        baseScheme
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MpvexTheme(content: @Composable () -> Unit) {
@@ -400,6 +439,8 @@ fun MpvexTheme(content: @Composable () -> Unit) {
   val darkMode by preferences.darkMode.collectAsState()
   val amoledMode by preferences.amoledMode.collectAsState()
   val appTheme by preferences.appTheme.collectAsState()
+  val themePreset by preferences.themePreset.collectAsState()
+  val themeIntensity by preferences.themeIntensity.collectAsState()
   val useSystemFont by preferences.useSystemFont.collectAsState()
   val darkTheme = isSystemInDarkTheme()
   val context = LocalContext.current
@@ -411,31 +452,14 @@ fun MpvexTheme(content: @Composable () -> Unit) {
     }
 
     val isAmoled = useDarkTheme && amoledMode
-
-    val colorScheme = when {
-        appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            when {
-                isAmoled -> {
-                    dynamicDarkColorScheme(context).copy(
-                        background = backgroundPureBlack,
-                        surface = surfacePureBlack,
-                        surfaceDim = surfaceDimPureBlack,
-                        surfaceBright = surfaceBrightPureBlack,
-                        surfaceContainerLowest = surfaceContainerLowestPureBlack,
-                        surfaceContainerLow = surfaceContainerLowPureBlack,
-                        surfaceContainer = surfaceContainerPureBlack,
-                        surfaceContainerHigh = surfaceContainerHighPureBlack,
-                        surfaceContainerHighest = surfaceContainerHighestPureBlack,
-                    )
-                }
-                useDarkTheme -> dynamicDarkColorScheme(context)
-                else -> dynamicLightColorScheme(context)
-            }
-        }
-        isAmoled -> appTheme.getAmoledColorScheme()
-        useDarkTheme -> appTheme.getDarkColorScheme()
-        else -> appTheme.getLightColorScheme()
-    }
+    val colorScheme = resolveColorScheme(
+        appTheme = appTheme,
+        themePreset = themePreset,
+        themeIntensity = themeIntensity,
+        useDarkTheme = useDarkTheme,
+        isAmoled = isAmoled,
+        context = context,
+    )
 
     // Provide theme transition state first, OUTSIDE MaterialTheme
     CompositionLocalProvider(
@@ -463,6 +487,8 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val darkMode by preferences.darkMode.collectAsState()
     val amoledMode by preferences.amoledMode.collectAsState()
     val appTheme by preferences.appTheme.collectAsState()
+    val themePreset by preferences.themePreset.collectAsState()
+    val themeIntensity by preferences.themeIntensity.collectAsState()
     val useSystemFont by preferences.useSystemFont.collectAsState()
     val darkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
@@ -478,30 +504,15 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
         }
     }
 
-    val colorScheme = when {
-        appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            when {
-                useDarkTheme && amoledMode -> {
-                    dynamicDarkColorScheme(context).copy(
-                        background = backgroundPureBlack,
-                        surface = surfacePureBlack,
-                        surfaceDim = surfaceDimPureBlack,
-                        surfaceBright = surfaceBrightPureBlack,
-                        surfaceContainerLowest = surfaceContainerLowestPureBlack,
-                        surfaceContainerLow = surfaceContainerLowPureBlack,
-                        surfaceContainer = surfaceContainerPureBlack,
-                        surfaceContainerHigh = surfaceContainerHighPureBlack,
-                        surfaceContainerHighest = surfaceContainerHighestPureBlack,
-                    )
-                }
-                useDarkTheme -> dynamicDarkColorScheme(context)
-                else -> dynamicLightColorScheme(context)
-            }
-        }
-        useDarkTheme && amoledMode -> appTheme.getAmoledColorScheme()
-        useDarkTheme -> appTheme.getDarkColorScheme()
-        else -> appTheme.getLightColorScheme()
-    }
+    val isAmoled = useDarkTheme && amoledMode
+    val colorScheme = resolveColorScheme(
+        appTheme = appTheme,
+        themePreset = themePreset,
+        themeIntensity = themeIntensity,
+        useDarkTheme = useDarkTheme,
+        isAmoled = isAmoled,
+        context = context,
+    )
 
     // Provide theme transition state first, OUTSIDE MaterialTheme
     CompositionLocalProvider(

@@ -103,6 +103,45 @@
     <string name="theme_kanagawa">Kanagawa</string>
     <string name="theme_rose_pine">Rosé Pine</string>
 
+    <!-- M3 Expressive Theme Presets -->
+    <string name="theme_preset_warm">Warm</string>
+    <string name="theme_preset_warm_desc">Energetic sunset tangerine</string>
+    <string name="theme_preset_cool">Cool</string>
+    <string name="theme_preset_cool_desc">Clean deep sky blue</string>
+    <string name="theme_preset_forest">Forest</string>
+    <string name="theme_preset_forest_desc">Organic evergreen and earth tone</string>
+    <string name="theme_preset_rose">Rose</string>
+    <string name="theme_preset_rose_desc">Vibrant raspberry and magenta</string>
+    <string name="theme_preset_monochrome">Monochrome</string>
+    <string name="theme_preset_monochrome_desc">Minimalist grayscale</string>
+    <string name="theme_preset_lavender">Lavender</string>
+    <string name="theme_preset_lavender_desc">Futuristic electric violet</string>
+    <string name="theme_preset_ocean">Ocean</string>
+    <string name="theme_preset_ocean_desc">Deep marine cyan and teal</string>
+    <string name="theme_preset_aurora">Aurora</string>
+    <string name="theme_preset_aurora_desc">Luminous neon mint and emerald</string>
+    <string name="theme_preset_amber">Amber</string>
+    <string name="theme_preset_amber_desc">Rich honey amber and gold</string>
+    <string name="theme_preset_crimson">Crimson</string>
+    <string name="theme_preset_crimson_desc">Deep crimson and ruby</string>
+    <string name="theme_preset_emerald">Emerald</string>
+    <string name="theme_preset_emerald_desc">Jade and mint jewel tone</string>
+    <string name="theme_preset_mint">Mint</string>
+    <string name="theme_preset_mint_desc">Fresh oceanic turquoise</string>
+
+    <!-- Appearance Preferences - M3 Expressive -->
+    <string name="pref_appearance_theme_preset_title">Theme preset</string>
+    <string name="pref_appearance_theme_preset_summary">Choose an expressive dynamic color palette</string>
+    <string name="pref_appearance_theme_intensity_title">Theme intensity</string>
+    <string name="pref_appearance_theme_intensity_summary">Adjust color saturation and contrast</string>
+    <string name="pref_appearance_theme_intensity_standard">Standard</string>
+    <string name="pref_appearance_theme_intensity_medium">Medium</string>
+    <string name="pref_appearance_theme_intensity_vivid">Vivid</string>
+    <string name="pref_appearance_use_artwork_theme_title">Artwork dynamic theme</string>
+    <string name="pref_appearance_use_artwork_theme_summary">Tint player and interface using media artwork</string>
+    <string name="pref_appearance_settings_badge_shape_title">Settings badge shape</string>
+    <string name="pref_appearance_settings_badge_shape_summary">Choose squircle or circular badges in settings</string>
+
     <!-- Settings Search -->
     <string name="settings_search_hint">Search settings…</string>
     <string name="settings_search_no_results">No settings found</string>

@@ -22,6 +22,10 @@ class AppearancePreferences(
 ) {
   val darkMode = preferenceStore.getEnum("dark_mode", DarkMode.System)
   val appTheme = preferenceStore.getEnum("app_theme", AppTheme.Default)
+  val themePreset = preferenceStore.getString("theme_preset", "Default")
+  val themeIntensity = preferenceStore.getString("theme_intensity", "STANDARD")
+  val useArtworkTheme = preferenceStore.getBoolean("use_artwork_theme", false)
+  val settingsBadgeShape = preferenceStore.getString("settings_badge_shape", "SQUIRCLE")
   val appLanguage = preferenceStore.getString("app_language", "")
   val onboardingCompleted = preferenceStore.getBoolean("onboarding_completed", false)
   val materialYou = preferenceStore.getBoolean("material_you", true)
