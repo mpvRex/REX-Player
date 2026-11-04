@@ -52,10 +52,13 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -540,15 +543,24 @@ fun MiniPlayer(
               label = "miniPlayerProgress"
             )
 
-            LinearProgressIndicator(
+            val isPlaying = !state.isPaused
+            val animatedAmplitude by animateFloatAsState(
+              targetValue = if (isPlaying) 1f else 0f,
+              animationSpec = tween(300),
+              label = "miniPlayerWaveAmp"
+            )
+
+            @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+            LinearWavyProgressIndicator(
               progress = { animatedProgress },
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 5.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
-                .height(4.dp)
-                .clip(pillShape),
+                .padding(top = 5.dp, bottom = 8.dp, start = 16.dp, end = 16.dp),
               color = MaterialTheme.colorScheme.primary,
               trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+              amplitude = { p -> if (p > 0f) animatedAmplitude else 0f },
+              wavelength = WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
+              waveSpeed = WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2f,
             )
           }
         }

@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +59,10 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import xyz.mpv.rex.utils.HapticType
+import xyz.mpv.rex.utils.HapticUtils
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -320,9 +325,18 @@ fun SeekbarWithTimers(
       contentAlignment = Alignment.Center,
     ) {
 
+      val context = LocalContext.current
+      val hapticFeedback = LocalHapticFeedback.current
+      var lastHapticSecond by remember { mutableIntStateOf(Int.MIN_VALUE) }
+
       val handleSeek: (Float) -> Unit = { newPosition ->
         if (!isUserInteracting) isUserInteracting = true
         userPosition = newPosition
+        val currentSec = newPosition.toInt()
+        if (currentSec != lastHapticSecond) {
+          lastHapticSecond = currentSec
+          HapticUtils.performHapticFeedback(context, hapticFeedback, HapticType.LIGHT)
+        }
         onValueChange(newPosition)
       }
 
