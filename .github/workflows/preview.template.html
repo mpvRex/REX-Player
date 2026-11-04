@@ -1,742 +1,2174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="system">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REX Player Preview Build</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #05070a;
-            --card-bg: #0d1117;
-            --card-border: #21262d;
-            --primary-blue: #2563eb;
-            --primary-blue-hover: #1d4ed8;
-            --text-main: #e6edf3;
-            --text-secondary: #8b949e;
-            --accent-green: #238636;
-            --accent-yellow: #d29922;
-            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <!-- Browser chrome color. Two media-qualified tags cover the "system" mode
+       natively; when the user picks Light/Dark explicitly, script disables the
+       media attribute so the matching value wins regardless of the OS. -->
+  <meta name="theme-color" content="#3D4355" media="(prefers-color-scheme: dark)" data-theme-color="dark">
+  <meta name="theme-color" content="#CACFE0" media="(prefers-color-scheme: light)" data-theme-color="light">
+  <meta name="description"
+    content="Download the latest REX Player preview APKs — automatically built and signed from every commit.">
+  <title>REX Player — Preview Build</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,100..900&family=Roboto+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <script>
+    // Apply the saved theme before first paint to avoid a flash of the wrong theme.
+    // Storage access is wrapped per-statement: under file:// or blocked storage,
+    // one call throwing must not stop the others from applying.
+    (function () {
+      var d = document.documentElement;
+      var t = null;
+
+      try {
+        var saved = localStorage.getItem('rex-theme');
+        if (saved === 'light' || saved === 'dark' || saved === 'system') t = saved;
+      } catch (e) { }
+
+      try {
+        var q = new URLSearchParams(location.search).get('theme');
+        if (q === 'light' || q === 'dark' || q === 'system') t = q;
+      } catch (e) { }
+
+      if (t && t !== 'system') d.setAttribute('data-theme', t);
+
+      // Pin the browser chrome color for explicit modes; "system" keeps its media tags.
+      if (t && t !== 'system') {
+        var metas = document.querySelectorAll('meta[data-theme-color]');
+        for (var i = 0; i < metas.length; i++) {
+          if (metas[i].getAttribute('data-theme-color') !== t) metas[i].remove();
+          else metas[i].removeAttribute('media');
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: var(--font-family);
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-        }
-
-        /* Background Glows */
-        .glow {
-            position: fixed;
-            width: 600px;
-            height: 600px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0) 70%);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .glow-top-right {
-            top: -200px;
-            right: -200px;
-        }
-
-        .glow-bottom-left {
-            bottom: -200px;
-            left: -200px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* Navbar */
-        header {
-            padding: 24px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 700;
-            font-size: 24px;
-            text-decoration: none;
-            color: var(--text-main);
-        }
-
-        .logo svg {
-            width: 32px;
-            height: 32px;
-        }
-
-        nav {
-            display: flex;
-            gap: 24px;
-            align-items: center;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        nav a:hover,
-        nav a.active {
-            color: var(--text-main);
-        }
-
-        nav a.active {
-            border-bottom: 2px solid var(--primary-blue);
-            padding-bottom: 4px;
-        }
-
-        .github-link {
-            display: flex;
-            align-items: center;
-            color: var(--text-secondary);
-            transition: color 0.2s;
-        }
-
-        .github-link:hover {
-            color: var(--text-main);
-        }
-
-        /* Hero Section */
-        .hero {
-            text-align: center;
-            padding: 60px 0 40px;
-        }
-
-        .hero h1 {
-            font-size: 64px;
-            font-weight: 800;
-            background: linear-gradient(180deg, #fff 0%, #a5c2ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-            letter-spacing: -0.02em;
-        }
-
-        .version-badge {
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid var(--primary-blue);
-            color: var(--primary-blue);
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 16px;
-            display: inline-block;
-            margin-bottom: 24px;
-        }
-
-        .build-info {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(35, 134, 54, 0.05);
-            border: 1px solid rgba(35, 134, 54, 0.2);
-            color: #3fb950;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #3fb950;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #3fb950;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.5;
-                transform: scale(1.2);
-            }
-
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        /* Download Section */
-        .section-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-        }
-
-        .section-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .section-title svg {
-            color: var(--primary-blue);
-        }
-
-        .section-title h2 {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .section-title p {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-top: 4px;
-        }
-
-        .signed-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--primary-blue);
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .download-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .download-item {
-            display: flex;
-            align-items: center;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            transition: border-color 0.2s, background 0.2s;
-            gap: 12px;
-        }
-
-        .download-item:hover {
-            border-color: rgba(37, 99, 235, 0.4);
-            background: rgba(37, 99, 235, 0.03);
-        }
-
-        .download-item.recommended {
-            border: 1px solid var(--primary-blue);
-            background: rgba(37, 99, 235, 0.05);
-        }
-
-        .item-icon {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-blue);
-        }
-
-        .download-item.recommended .item-icon {
-            background: rgba(37, 99, 235, 0.1);
-        }
-
-        .item-info {
-            flex-grow: 1;
-        }
-
-        .item-name {
-            font-size: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            column-gap: 8px;
-        }
-
-        .recommended-badge {
-            font-size: 10px;
-            background: var(--primary-blue);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .item-desc {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        .item-size {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-right: 24px;
-            font-family: monospace;
-        }
-
-        .btn-download {
-            background-color: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background-color 0.2s;
-            text-decoration: none;
-        }
-
-        .btn-download:hover {
-            background-color: var(--primary-blue-hover);
-        }
-
-        /* Info Banner */
-        .info-banner {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .info-content {
-            flex: 1;
-        }
-
-        .info-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .info-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .info-banner p {
-            font-size: 14px;
-            color: var(--text-secondary);
-            max-width: 500px;
-        }
-
-        .info-banner p span {
-            color: var(--primary-blue);
-        }
-
-        .rocket-illustration {
-            width: 120px;
-            height: 120px;
-            opacity: 0.6;
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 768px) {
-            header {
-                padding: 16px 0;
-            }
-
-            .container {
-                padding: 0 16px;
-            }
-
-            .hero h1 {
-                font-size: 48px;
-            }
-
-            .section-card {
-                padding: 16px;
-            }
-
-            .section-header {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .download-item {
-                flex-wrap: wrap;
-            }
-
-            .item-info {
-                flex-basis: calc(100% - 60px);
-            }
-
-            .item-size {
-                margin: 0;
-                margin-right: auto;
-            }
-
-            .btn-download {
-                width: auto;
-            }
-
-            .rocket-illustration {
-                display: none;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 36px;
-            }
-
-            body {
-                padding-bottom: 70px;
-            }
-
-            .item-name {
-                font-size: 16px;
-                flex-wrap: wrap;
-            }
-        }
-    </style>
+      }
+    })();
+  </script>
+
+  <style>
+    /* =========================================================================
+       DESIGN TOKENS
+       Palette mirrors xyz.mpv.rex.ui.theme.Color.kt (Material 3 "Default").
+       Shapes mirror AppShapes.kt. Type mirrors Type.kt (Google Sans Flex).
+       ========================================================================= */
+    :root {
+      --font-sans: 'Google Sans Flex', 'Google Sans', Roboto, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", system-ui, sans-serif;
+      --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      /* Shape — AppShapes.kt */
+      --r-xs: 6px;
+      --r-sm: 10px;
+      --r-md: 14px;
+      --r-lg: 18px;
+      --r-xl: 24px;
+      --r-xxl: 28px;
+      --r-xxxl: 36px;
+      --r-full: 999px;
+
+      /* Motion */
+      --ease: cubic-bezier(0.2, 0, 0, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+      --dur: 220ms;
+
+      --maxw: 1080px;
+    }
+
+    /* ---------- Light ---------- */
+    :root,
+    html[data-theme="light"] {
+      color-scheme: light;
+      --primary: #445E91;
+      --on-primary: #FFFFFF;
+      --primary-container: #D8E2FF;
+      --on-primary-container: #2B4678;
+      --secondary: #575E71;
+      --secondary-container: #DBE2F9;
+      --on-secondary-container: #3F4759;
+      --tertiary: #715573;
+      --tertiary-container: #FCD7FB;
+      --on-tertiary-container: #583E5B;
+      --error: #BA1A1A;
+      --error-container: #FFDAD6;
+      --on-error-container: #93000A;
+
+      --background: #F9F9FF;
+      --on-background: #1A1B20;
+      --surface: #F9F9FF;
+      --on-surface: #1A1B20;
+      --surface-variant: #E1E2EC;
+      --on-surface-variant: #44474F;
+      --outline: #75777F;
+      --outline-variant: #C4C6D0;
+
+      --s-lowest: #FFFFFF;
+      --s-low: #F3F3FA;
+      --s: #EEEDF4;
+      --s-high: #E8E7EF;
+      --s-highest: #E2E2E9;
+      --inverse-surface: #2F3036;
+      --inverse-on-surface: #F0F0F7;
+      --inverse-primary: #ADC6FF;
+
+      /* decorative */
+      --brand-1: #2B4678;
+      --brand-2: #445E91;
+      --headline-1: #17233D;
+      --headline-2: #445E91;
+      --glow-a: 68, 94, 145;
+      --glow-b: 113, 85, 115;
+      --card-bg: rgba(255, 255, 255, 0.86);
+      --card-solid: #FFFFFF;
+      --hairline: rgba(26, 27, 32, 0.07);
+      --header-bg: rgba(249, 249, 255, 0.72);
+      --grid-line: rgba(68, 94, 145, 0.10);
+      --alpha-hover: 0.055;
+      --success: #146C2E;
+      --warning: #8B5000;
+      --warning-container: #FFE0B6;
+      --shadow-1: 0 1px 2px rgba(26, 27, 32, 0.05), 0 2px 8px -2px rgba(26, 27, 32, 0.08);
+      --shadow-2: 0 1px 2px rgba(26, 27, 32, 0.05), 0 18px 40px -22px rgba(43, 70, 120, 0.35);
+      --shadow-3: 0 24px 64px -32px rgba(43, 70, 120, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    }
+
+    /* ---------- Dark (auto) ---------- */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --primary: #ADC6FF;
+        --on-primary: #112F60;
+        --primary-container: #2B4678;
+        --on-primary-container: #D8E2FF;
+        --secondary: #BFC6DC;
+        --secondary-container: #3F4759;
+        --on-secondary-container: #DBE2F9;
+        --tertiary: #DEBCDF;
+        --tertiary-container: #583E5B;
+        --on-tertiary-container: #FCD7FB;
+        --error: #FFB4AB;
+        --error-container: #93000A;
+        --on-error-container: #FFDAD6;
+
+        --background: #111318;
+        --on-background: #E2E2E9;
+        --surface: #111318;
+        --on-surface: #E2E2E9;
+        --surface-variant: #44474F;
+        --on-surface-variant: #C4C6D0;
+        --outline: #8E9099;
+        --outline-variant: #44474F;
+
+        --s-lowest: #0C0E13;
+        --s-low: #1A1B20;
+        --s: #1E1F25;
+        --s-high: #282A2F;
+        --s-highest: #33353A;
+        --inverse-surface: #E2E2E9;
+        --inverse-on-surface: #2F3036;
+        --inverse-primary: #445E91;
+
+        --brand-1: #D8E2FF;
+        --brand-2: #ADC6FF;
+        --headline-1: #F2F4FF;
+        --headline-2: #ADC6FF;
+        --glow-a: 173, 198, 255;
+        --glow-b: 222, 188, 223;
+        --card-bg: rgba(26, 27, 32, 0.72);
+        --card-solid: #1A1B20;
+        --hairline: rgba(255, 255, 255, 0.055);
+        --header-bg: rgba(17, 19, 24, 0.70);
+        --grid-line: rgba(173, 198, 255, 0.065);
+        --alpha-hover: 0.07;
+        --success: #8FE6A2;
+        --warning: #FFD9A3;
+        --warning-container: #5A3A00;
+        --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+        --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 50px -26px rgba(0, 0, 0, 0.9);
+        --shadow-3: 0 30px 80px -34px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      }
+    }
+
+    /* ---------- Dark (forced) ---------- */
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --primary: #ADC6FF;
+      --on-primary: #112F60;
+      --primary-container: #2B4678;
+      --on-primary-container: #D8E2FF;
+      --secondary: #BFC6DC;
+      --secondary-container: #3F4759;
+      --on-secondary-container: #DBE2F9;
+      --tertiary: #DEBCDF;
+      --tertiary-container: #583E5B;
+      --on-tertiary-container: #FCD7FB;
+      --error: #FFB4AB;
+      --error-container: #93000A;
+      --on-error-container: #FFDAD6;
+
+      --background: #111318;
+      --on-background: #E2E2E9;
+      --surface: #111318;
+      --on-surface: #E2E2E9;
+      --surface-variant: #44474F;
+      --on-surface-variant: #C4C6D0;
+      --outline: #8E9099;
+      --outline-variant: #44474F;
+
+      --s-lowest: #0C0E13;
+      --s-low: #1A1B20;
+      --s: #1E1F25;
+      --s-high: #282A2F;
+      --s-highest: #33353A;
+      --inverse-surface: #E2E2E9;
+      --inverse-on-surface: #2F3036;
+      --inverse-primary: #445E91;
+
+      --brand-1: #D8E2FF;
+      --brand-2: #ADC6FF;
+      --headline-1: #F2F4FF;
+      --headline-2: #ADC6FF;
+      --glow-a: 173, 198, 255;
+      --glow-b: 222, 188, 223;
+      --card-bg: rgba(26, 27, 32, 0.72);
+      --card-solid: #1A1B20;
+      --hairline: rgba(255, 255, 255, 0.055);
+      --header-bg: rgba(17, 19, 24, 0.70);
+      --grid-line: rgba(173, 198, 255, 0.065);
+      --alpha-hover: 0.07;
+      --success: #8FE6A2;
+      --warning: #FFD9A3;
+      --warning-container: #5A3A00;
+      --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+      --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 50px -26px rgba(0, 0, 0, 0.9);
+      --shadow-3: 0 30px 80px -34px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    }
+
+    /* =========================================================================
+       BASE
+       ========================================================================= */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100dvh;
+      background-color: var(--background);
+      color: var(--on-background);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.55;
+      letter-spacing: 0.005em;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      transition: background-color 320ms var(--ease), color 320ms var(--ease);
+    }
+
+    ::selection {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    svg {
+      display: block;
+      flex-shrink: 0;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 3px;
+      border-radius: var(--r-xs);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* =========================================================================
+       AMBIENT BACKDROP
+       ========================================================================= */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .backdrop::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 10%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 10%, transparent 75%);
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(4px);
+    }
+
+    .glow--a {
+      width: 900px;
+      height: 900px;
+      top: -560px;
+      left: 38%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(var(--glow-a), 0.34), rgba(var(--glow-a), 0) 64%);
+    }
+
+    .glow--b {
+      width: 640px;
+      height: 640px;
+      top: -180px;
+      right: -320px;
+      background: radial-gradient(circle, rgba(var(--glow-b), 0.16), rgba(var(--glow-b), 0) 68%);
+    }
+
+    .glow--c {
+      width: 700px;
+      height: 700px;
+      bottom: -460px;
+      left: -300px;
+      background: radial-gradient(circle, rgba(var(--glow-a), 0.14), rgba(var(--glow-a), 0) 70%);
+    }
+
+    /* =========================================================================
+       HEADER
+       ========================================================================= */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      background: transparent;
+      transition: background-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    }
+
+    .site-header.is-scrolled {
+      background: var(--header-bg);
+      backdrop-filter: saturate(170%) blur(20px);
+      -webkit-backdrop-filter: saturate(170%) blur(20px);
+      box-shadow: 0 1px 0 var(--hairline), 0 6px 24px -20px rgba(0, 0, 0, 0.6);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      height: 74px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--on-surface);
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: -0.012em;
+      padding: 4px 10px 4px 4px;
+      margin-left: -4px;
+      border-radius: var(--r-full);
+      transition: background-color var(--dur) var(--ease);
+    }
+
+    .brand:hover {
+      background: var(--alpha-hover);
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #3B82F6;
+      box-shadow: 0 4px 14px -8px rgba(59, 130, 246, 0.9);
+    }
+
+    .brand-mark svg {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+
+    .brand-text small {
+      font-size: 10.5px;
+      font-weight: 550;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ---------- Theme switcher ---------- */
+    .theme-switch {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border-radius: var(--r-full);
+      background: color-mix(in srgb, var(--s) 75%, transparent);
+      border: 1px solid var(--outline-variant);
+      box-shadow: var(--shadow-1);
+    }
+
+    .theme-switch button {
+      position: relative;
+      z-index: 1;
+      width: 34px;
+      height: 32px;
+      border: 0;
+      border-radius: var(--r-full);
+      background: transparent;
+      color: var(--on-surface-variant);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: color var(--dur) var(--ease);
+    }
+
+    .theme-switch button:hover {
+      color: var(--on-surface);
+    }
+
+    .theme-switch button[aria-pressed="true"] {
+      color: var(--on-primary);
+    }
+
+    .theme-switch svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .theme-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 34px;
+      height: 32px;
+      border-radius: var(--r-full);
+      background: var(--primary);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+      transition: transform 380ms var(--ease-spring);
+      pointer-events: none;
+    }
+
+    /* =========================================================================
+       HERO
+       ========================================================================= */
+    .hero {
+      position: relative;
+      padding: 56px 0 44px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 6px 5px 13px;
+      border-radius: var(--r-full);
+      background: color-mix(in srgb, var(--s-low) 80%, transparent);
+      border: 1px solid var(--outline-variant);
+      color: var(--on-surface-variant);
+      font-size: 13px;
+      font-weight: 550;
+      box-shadow: var(--shadow-1);
+      margin-bottom: 26px;
+      backdrop-filter: blur(8px);
+    }
+
+    .eyebrow .dot {
+      position: relative;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .eyebrow .dot::after {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 1.5px solid var(--success);
+      opacity: 0;
+      animation: ping 2.8s var(--ease-out) infinite;
+    }
+
+    @keyframes ping {
+      0% {
+        transform: scale(0.6);
+        opacity: 0.7;
+      }
+
+      70%,
+      100% {
+        transform: scale(1.7);
+        opacity: 0;
+      }
+    }
+
+    .eyebrow .tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: var(--r-full);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.6rem, 5.4vw, 4.1rem);
+      line-height: 1.02;
+      letter-spacing: -0.038em;
+      font-weight: 600;
+      font-variation-settings: 'opsz' 120;
+      text-wrap: balance;
+    }
+
+    .hero h1 .accent {
+      background: linear-gradient(100deg, var(--headline-1) 0%, var(--headline-2) 70%, var(--tertiary) 130%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      padding-right: 0.06em;
+    }
+
+    .lede {
+      max-width: 520px;
+      margin: 20px 0 34px;
+      color: var(--on-surface-variant);
+      font-size: 1.06rem;
+      line-height: 1.65;
+      text-wrap: pretty;
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      --h: 50px;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      height: var(--h);
+      padding: 0 24px;
+      border-radius: var(--r-full);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.005em;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      isolation: isolate;
+      transition: transform 140ms var(--ease), background-color var(--dur) var(--ease),
+        color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    }
+
+    .btn::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity var(--dur) var(--ease);
+    }
+
+    .btn:hover::after {
+      opacity: 0.08;
+    }
+
+    .btn:active {
+      transform: scale(0.975);
+    }
+
+    .btn svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .btn--filled {
+      background: var(--primary);
+      color: var(--on-primary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 12px 28px -14px color-mix(in srgb, var(--primary) 70%, transparent);
+    }
+
+    .btn--filled::after {
+      background: var(--on-primary);
+    }
+
+    .btn--outlined {
+      background: color-mix(in srgb, var(--card-solid) 60%, transparent);
+      color: var(--on-surface);
+      border-color: var(--outline-variant);
+      box-shadow: var(--shadow-1);
+    }
+
+    .btn--tonal {
+      background: var(--secondary-container);
+      color: var(--on-secondary-container);
+    }
+
+    .btn--plain {
+      color: var(--primary);
+      padding: 0 14px;
+    }
+
+    .btn--sm {
+      --h: 40px;
+      padding: 0 18px;
+      font-size: 14px;
+    }
+
+    .btn--sm svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--on-surface-variant);
+    }
+
+    .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: var(--r-full);
+      background: color-mix(in srgb, var(--s-low) 70%, transparent);
+      border: 1px solid var(--hairline);
+    }
+
+    .meta-item svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.75;
+    }
+
+    .meta-item code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--on-surface);
+    }
+
+    /* =========================================================================
+       DOWNLOADS
+       ========================================================================= */
+    .section {
+      margin-top: 20px;
+      scroll-margin-top: 100px;
+    }
+
+    .card {
+      position: relative;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-xxxl);
+      box-shadow: var(--shadow-2);
+    }
+
+    .card--pad {
+      padding: 30px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(1.3rem, 2.3vw, 1.55rem);
+      font-weight: 600;
+      letter-spacing: -0.022em;
+      line-height: 1.25;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-head h2 .ico {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r-sm);
+      display: grid;
+      place-items: center;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .section-head h2 .ico svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .section-head p {
+      color: var(--on-surface-variant);
+      font-size: 14.5px;
+      margin-top: 6px;
+      padding-left: 48px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: var(--r-full);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--outline-variant);
+      background: var(--s-low);
+      color: var(--on-surface-variant);
+      white-space: nowrap;
+    }
+
+    .chip svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .chip--good {
+      color: var(--success);
+      border-color: color-mix(in srgb, var(--success) 40%, transparent);
+      background: color-mix(in srgb, var(--success) 10%, transparent);
+    }
+
+    /* ---------- Download rows ---------- */
+    .downloads {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .dl {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 14px;
+      border-radius: var(--r-xl);
+      border: 1px solid transparent;
+      background: transparent;
+      transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+    }
+
+    .dl:hover {
+      background: var(--alpha-hover);
+      border-color: var(--hairline);
+    }
+
+    .dl--feature {
+      background: linear-gradient(100deg,
+          color-mix(in srgb, var(--primary) 13%, var(--s-low)),
+          color-mix(in srgb, var(--tertiary) 8%, var(--s-low)) 70%,
+          var(--s-low));
+      border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+      padding: 16px 14px;
+    }
+
+    .dl--feature:hover {
+      border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+      background: linear-gradient(100deg,
+          color-mix(in srgb, var(--primary) 17%, var(--s-low)),
+          color-mix(in srgb, var(--tertiary) 11%, var(--s-low)) 70%,
+          var(--s-low));
+    }
+
+    .dl-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--r-md);
+      display: grid;
+      place-items: center;
+      background: var(--s);
+      border: 1px solid var(--hairline);
+      color: var(--on-surface-variant);
+      transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+    }
+
+    .dl:hover .dl-icon {
+      color: var(--primary);
+    }
+
+    .dl--feature .dl-icon {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: transparent;
+    }
+
+    .dl-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .dl-main {
+      min-width: 0;
+    }
+
+    .dl-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 15.5px;
+      font-weight: 600;
+      letter-spacing: -0.008em;
+      color: var(--on-surface);
+    }
+
+    .dl-name code {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .dl-desc {
+      font-size: 13.5px;
+      color: var(--on-surface-variant);
+      margin-top: 1px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px 3px 7px;
+      border-radius: var(--r-full);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .badge svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .dl-size {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--on-surface-variant);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      padding: 4px 10px;
+      border-radius: var(--r-full);
+      background: var(--hairline);
+    }
+
+    .dl--feature .dl-size {
+      background: color-mix(in srgb, var(--primary) 14%, transparent);
+      color: var(--on-surface);
+    }
+
+    /* =========================================================================
+       INFO CARDS
+       ========================================================================= */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .notice {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .notice-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .notice-head .ico {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--r-md);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      background: var(--warning-container);
+      color: var(--warning);
+    }
+
+    .notice-head .tint {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .notice-head .ico svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .notice h3 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.012em;
+    }
+
+    .notice p {
+      font-size: 14px;
+      color: var(--on-surface-variant);
+      line-height: 1.62;
+    }
+
+    code.inline {
+      font-family: var(--font-mono);
+      font-size: 0.86em;
+      padding: 2px 7px;
+      border-radius: var(--r-xs);
+      background: var(--s);
+      color: var(--on-surface);
+      border: 1px solid var(--hairline);
+      white-space: nowrap;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      counter-reset: step;
+      list-style: none;
+    }
+
+    .steps li {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--on-surface-variant);
+      line-height: 1.5;
+    }
+
+    .steps li::before {
+      counter-increment: step;
+      content: counter(step);
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--r-full);
+      display: grid;
+      place-items: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .steps b {
+      color: var(--on-surface);
+      font-weight: 600;
+    }
+
+    /* =========================================================================
+       FOOTER
+       ========================================================================= */
+    .site-footer {
+      margin-top: 72px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 26px 0 40px;
+      font-size: 13px;
+      color: var(--on-surface-variant);
+    }
+
+    .footer-inner code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--on-surface);
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      text-decoration: none;
+      color: var(--on-surface-variant);
+      padding: 7px 12px;
+      border-radius: var(--r-full);
+      transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+    }
+
+    .footer-links a:hover {
+      background: var(--alpha-hover);
+      color: var(--on-surface);
+    }
+
+    .footer-links svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* =========================================================================
+       TOAST
+       ========================================================================= */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 26px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: var(--r-full);
+      background: var(--inverse-surface);
+      color: var(--inverse-on-surface);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-2);
+      transform: translate(-50%, 160%);
+      opacity: 0;
+      pointer-events: none;
+      max-width: calc(100vw - 32px);
+      transition: transform 460ms var(--ease-spring), opacity 200ms var(--ease);
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    .toast svg {
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+    }
+
+    /* =========================================================================
+       REVEAL
+       ========================================================================= */
+    /* `hidden` must beat the display rules used by the cards and lists */
+    [hidden] {
+      display: none !important;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+    }
+
+    .reveal.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    .reveal[data-delay="1"] {
+      transition-delay: 70ms;
+    }
+
+    .reveal[data-delay="2"] {
+      transition-delay: 140ms;
+    }
+
+    .reveal[data-delay="3"] {
+      transition-delay: 210ms;
+    }
+
+    /* =========================================================================
+       WHAT'S NEW CARD (hero right column)
+       Populated from version.json → .changelog [{serial, message, sha}].
+       Falls back to a curated feature list when the payload is missing.
+       ========================================================================= */
+    .whats-new {
+      width: 348px;
+      padding: 22px;
+      border-radius: var(--r-xxl);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .wn-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .wn-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+
+    .wn-title svg {
+      width: 15px;
+      height: 15px;
+      color: var(--primary);
+    }
+
+    .wn-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: var(--r-full);
+      background: var(--s);
+      border: 1px solid var(--hairline);
+      color: var(--on-surface-variant);
+    }
+
+    /* commit list */
+    .wn-list {
+      display: flex;
+      flex-direction: column;
+      list-style: none;
+      max-height: 268px;
+      overflow-y: auto;
+      margin: -2px -6px -2px 0;
+      padding-right: 6px;
+      scrollbar-width: thin;
+      -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 22px), transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 22px), transparent 100%);
+    }
+
+    .wn-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .wn-list::-webkit-scrollbar-thumb {
+      background: var(--outline-variant);
+      border-radius: var(--r-full);
+    }
+
+    .wn-commit {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr);
+      gap: 9px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--hairline);
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+
+    .wn-commit:last-child {
+      border-bottom: 0;
+    }
+
+    .wn-commit svg {
+      width: 13px;
+      height: 13px;
+      margin-top: 3px;
+      color: var(--outline);
+    }
+
+    .wn-commit .msg {
+      color: var(--on-surface);
+      overflow-wrap: anywhere;
+    }
+
+    .wn-commit .type {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 0 6px;
+      border-radius: var(--r-xs);
+      font-size: 10.5px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: 1px;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .wn-empty,
+    .wn-hint {
+      font-size: 13px;
+      color: var(--on-surface-variant);
+      line-height: 1.55;
+    }
+
+    /* feature fallback */
+    .wn-features {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      list-style: none;
+    }
+
+    .wn-feature {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 11px;
+      align-items: start;
+    }
+
+    .wn-feature .fico {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--r-sm);
+      display: grid;
+      place-items: center;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .wn-feature .fico svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .wn-feature b {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--on-surface);
+    }
+
+    .wn-feature span {
+      display: block;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--on-surface-variant);
+    }
+
+    .wn-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+      font-size: 12.5px;
+      color: var(--on-surface-variant);
+    }
+
+    .wn-foot a {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      font-weight: 600;
+      color: var(--primary);
+      padding: 4px 8px;
+      margin-right: -8px;
+      border-radius: var(--r-full);
+      transition: background-color var(--dur) var(--ease);
+    }
+
+    .wn-foot a:hover {
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+    }
+
+    .wn-foot svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* =========================================================================
+       RESPONSIVE
+       ========================================================================= */
+    @media (max-width: 960px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 36px;
+      }
+
+      .whats-new {
+        width: 100%;
+        max-width: 460px;
+      }
+
+      .wn-list {
+        max-height: none;
+        overflow: visible;
+        -webkit-mask-image: none;
+        mask-image: none;
+      }
+
+      .hero {
+        padding-top: 56px;
+      }
+
+      .lede {
+        margin-left: auto;
+        margin-right: auto;
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 780px) {
+      .shell {
+        padding: 0 18px;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .card--pad {
+        padding: 20px;
+      }
+
+      .card {
+        border-radius: var(--r-xxl);
+      }
+
+      .dl {
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        grid-template-areas:
+          "icon main main"
+          "icon size action";
+        row-gap: 10px;
+        column-gap: 12px;
+        padding: 14px 10px;
+      }
+
+      .dl--feature {
+        padding: 16px 10px;
+      }
+
+      .dl-icon {
+        grid-area: icon;
+        width: 44px;
+        height: 44px;
+      }
+
+      .dl-main {
+        grid-area: main;
+      }
+
+      .dl-size {
+        grid-area: size;
+        align-self: center;
+        justify-self: start;
+      }
+
+      .dl .btn {
+        grid-area: action;
+        justify-self: end;
+      }
+
+      .dl-desc {
+        white-space: normal;
+      }
+
+      .section-head p {
+        padding-left: 0;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .header-inner {
+        height: 66px;
+      }
+
+      .brand-text small {
+        display: none;
+      }
+
+      .hero {
+        padding: 40px 0 36px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2.2rem, 10vw, 2.9rem);
+      }
+
+      .hero-cta .btn {
+        flex: 1 1 100%;
+      }
+
+      .meta-row {
+        font-size: 12.5px;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .notice {
+        padding: 22px 18px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="glow glow-top-right"></div>
-    <div class="glow glow-bottom-left"></div>
+  <div class="backdrop" aria-hidden="true">
+    <div class="glow glow--a"></div>
+    <div class="glow glow--b"></div>
+    <div class="glow glow--c"></div>
+  </div>
 
-    <div class="container">
-        <header>
-            <a href="#" class="logo">
-                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <!-- Crown -->
-                  <path
-                    d="M215 135
-                       L245 55
-                       L275 127
-                       L355 95
-                       L365 175
-                       L450 170
-                       L385 235
-                       L215 135 Z"
-                    fill="#2563eb"
-                  />
-                  <!-- Play shape -->
-                  <path
-                    d="M150 165
-                       Q150 145 170 155
-                       L385 280
-                       Q410 295 385 310
-                       L175 430
-                       Q150 445 150 415
-                       Z"
-                    fill="none"
-                    stroke="#2563eb"
-                    stroke-width="38"
-                    stroke-linejoin="round"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                REX Player
-            </a>
-            <nav>
-                <a href="https://github.com/mpvRex/REX-Player" class="github-link">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                    </svg>
-                </a>
-            </nav>
-        </header>
+  <header class="site-header" id="top">
+    <div class="shell header-inner">
+      <a class="brand" href="#top" aria-label="REX Player — back to top">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="512" height="512" rx="112" fill="#3B82F6" />
+            <g transform="translate(120.12 95.12) scale(0.55)">
+              <path d="M215 135 L245 55 L275 127 L355 95 L365 175 L450 170 L385 235 L215 135 Z" fill="#F4C542" />
+              <path d="M150 165 Q150 145 170 155 L385 280 Q410 295 385 310 L175 430 Q150 445 150 415 Z" fill="none"
+                stroke="#ffffff" stroke-width="50" stroke-linejoin="round" stroke-linecap="round" />
+            </g>
+          </svg>
+        </span>
+        <span class="brand-text">
+          REX Player
+          <small>Preview channel</small>
+        </span>
+      </a>
 
-        <main>
-            <section class="hero">
-                <h1>REX Player Preview Build</h1>
-                <div class="version-badge">r$COMMIT_COUNT</div>
-                <div class="build-info">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    Build time: $BUILD_TIME
-                </div>
-                <div class="status-badge">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="16 18 22 12 16 6"></polyline>
-                        <polyline points="8 6 2 12 8 18"></polyline>
-                    </svg>
-                    Auto-built from $BRANCH_NAME branch
-                    <div class="status-dot"></div>
-                </div>
-            </section>
-
-            <section class="section-card">
-                <div class="section-header">
-                    <div class="section-title">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <div>
-                            <h2>Download the latest signed APKs</h2>
-                            <p>Choose the build that matches your device architecture.</p>
-                        </div>
-                    </div>
-                    <div class="signed-badge">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                        Signed & Verified
-                    </div>
-                </div>
-
-                <div class="download-list">
-                    <!-- Universal -->
-                    <div class="download-item recommended">
-                        <div class="item-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="2" y1="12" x2="22" y2="12"></line>
-                                <path
-                                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">
-                                Universal APK
-                                <span class="recommended-badge">☆ Recommended</span>
-                            </div>
-                            <div class="item-desc">Works on most devices</div>
-                        </div>
-                        <div class="item-size">$UNIVERSAL_SIZE</div>
-                        <a href="REX-Player-preview-r$COMMIT_COUNT-universal.apk" class="btn-download">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                        </a>
-                    </div>
-
-                    <!-- arm64-v8a -->
-                    <div class="download-item">
-                        <div class="item-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                                <rect x="9" y="9" width="6" height="6"></rect>
-                                <line x1="9" y1="1" x2="9" y2="4"></line>
-                                <line x1="15" y1="1" x2="15" y2="4"></line>
-                                <line x1="9" y1="20" x2="9" y2="23"></line>
-                                <line x1="15" y1="20" x2="15" y2="23"></line>
-                                <line x1="20" y1="9" x2="23" y2="9"></line>
-                                <line x1="20" y1="15" x2="23" y2="15"></line>
-                                <line x1="1" y1="9" x2="4" y2="9"></line>
-                                <line x1="1" y1="15" x2="4" y2="15"></line>
-                            </svg>
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">arm64-v8a</div>
-                            <div class="item-desc">For 64-bit ARM devices</div>
-                        </div>
-                        <div class="item-size">$ARM64_SIZE</div>
-                        <a href="REX-Player-preview-r$COMMIT_COUNT-arm64-v8a.apk" class="btn-download">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                        </a>
-                    </div>
-
-                    <!-- armeabi-v7a -->
-                    <div class="download-item">
-                        <div class="item-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                                <rect x="9" y="9" width="6" height="6"></rect>
-                                <line x1="9" y1="1" x2="9" y2="4"></line>
-                                <line x1="15" y1="1" x2="15" y2="4"></line>
-                                <line x1="9" y1="20" x2="9" y2="23"></line>
-                                <line x1="15" y1="20" x2="15" y2="23"></line>
-                                <line x1="20" y1="9" x2="23" y2="9"></line>
-                                <line x1="20" y1="15" x2="23" y2="15"></line>
-                                <line x1="1" y1="9" x2="4" y2="9"></line>
-                                <line x1="1" y1="15" x2="4" y2="15"></line>
-                            </svg>
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">armeabi-v7a</div>
-                            <div class="item-desc">For 32-bit ARM devices</div>
-                        </div>
-                        <div class="item-size">$ARMV7_SIZE</div>
-                        <a href="REX-Player-preview-r$COMMIT_COUNT-armeabi-v7a.apk" class="btn-download">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                        </a>
-                    </div>
-
-                    <!-- x86 -->
-                    <div class="download-item">
-                        <div class="item-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                style="color: var(--accent-yellow);">
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                                <rect x="9" y="9" width="6" height="6"></rect>
-                                <line x1="9" y1="1" x2="9" y2="4"></line>
-                                <line x1="15" y1="1" x2="15" y2="4"></line>
-                                <line x1="9" y1="20" x2="9" y2="23"></line>
-                                <line x1="15" y1="20" x2="15" y2="23"></line>
-                                <line x1="20" y1="9" x2="23" y2="9"></line>
-                                <line x1="20" y1="15" x2="23" y2="15"></line>
-                                <line x1="1" y1="9" x2="4" y2="9"></line>
-                                <line x1="1" y1="15" x2="4" y2="15"></line>
-                            </svg>
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">x86</div>
-                            <div class="item-desc">For 32-bit x86 devices</div>
-                        </div>
-                        <div class="item-size">$X86_SIZE</div>
-                        <a href="REX-Player-preview-r$COMMIT_COUNT-x86.apk" class="btn-download">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                        </a>
-                    </div>
-
-                    <!-- x86_64 -->
-                    <div class="download-item">
-                        <div class="item-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #00bcd4;">
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                                <rect x="9" y="9" width="6" height="6"></rect>
-                                <line x1="9" y1="1" x2="9" y2="4"></line>
-                                <line x1="15" y1="1" x2="15" y2="4"></line>
-                                <line x1="9" y1="20" x2="9" y2="23"></line>
-                                <line x1="15" y1="20" x2="15" y2="23"></line>
-                                <line x1="20" y1="9" x2="23" y2="9"></line>
-                                <line x1="20" y1="15" x2="23" y2="15"></line>
-                                <line x1="1" y1="9" x2="4" y2="9"></line>
-                                <line x1="1" y1="15" x2="4" y2="15"></line>
-                            </svg>
-                        </div>
-                        <div class="item-info">
-                            <div class="item-name">x86_64</div>
-                            <div class="item-desc">For 64-bit x86 devices</div>
-                        </div>
-                        <div class="item-size">$X86_64_SIZE</div>
-                        <a href="REX-Player-preview-r$COMMIT_COUNT-x86_64.apk" class="btn-download">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                        </a>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section-card info-banner">
-                <div class="info-content">
-                    <div class="info-header">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="#2563eb" stroke="none">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12" stroke="white" stroke-width="2"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8" stroke="white" stroke-width="2"></line>
-                        </svg>
-                        <h3>Nightly builds may be unstable.</h3>
-                    </div>
-                    <p>These builds are automatically generated from the <span>$BRANCH_NAME</span> branch. They may be
-                        unstable and are intended for testing purposes only.</p>
-                </div>
-                <div class="rocket-illustration">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path
-                            d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z">
-                        </path>
-                        <path
-                            d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z">
-                        </path>
-                        <path d="M9 12H4s.55-3.03 2-5c1.62-2.2 5-3 5-3"></path>
-                        <path d="M12 15v5s3.03-.55 5-2c2.2-1.62 3-5 3-5"></path>
-                    </svg>
-                </div>
-            </section>
-        </main>
+      <div class="header-actions">
+        <div class="theme-switch" role="group" aria-label="Color theme">
+          <span class="theme-thumb" aria-hidden="true"></span>
+          <button type="button" data-theme-set="light" aria-label="Light theme" title="Light" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          </button>
+          <button type="button" data-theme-set="system" aria-label="System theme" title="Match system"
+            aria-pressed="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.36-2.64L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
+          </button>
+          <button type="button" data-theme-set="dark" aria-label="Dark theme" title="Dark" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
+  </header>
+
+  <main class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow reveal">
+            <span class="dot" aria-hidden="true"></span>
+            Fresh build available
+            <span class="tag">r${COMMIT_COUNT}</span>
+          </div>
+
+          <h1 id="hero-title" class="reveal" data-delay="1">
+            REX Player<br>
+            <span class="accent">Preview Build</span>
+          </h1>
+
+          <p class="lede reveal" data-delay="1">
+            Every commit ships a signed APK, so you can try the newest playback
+            improvements days before they land in a stable release.
+          </p>
+
+          <div class="hero-cta reveal" data-delay="2">
+            <a class="btn btn--filled" href="REX-Player-preview-r${COMMIT_COUNT}-universal.apk" download
+              data-download="Universal APK">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Recommended APK
+            </a>
+            <a class="btn btn--outlined" href="#downloads">
+              All architectures
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 5v14M6 13l6 6 6-6" />
+              </svg>
+            </a>
+          </div>
+
+          <div class="meta-row reveal" data-delay="3">
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              <span>Built <code id="build-time">${BUILD_TIME}</code></span>
+            </span>
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <path d="M18 9a9 9 0 0 1-9 9M6 9v6" />
+                <circle cx="18" cy="6" r="3" />
+              </svg>
+              <span>Branch <code>${BRANCH_NAME}</code></span>
+            </span>
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+              <span>Signed build</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- What's new / feature card. The commit list is filled from version.json;
+             the static feature list inside is the no-changelog fallback. -->
+        <aside class="whats-new card reveal" data-delay="2" aria-labelledby="wn-title">
+          <div class="wn-head">
+            <span class="wn-title" id="wn-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+              </svg>
+              <span id="wn-heading">What's new</span>
+            </span>
+            <span class="wn-count" id="wn-count" hidden></span>
+          </div>
+
+          <!-- live changelog (populated by script) -->
+          <ol class="wn-list" id="wn-list" hidden></ol>
+
+          <!-- fallback: features that actually exist in the app -->
+          <ul class="wn-features" id="wn-features">
+            <li class="wn-feature">
+              <span class="fico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="m10 8 6 4-6 4V8z" />
+                  <rect x="2.5" y="4.5" width="19" height="15" rx="3" />
+                </svg>
+              </span>
+              <span><b>libmpv playback</b><span>File formats, codecs and subtitle styling handled by mpv.</span></span>
+            </li>
+            <li class="wn-feature">
+              <span class="fico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="6" y="6" width="12" height="12" rx="2.5" />
+                  <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" />
+                </svg>
+              </span>
+              <span><b>Hardware decoding</b><span>Offloads video decode to the GPU to save battery on long sessions.</span></span>
+            </li>
+            <li class="wn-feature">
+              <span class="fico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="3" />
+                  <path d="M6 14h5M14 14h4" />
+                </svg>
+              </span>
+              <span><b>Subtitles &amp; audio tracks</b><span>Switch tracks, offset and resize subtitles with gestures.</span></span>
+            </li>
+            <li class="wn-feature">
+              <span class="fico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M4.5 17a9 9 0 1 1 15 0" />
+                  <path d="m12 12 4-4" />
+                </svg>
+              </span>
+              <span><b>Playback speed &amp; A-B loop</b><span>Pitch-correct speed control, seek, and repeat segments.</span></span>
+            </li>
+            <li class="wn-feature">
+              <span class="fico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="14" rx="2.5" />
+                  <path d="M3 15h18M10 18v3h4v-3" />
+                </svg>
+              </span>
+              <span><b>Customisable controls</b><span>Choose which buttons and layouts the player shows.</span></span>
+            </li>
+          </ul>
+
+          <div class="wn-foot">
+            <span id="wn-foot-label">Preview channel</span>
+            <a href="version.json">
+              Latest build info
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="downloads" class="section card card--pad reveal" aria-labelledby="downloads-title">
+      <div class="section-head">
+        <div>
+          <h2 id="downloads-title">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </span>
+            Download the latest APKs
+          </h2>
+          <p>Pick the build that matches your device — or grab the universal one.</p>
+        </div>
+        <span class="chip chip--good">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          Signed &amp; verified
+        </span>
+      </div>
+
+      <div class="downloads">
+        <!-- Universal -->
+        <div class="dl dl--feature">
+          <div class="dl-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+          </div>
+          <div class="dl-main">
+            <div class="dl-name">
+              Universal APK
+              <span class="badge">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                Recommended
+              </span>
+            </div>
+            <div class="dl-desc">Runs everywhere — largest file, no guesswork</div>
+          </div>
+          <div class="dl-size">${UNIVERSAL_SIZE}</div>
+          <a class="btn btn--filled btn--sm" href="REX-Player-preview-r${COMMIT_COUNT}-universal.apk" download
+            data-download="Universal APK">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download
+          </a>
+        </div>
+
+        <div class="dl" data-arch="arm64-v8a">
+          <div class="dl-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <rect x="9" y="9" width="6" height="6" />
+              <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3" />
+            </svg>
+          </div>
+          <div class="dl-main">
+            <div class="dl-name"><code>arm64-v8a</code></div>
+            <div class="dl-desc">64-bit ARM — almost every modern phone and TV box</div>
+          </div>
+          <div class="dl-size">${ARM64_SIZE}</div>
+          <a class="btn btn--tonal btn--sm" href="REX-Player-preview-r${COMMIT_COUNT}-arm64-v8a.apk" download
+            data-download="arm64-v8a">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download
+          </a>
+        </div>
+
+        <div class="dl" data-arch="armeabi-v7a">
+          <div class="dl-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <rect x="9" y="9" width="6" height="6" />
+              <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3" />
+            </svg>
+          </div>
+          <div class="dl-main">
+            <div class="dl-name"><code>armeabi-v7a</code></div>
+            <div class="dl-desc">32-bit ARM — older phones and budget devices</div>
+          </div>
+          <div class="dl-size">${ARMV7_SIZE}</div>
+          <a class="btn btn--tonal btn--sm" href="REX-Player-preview-r${COMMIT_COUNT}-armeabi-v7a.apk" download
+            data-download="armeabi-v7a">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download
+          </a>
+        </div>
+
+        <div class="dl" data-arch="x86">
+          <div class="dl-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg>
+          </div>
+          <div class="dl-main">
+            <div class="dl-name"><code>x86</code></div>
+            <div class="dl-desc">32-bit Intel — mostly for older emulators</div>
+          </div>
+          <div class="dl-size">${X86_SIZE}</div>
+          <a class="btn btn--tonal btn--sm" href="REX-Player-preview-r${COMMIT_COUNT}-x86.apk" download
+            data-download="x86">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download
+          </a>
+        </div>
+
+        <div class="dl" data-arch="x86_64">
+          <div class="dl-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg>
+          </div>
+          <div class="dl-main">
+            <div class="dl-name"><code>x86_64</code></div>
+            <div class="dl-desc">64-bit Intel — Chromebooks and Android Studio emulators</div>
+          </div>
+          <div class="dl-size">${X86_64_SIZE}</div>
+          <a class="btn btn--tonal btn--sm" href="REX-Player-preview-r${COMMIT_COUNT}-x86_64.apk" download
+            data-download="x86_64">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <section class="card notice reveal" aria-labelledby="notice-title">
+        <div class="notice-head">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </span>
+          <h3 id="notice-title">Preview builds may be unstable</h3>
+        </div>
+        <p>
+          These APKs are generated automatically from <code class="inline">${BRANCH_NAME}</code>
+          on every push. Expect unfinished features, regressions and the occasional crash.
+        </p>
+        <p>
+          They use the same package name as the stable release, so installing one
+          will replace your current copy.
+        </p>
+      </section>
+
+      <section class="card notice reveal" data-delay="1" aria-labelledby="install-title">
+        <div class="notice-head">
+          <span class="ico tint" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2.5" />
+              <path d="M11 18h2" />
+            </svg>
+          </span>
+          <h3 id="install-title">How to install</h3>
+        </div>
+        <ol class="steps">
+          <li><span>Download the APK that <b>matches your device</b>.</span></li>
+          <li><span>Allow installs from your browser when Android asks.</span></li>
+          <li><span>Open the file and confirm — you're done.</span></li>
+        </ol>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <span>REX Player · preview <code>r${COMMIT_COUNT}</code> · from <code>${BRANCH_NAME}</code></span>
+      <div class="footer-links">
+        <a href="version.json">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          version.json
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+      stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+    <span id="toast-text">Download started</span>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var THEME_KEY = 'rex-theme';
+      var ORDER = ['light', 'system', 'dark'];
+      var themeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
+      var thumb = document.querySelector('.theme-thumb');
+
+      /* Browser chrome (theme-color).
+         Two states, because the page has two:
+           - at rest     → the calmer chrome tint (#CACFE0 / #3D4355)
+           - scrolled    → the page surface (#F9F9FF / #111318), matching the
+                           now-opaque sticky header it sits directly on.
+         In "system" mode both states stay media-queried so the OS decides. */
+      var CHROME_REST = { light: '#CACFE0', dark: '#3D4355' };
+      var CHROME_TOP = { light: '#F9F9FF', dark: '#111318' };
+      var currentMode = 'system';
+
+      function syncBrowserChrome(mode, scrolled) {
+        // Remove every existing theme-color tag, whatever created it.
+        var olds = document.querySelectorAll('meta[name="theme-color"]');
+        Array.prototype.forEach.call(olds, function (m) { m.remove(); });
+
+        // Any meta element (not just <meta>) to mirror the media-gated pairs used
+        // by Chrome when prefers-color-scheme == dark.
+        function add(content, media) {
+          var meta = document.createElement('meta');
+          meta.name = 'theme-color';
+          meta.content = content;
+          if (media) meta.setAttribute('media', media);
+          document.head.appendChild(meta);
+        }
+
+        var palette = scrolled ? CHROME_TOP : CHROME_REST;
+
+        if (mode === 'system') {
+          add(palette.dark, '(prefers-color-scheme: dark)');
+          add(palette.light, '(prefers-color-scheme: light)');
+        } else {
+          add(palette[mode] || palette.light);
+        }
+      }
+
+      function positionThumb(mode) {
+        if (!thumb) return;
+        var idx = ORDER.indexOf(mode);
+        if (idx < 0) idx = 1;
+        thumb.style.transform = 'translateX(' + (idx * 36) + 'px)';
+      }
+
+      function setTheme(mode) {
+        root.setAttribute('data-theme', mode);
+        try { localStorage.setItem(THEME_KEY, mode); } catch (e) { }
+        themeButtons.forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.dataset.themeSet === mode));
+        });
+        currentMode = mode;
+        try { positionThumb(mode); } catch (e) { }
+        try { syncBrowserChrome(mode, isScrolled()); } catch (e) { }
+      }
+
+      themeButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () { setTheme(btn.dataset.themeSet); });
+      });
+
+      // ?theme=dark|light|system lets you force a mode without touching storage
+      var param = new URLSearchParams(location.search).get('theme');
+      if (ORDER.indexOf(param) >= 0) {
+        setTheme(param);
+      } else {
+        var saved = 'system';
+        try { saved = localStorage.getItem(THEME_KEY) || 'system'; } catch (e) { }
+        setTheme(saved);
+      }
+
+      /* Sticky header elevation + browser chrome color.
+         Both key off the same threshold so the status bar and the header change
+         together rather than a frame apart. */
+      var header = document.querySelector('.site-header');
+      var SCROLL_THRESHOLD = 8;
+      var lastScrolled = null;
+
+      function isScrolled() {
+        return window.scrollY > SCROLL_THRESHOLD;
+      }
+
+      function onScroll() {
+        var scrolled = isScrolled();
+        header.classList.toggle('is-scrolled', scrolled);
+        if (scrolled !== lastScrolled) {
+          lastScrolled = scrolled;
+          try { syncBrowserChrome(currentMode, scrolled); } catch (e) { }
+        }
+      }
+
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      /* Reveal on scroll */
+      var revealEls = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { rootMargin: '0px 0px -6% 0px', threshold: 0.04 });
+        revealEls.forEach(function (el) { io.observe(el); });
+      } else {
+        revealEls.forEach(function (el) { el.classList.add('in'); });
+      }
+
+      /* ---------- What's new: hydrate from version.json ----------
+         The workflow writes an optional `changelog` array of the last few
+         commits as [{serial, message, sha}]. Many builds ship without it,
+         so every failure path keeps the static feature list visible. */
+      (function () {
+        var list = document.getElementById('wn-list');
+        var features = document.getElementById('wn-features');
+        var count = document.getElementById('wn-count');
+        var heading = document.getElementById('wn-heading');
+        var footLabel = document.getElementById('wn-foot-label');
+        if (!list || !features) return;
+
+        // Conventional-commit prefix → short tag shown in the chip
+        var TYPE_LABEL = {
+          feat: 'New', fix: 'Fix', perf: 'Speed', refactor: 'Refactor', docs: 'Docs',
+          style: 'Style', test: 'Tests', chore: 'Chore', build: 'Build', ci: 'CI',
+          revert: 'Revert', i18n: 'i18n', ui: 'UI', ux: 'UX'
+        };
+
+        var esc = function (s) {
+          return String(s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+          });
+        };
+
+        function render(commits) {
+          var frag = document.createDocumentFragment();
+          commits.forEach(function (c) {
+            var msg = String(c.message || '').trim();
+            if (!msg) return;
+
+            var tag = '';
+            var m = msg.match(/^([a-zA-Z]+)(?:\([^)]*\))?!?:\s*(.*)$/);
+            if (m && TYPE_LABEL[m[1].toLowerCase()]) {
+              tag = TYPE_LABEL[m[1].toLowerCase()];
+              msg = m[2];
+            }
+
+            var li = document.createElement('li');
+            li.className = 'wn-commit';
+            li.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+              'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+              '<circle cx="12" cy="12" r="3.2"/><path d="M12 2v6.8M12 15.2V22"/></svg>' +
+              '<span class="msg">' +
+              (tag ? '<span class="type">' + esc(tag) + '</span>' : '') +
+              esc(msg) +
+              '</span>';
+            frag.appendChild(li);
+          });
+          list.appendChild(frag);
+        }
+
+        fetch('version.json', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            var commits = data && Array.isArray(data.changelog) ? data.changelog : null;
+            if (!commits || !commits.length) return; // keep the feature fallback
+
+            render(commits);
+            if (!list.children.length) return;
+
+            features.hidden = true;
+            list.hidden = false;
+            heading.textContent = "What's new";
+            count.textContent = commits.length + ' commits';
+            count.hidden = false;
+            if (data.published_at) {
+              footLabel.textContent = 'Published ' + data.published_at;
+            }
+          })
+          .catch(function () { /* offline or blocked: fallback stays */ });
+      })();
+
+      /* Toast on download */
+      var toast = document.getElementById('toast');
+      var toastText = document.getElementById('toast-text');
+      var toastTimer = null;
+
+      document.querySelectorAll('[data-download]').forEach(function (link) {
+        link.addEventListener('click', function () {
+          toastText.textContent = 'Downloading ' + link.dataset.download + '…';
+          toast.classList.add('show');
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
+        });
+      });
+    })();
+  </script>
 </body>
 
 </html>
