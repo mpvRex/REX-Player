@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
@@ -90,35 +91,11 @@ object SettingsSearchScreen : Screen {
             }
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(R.string.settings_search_title),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = backstack::navigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    },
-                )
-            },
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                // Search field
+        CollapsibleHeaderScreen(
+            title = stringResource(R.string.settings_search_title),
+            showBackButton = true,
+            onBackClick = backstack::navigateBack,
+            headerContent = {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -167,9 +144,11 @@ object SettingsSearchScreen : Screen {
                         onSearch = { keyboardController?.hide() }
                     ),
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
+            },
+        ) { contentModifier ->
+            Box(
+                modifier = contentModifier.fillMaxSize()
+            ) {
                 // Results
                 if (searchQuery.text.isBlank()) {
                     // Show hint when no search query

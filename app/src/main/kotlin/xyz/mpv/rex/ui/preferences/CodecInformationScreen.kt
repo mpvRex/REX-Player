@@ -50,6 +50,7 @@ import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import xyz.mpv.rex.R
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.utils.LocalBackStack
@@ -168,35 +169,15 @@ object CodecInformationScreen : Screen {
 
     var selectedFilter by remember { mutableStateOf(CodecFilter.ALL) }
 
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_decoder_codec_info_title),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            IconButton(onClick = backstack::navigateBack) {
-              Icon(
-                Icons.AutoMirrored.Default.ArrowBack,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-              )
-            }
-          },
-        )
-      },
-    ) { padding ->
+    CollapsibleHeaderScreen(
+      title = stringResource(R.string.pref_decoder_codec_info_title),
+      showBackButton = true,
+      onBackClick = backstack::navigateBack,
+    ) { contentModifier ->
       val allCodecs = allCodecsState
       if (allCodecs == null) {
         Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+          modifier = contentModifier.fillMaxSize(),
           contentAlignment = Alignment.Center
         ) {
           CircularProgressIndicator()
@@ -218,9 +199,7 @@ object CodecInformationScreen : Screen {
         val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
         ProvidePreferenceLocals {
           LazyColumn(
-            modifier = Modifier
-              .fillMaxSize()
-              .padding(padding),
+            modifier = contentModifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
           ) {
             // Overview Summary Card

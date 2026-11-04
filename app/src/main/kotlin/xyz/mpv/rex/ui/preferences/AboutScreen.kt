@@ -56,8 +56,10 @@ import androidx.core.net.toUri
 import xyz.mpv.rex.BuildConfig
 import xyz.mpv.rex.R
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.presentation.crash.CrashActivity.Companion.collectDeviceInfo
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -110,29 +112,11 @@ object AboutScreen : Screen {
         }
     }
 
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(id = R.string.pref_about_title),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            ) 
-          },
-          navigationIcon = {
-            IconButton(onClick = backstack::navigateBack) {
-              Icon(
-                imageVector = Icons.AutoMirrored.Default.ArrowBack, 
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-              )
-            }
-          },
-        )
-      },
-    ) { paddingValues ->
+    CollapsibleHeaderScreen(
+      title = stringResource(id = R.string.pref_about_title),
+      showBackButton = true,
+      onBackClick = backstack::navigateBack,
+    ) { contentModifier ->
       val cs = MaterialTheme.colorScheme
       val colorPrimary = cs.primaryContainer
       val colorSecondary = cs.secondaryContainer
@@ -150,11 +134,12 @@ object AboutScreen : Screen {
       val cornerRadius = 28.dp
 
       ProvidePreferenceLocals {
+        val scrollState = rememberScrollState()
         Column(
           modifier =
-            Modifier
-              .padding(paddingValues)
-              .verticalScroll(rememberScrollState()),
+            contentModifier
+              .verticalScroll(scrollState)
+              .edgeBlend(scrollState, 16.dp),
         ) {
           GroupedListColumn {
             GroupedPreferenceCard(position = GroupPosition.ONLY) {
@@ -438,29 +423,12 @@ object LibrariesScreen : Screen {
   @Composable
   override fun Content() {
     val backstack = LocalBackStack.current
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(id = R.string.pref_about_oss_libraries),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            ) 
-          },
-          navigationIcon = {
-            IconButton(onClick = backstack::navigateBack) {
-              Icon(
-                imageVector = Icons.AutoMirrored.Default.ArrowBack, 
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-              )
-            }
-          },
-        )
-      },
-    ) { paddingValues ->
+    CollapsibleHeaderScreen(
+      title = stringResource(id = R.string.pref_about_oss_libraries),
+      showBackButton = true,
+      onBackClick = backstack::navigateBack,
+    ) { contentModifier ->
+      Box(modifier = contentModifier)
     }
   }
 }

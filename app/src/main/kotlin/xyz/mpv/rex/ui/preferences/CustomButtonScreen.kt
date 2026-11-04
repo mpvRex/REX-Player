@@ -93,6 +93,7 @@ import androidx.core.content.FileProvider
 import java.io.File
 import xyz.mpv.rex.preferences.PlayerPreferences
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -226,47 +227,19 @@ object CustomButtonScreen : Screen {
             buttonSlots.add(toIdx.coerceIn(0, buttonSlots.size), moved)
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = stringResource(id = R.string.custom_buttons_title),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                text = stringResource(id = R.string.custom_buttons_subtitle),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = backstack::navigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(id = R.string.back),
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ),
-                )
-            },
-        ) { padding ->
+        CollapsibleHeaderScreen(
+            title = stringResource(id = R.string.custom_buttons_title),
+            subtitle = stringResource(id = R.string.custom_buttons_subtitle),
+            showBackButton = true,
+            onBackClick = backstack::navigateBack,
+        ) { contentModifier ->
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
             LazyColumn(
                 state = lazyListState,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    top = padding.calculateTopPadding(),
-                    bottom = padding.calculateBottomPadding() + navBarHeight + 16.dp
+                    bottom = navBarHeight + 16.dp
                 ),
-                modifier = Modifier
+                modifier = contentModifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),

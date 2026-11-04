@@ -55,8 +55,10 @@ import xyz.mpv.rex.preferences.SeekbarStyle
 import xyz.mpv.rex.ui.player.PlaybackControlsPosition
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
@@ -126,37 +128,17 @@ object PlayerControlsPreferencesScreen : Screen {
             orderedOrphans + remainingOrphans
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(id = R.string.pref_layout_title),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = backstack::navigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    },
-                )
-            },
-        ) { padding ->
+        CollapsibleHeaderScreen(
+            title = stringResource(id = R.string.pref_layout_title),
+            showBackButton = true,
+            onBackClick = backstack::navigateBack,
+        ) { contentModifier ->
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+            val listState = rememberPreferenceLazyListState()
             ProvidePreferenceLocals {
                 LazyColumn(
-                    state = rememberPreferenceLazyListState(),
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(padding),
+                    state = listState,
+                    modifier = contentModifier.edgeBlend(listState, 16.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                 ) {
                     // Landscape Controls Section

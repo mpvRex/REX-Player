@@ -81,6 +81,7 @@ import xyz.mpv.rex.domain.ytdl.model.YtdlpStatus
 import xyz.mpv.rex.preferences.YtdlPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
@@ -133,46 +134,26 @@ object YtdlSettingsScreen : Screen {
             refreshStatus()
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "yt-dlp",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = backstack::navigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { refreshStatus() }) {
-                            Icon(
-                                Icons.Outlined.Refresh,
-                                contentDescription = "Refresh",
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                )
-            }
-        ) { padding ->
+        CollapsibleHeaderScreen(
+            title = "yt-dlp",
+            showBackButton = true,
+            onBackClick = backstack::navigateBack,
+            actions = {
+                IconButton(onClick = { refreshStatus() }) {
+                    Icon(
+                        Icons.Outlined.Refresh,
+                        contentDescription = "Refresh",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            },
+        ) { contentModifier ->
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
             val lazyListState = rememberPreferenceLazyListState()
             ProvidePreferenceLocals {
                 LazyColumn(
                     state = lazyListState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = contentModifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         top = 8.dp,
                         bottom = navBarHeight + 24.dp,

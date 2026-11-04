@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.database.dao.ShortsMediaDao
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.ui.browser.shorts.ShortsScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -56,32 +57,14 @@ object BlockedShortsScreen : Screen {
         val blockedVideos by shortsMediaDao.observeAllShortsMedia().collectAsState(initial = emptyList())
         val filteredBlocked = blockedVideos.filter { it.isBlocked }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(R.string.pref_blocked_videos),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = backstack::navigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    },
-                )
-            },
-        ) { padding ->
+        CollapsibleHeaderScreen(
+            title = stringResource(R.string.pref_blocked_videos),
+            showBackButton = true,
+            onBackClick = backstack::navigateBack,
+        ) { contentModifier ->
             if (filteredBlocked.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = contentModifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -92,9 +75,8 @@ object BlockedShortsScreen : Screen {
             } else {
                 val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
                 LazyColumn(
-                    modifier = Modifier
+                    modifier = contentModifier
                         .fillMaxSize()
-                        .padding(padding)
                         .padding(horizontal = 16.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                 ) {

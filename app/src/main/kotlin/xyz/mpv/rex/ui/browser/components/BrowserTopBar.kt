@@ -1,5 +1,6 @@
 package xyz.mpv.rex.ui.browser.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -37,6 +38,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,11 +46,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +74,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
@@ -104,6 +109,7 @@ fun BrowserTopBar(
   totalCount: Int,
   onCancelSelection: () -> Unit,
   modifier: Modifier = Modifier,
+  scrollBehavior: TopAppBarScrollBehavior? = null,
   onBackClick: (() -> Unit)? = null,
   onSortClick: (() -> Unit)? = null,
   onSearchClick: (() -> Unit)? = null,
@@ -168,6 +174,7 @@ fun BrowserTopBar(
         normalOverflowActions = normalOverflowActions,
         additionalActions = additionalActions,
         modifier = modifier,
+        scrollBehavior = scrollBehavior,
         onTitleLongPress = onTitleLongPress,
         isHomeScreen = isHomeScreen,
       )
@@ -190,6 +197,7 @@ private fun NormalTopBar(
   normalOverflowActions: List<SelectionOverflowAction>,
   additionalActions: @Composable RowScope.() -> Unit,
   modifier: Modifier = Modifier,
+  scrollBehavior: TopAppBarScrollBehavior? = null,
   onTitleLongPress: (() -> Unit)?,
   isHomeScreen: Boolean = false,
 ) {
@@ -231,76 +239,103 @@ private fun NormalTopBar(
     }
   }
 
-  TopAppBar(
-    colors = TopAppBarDefaults.topAppBarColors(
-      containerColor = if (MaterialTheme.colorScheme.background == Color.Black) {
-        Color.Black
-      } else {
-        MaterialTheme.colorScheme.surfaceContainer
-      },
-    ),
-    title = {
-      val titleModifier = Modifier
-        .onGloballyPositioned { coordinates ->
-          titleBounds.value = coordinates.boundsInWindow()
-        }
-        .pointerInput(onTitleLongPress) {
-          detectTapGestures(
-            onTap = { localOffset ->
-              // Don't allow theme change if animation is in progress
-              if (themeTransition?.isAnimating == true) return@detectTapGestures
-              
-              // Calculate window position for circular reveal
-              val windowOffset = Offset(
-                titleBounds.value.left + localOffset.x,
-                titleBounds.value.top + localOffset.y
-              )
-              // If currently dark, next theme is light: expand outwards (zoom out).
-              // If currently light, next theme is dark: contract inwards (reverse / zoom in).
-              themeTransition?.startTransition(windowOffset, isReverse = !currentIsDark)
-              // Delay theme change to allow overlay to display first
-              coroutineScope.launch {
-                kotlinx.coroutines.delay(50)
-                toggleDarkMode()
-              }
-            },
-            onLongPress = if (onTitleLongPress != null) {
-              { onTitleLongPress() }
-            } else null
-          )
-        }
+  val containerColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+    Color.Black
+  } else {
+    MaterialTheme.colorScheme.surfaceContainer
+  }
+  val topBarColors = TopAppBarDefaults.topAppBarColors(
+    containerColor = containerColor,
+    scrolledContainerColor = containerColor,
+  )
 
-      Text(
-        text = title,
-        style =
+  val collapsedFraction = scrollBehavior?.state?.collapsedFraction ?: 0f
+  val fontSize = (22 + (30 - 22) * (1 - collapsedFraction)).sp
+
+  val titleContent = @Composable {
+    val titleModifier = Modifier
+      .onGloballyPositioned { coordinates ->
+        titleBounds.value = coordinates.boundsInWindow()
+      }
+      .pointerInput(onTitleLongPress) {
+        detectTapGestures(
+          onTap = { localOffset ->
+            // Don't allow theme change if animation is in progress
+            if (themeTransition?.isAnimating == true) return@detectTapGestures
+            
+            // Calculate window position for circular reveal
+            val windowOffset = Offset(
+              titleBounds.value.left + localOffset.x,
+              titleBounds.value.top + localOffset.y
+            )
+            // If currently dark, next theme is light: expand outwards (zoom out).
+            // If currently light, next theme is dark: contract inwards (reverse / zoom in).
+            themeTransition?.startTransition(windowOffset, isReverse = !currentIsDark)
+            // Delay theme change to allow overlay to display first
+            coroutineScope.launch {
+              kotlinx.coroutines.delay(50)
+              toggleDarkMode()
+            }
+          },
+          onLongPress = if (onTitleLongPress != null) {
+            { onTitleLongPress() }
+          } else null
+        )
+      }
+
+    Text(
+      text = title,
+      style =
+        if (scrollBehavior != null) {
+          MaterialTheme.typography.headlineLarge.copy(
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize
+          )
+        } else if (onBackClick == null) {
+          MaterialTheme.typography.headlineMediumEmphasized
+        } else {
+          MaterialTheme.typography.headlineSmall
+        },
+      fontWeight = FontWeight.ExtraBold,
+      color = MaterialTheme.colorScheme.primary,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+      modifier =
+        titleModifier.then(
           if (onBackClick == null) {
-            MaterialTheme.typography.headlineMediumEmphasized
+            Modifier.padding(start = 8.dp)
           } else {
-            MaterialTheme.typography.headlineSmall
+            Modifier
           },
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier =
-          titleModifier.then(
-            if (onBackClick == null) {
-              Modifier.padding(start = 8.dp)
-            } else {
-              Modifier
-            },
-          ),
-      )
-    },
-    navigationIcon = {
-      if (onBackClick != null) {
-        IconButton(
-          onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onBackClick()
-          },
-          modifier = Modifier.padding(horizontal = 2.dp),
-        ) {
+        ),
+    )
+  }
+
+  val navigationContent = @Composable {
+    if (onBackClick != null) {
+      IconButton(
+        onClick = {
+          haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          onBackClick()
+        },
+        modifier = Modifier.padding(start = if (scrollBehavior != null) 6.dp else 2.dp),
+      ) {
+        if (scrollBehavior != null) {
+          Box(
+            modifier = Modifier
+              .size(38.dp)
+              .clip(CircleShape)
+              .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+          ) {
+            Icon(
+              Icons.AutoMirrored.Filled.ArrowBack,
+              contentDescription = stringResource(R.string.back),
+              modifier = Modifier.size(22.dp),
+              tint = MaterialTheme.colorScheme.onSurface,
+            )
+          }
+        } else {
           Icon(
             Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = stringResource(R.string.back),
@@ -309,117 +344,136 @@ private fun NormalTopBar(
           )
         }
       }
-    },
-    actions = {
-      if (onPlayClick != null) {
-        IconButton(
-          onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onPlayClick()
-          },
-          modifier = Modifier.padding(horizontal = 2.dp),
-        ) {
-          Icon(
-            Icons.Filled.PlayArrow,
-            contentDescription = stringResource(R.string.play_recently_played_or_first),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.primary,
-          )
-        }
+    }
+  }
+
+  val actionsContent: @Composable RowScope.() -> Unit = {
+    if (onPlayClick != null) {
+      IconButton(
+        onClick = {
+          haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          onPlayClick()
+        },
+        modifier = Modifier.padding(horizontal = 2.dp),
+      ) {
+        Icon(
+          Icons.Filled.PlayArrow,
+          contentDescription = stringResource(R.string.play_recently_played_or_first),
+          modifier = Modifier.size(24.dp),
+          tint = MaterialTheme.colorScheme.primary,
+        )
       }
-      if (onSearchClick != null) {
+    }
+    if (onSearchClick != null) {
+      IconButton(
+        onClick = {
+          haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          onSearchClick()
+        },
+        modifier = Modifier.padding(horizontal = 2.dp),
+      ) {
+        Icon(
+          Icons.Filled.Search,
+          contentDescription = stringResource(R.string.search_empty_title),
+          modifier = Modifier.size(24.dp),
+          tint = MaterialTheme.colorScheme.secondary,
+        )
+      }
+    }
+    if (onSortClick != null) {
+      IconButton(
+        onClick = {
+          haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          onSortClick()
+        },
+        modifier = Modifier.padding(horizontal = 2.dp),
+      ) {
+        Icon(
+          Icons.Default.ViewComfy,
+          contentDescription = stringResource(R.string.sort),
+          modifier = Modifier.size(24.dp),
+          tint = MaterialTheme.colorScheme.secondary,
+        )
+      }
+    }
+    if (onSettingsClick != null) {
+      IconButton(
+        onClick = {
+          haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          onSettingsClick()
+        },
+        modifier = Modifier.padding(horizontal = 2.dp),
+      ) {
+        Icon(
+          Icons.Filled.Settings,
+          contentDescription = stringResource(R.string.settings),
+          modifier = Modifier.size(24.dp),
+          tint = MaterialTheme.colorScheme.secondary,
+        )
+      }
+    }
+    additionalActions()
+    if (normalOverflowActions.isNotEmpty()) {
+      var showNormalOverflowMenu by remember { mutableStateOf(false) }
+      Box(modifier = Modifier.padding(start = 0.dp, end = 4.dp)) {
         IconButton(
           onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onSearchClick()
+            showNormalOverflowMenu = true
           },
-          modifier = Modifier.padding(horizontal = 2.dp),
         ) {
           Icon(
-            Icons.Filled.Search,
-            contentDescription = stringResource(R.string.search_empty_title),
+            Icons.Filled.MoreVert,
+            contentDescription = stringResource(R.string.more_options),
             modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.secondary,
           )
         }
-      }
-      if (onSortClick != null) {
-        IconButton(
-          onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onSortClick()
-          },
-          modifier = Modifier.padding(horizontal = 2.dp),
+        DropdownMenu(
+          expanded = showNormalOverflowMenu,
+          onDismissRequest = { showNormalOverflowMenu = false },
+          shape = RoundedCornerShape(16.dp),
         ) {
-          Icon(
-            Icons.Default.ViewComfy,
-            contentDescription = stringResource(R.string.sort),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.secondary,
-          )
-        }
-      }
-      if (onSettingsClick != null) {
-        IconButton(
-          onClick = {
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            onSettingsClick()
-          },
-          modifier = Modifier.padding(horizontal = 2.dp),
-        ) {
-          Icon(
-            Icons.Filled.Settings,
-            contentDescription = stringResource(R.string.settings),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.secondary,
-          )
-        }
-      }
-      additionalActions()
-      if (normalOverflowActions.isNotEmpty()) {
-        var showNormalOverflowMenu by remember { mutableStateOf(false) }
-        Box(modifier = Modifier.padding(start = 0.dp, end = 4.dp)) {
-          IconButton(
-            onClick = {
-              haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-              showNormalOverflowMenu = true
-            },
-          ) {
-            Icon(
-              Icons.Filled.MoreVert,
-              contentDescription = stringResource(R.string.more_options),
-              modifier = Modifier.size(24.dp),
-              tint = MaterialTheme.colorScheme.secondary,
+          normalOverflowActions.forEach { action ->
+            DropdownMenuItem(
+              leadingIcon = {
+                Icon(
+                  imageVector = action.icon,
+                  contentDescription = null,
+                  modifier = Modifier.size(20.dp),
+                  tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+              },
+              text = { Text(action.label) },
+              onClick = {
+                action.onClick()
+                showNormalOverflowMenu = false
+              },
             )
           }
-          DropdownMenu(
-            expanded = showNormalOverflowMenu,
-            onDismissRequest = { showNormalOverflowMenu = false },
-            shape = RoundedCornerShape(16.dp),
-          ) {
-            normalOverflowActions.forEach { action ->
-              DropdownMenuItem(
-                leadingIcon = {
-                  Icon(
-                    imageVector = action.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                  )
-                },
-                text = { Text(action.label) },
-                onClick = {
-                  action.onClick()
-                  showNormalOverflowMenu = false
-                },
-              )
-            }
-          }
         }
       }
-    },
-    modifier = modifier,
-  )
+    }
+  }
+
+  if (scrollBehavior != null) {
+    LargeTopAppBar(
+      colors = topBarColors,
+      title = titleContent,
+      navigationIcon = navigationContent,
+      actions = actionsContent,
+      scrollBehavior = scrollBehavior,
+      modifier = modifier,
+    )
+  } else {
+    TopAppBar(
+      colors = topBarColors,
+      title = titleContent,
+      navigationIcon = navigationContent,
+      actions = actionsContent,
+      modifier = modifier,
+    )
+  }
 }
 
 /**

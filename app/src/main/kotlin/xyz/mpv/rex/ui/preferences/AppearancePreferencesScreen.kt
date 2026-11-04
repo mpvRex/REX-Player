@@ -38,6 +38,8 @@ import xyz.mpv.rex.ui.preferences.components.ThemePicker
 import xyz.mpv.rex.ui.preferences.components.SwitchPreference
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.theme.DarkMode
@@ -89,41 +91,17 @@ object AppearancePreferencesScreen : Screen {
         val context = LocalContext.current
         var showLanguageDialog by remember { mutableStateOf(false) }
 
-        Scaffold(
-            containerColor = androidx.compose.ui.graphics.Color.Transparent,
-            topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    ),
-                    title = {
-                        Text(
-                            text = stringResource(R.string.pref_appearance_title),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = backstack::navigateBack) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    },
-                )
-            },
-        ) { padding ->
+        CollapsibleHeaderScreen(
+            title = stringResource(R.string.pref_appearance_title),
+            showBackButton = true,
+            onBackClick = backstack::navigateBack,
+        ) { contentModifier ->
             val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+            val listState = rememberPreferenceLazyListState()
             ProvidePreferenceLocals {
                 LazyColumn(
-                    state = rememberPreferenceLazyListState(),
-                    modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    state = listState,
+                    modifier = contentModifier.edgeBlend(listState, 16.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
                 ) {
                     item {

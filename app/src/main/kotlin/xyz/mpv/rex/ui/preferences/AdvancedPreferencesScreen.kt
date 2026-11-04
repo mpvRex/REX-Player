@@ -54,9 +54,11 @@ import xyz.mpv.rex.preferences.AdvancedPreferences
 import xyz.mpv.rex.preferences.SettingsManager
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.ConfirmDialog
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.presentation.crash.CrashActivity
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -184,29 +186,11 @@ object AdvancedPreferencesScreen : Screen {
       )
     }
 
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = { 
-            Text(
-              text = stringResource(R.string.pref_advanced),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            IconButton(onClick = backStack::navigateBack) {
-              Icon(
-                Icons.AutoMirrored.Default.ArrowBack, 
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-              )
-            }
-          },
-        )
-      },
-    ) { padding ->
+    CollapsibleHeaderScreen(
+      title = stringResource(R.string.pref_advanced),
+      showBackButton = true,
+      onBackClick = backStack::navigateBack,
+    ) { contentModifier ->
       ProvidePreferenceLocals {
         val locationPicker =
           rememberLauncherForActivityResult(
@@ -220,11 +204,10 @@ object AdvancedPreferencesScreen : Screen {
           }
         val mpvConfStorageLocation by preferences.mpvConfStorageUri.collectAsState()
         val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+        val listState = rememberPreferenceLazyListState()
         LazyColumn(
-          state = rememberPreferenceLazyListState(),
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+          state = listState,
+          modifier = contentModifier.edgeBlend(listState, 16.dp),
           contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
         ) {
           // Backup & Restore Section

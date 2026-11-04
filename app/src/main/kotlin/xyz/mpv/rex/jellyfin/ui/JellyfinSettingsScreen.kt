@@ -48,6 +48,8 @@ import xyz.mpv.rex.jellyfin.preferences.JellyfinPreferences
 import xyz.mpv.rex.jellyfin.remote.JellyfinRemoteClient
 import xyz.mpv.rex.jellyfin.remote.JellyfinRemoteService
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import kotlinx.serialization.Serializable
@@ -77,24 +79,18 @@ object JellyfinSettingsScreen : Screen {
       configured = prefs.isConfigured()
     }
 
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = { Text("Jellyfin") },
-          navigationIcon = {
-            IconButton(onClick = { backstack.navigateBack() }) {
-              Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
-            }
-          },
-        )
-      },
-    ) { padding ->
+    CollapsibleHeaderScreen(
+      title = "Jellyfin",
+      showBackButton = true,
+      onBackClick = { backstack.navigateBack() },
+    ) { contentModifier ->
+      val scrollState = rememberScrollState()
       Column(
-        modifier = Modifier
+        modifier = contentModifier
           .fillMaxSize()
-          .padding(padding)
-          .padding(16.dp)
-          .verticalScroll(rememberScrollState()),
+          .verticalScroll(scrollState)
+          .edgeBlend(scrollState, 16.dp)
+          .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         Card(modifier = Modifier.fillMaxWidth()) {

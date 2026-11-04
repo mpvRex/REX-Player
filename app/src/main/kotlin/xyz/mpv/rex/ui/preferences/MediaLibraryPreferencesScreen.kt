@@ -37,7 +37,9 @@ import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.FoldersPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
+import xyz.mpv.rex.presentation.components.CollapsibleHeaderScreen
 import xyz.mpv.rex.presentation.components.ConfirmDialog
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.presentation.components.GroupedListColumn
 import xyz.mpv.rex.ui.browser.sheets.AutoPlaylistsSheet
@@ -92,36 +94,17 @@ object MediaLibraryPreferencesScreen : Screen {
     var showNetworkWarning by remember { mutableStateOf(false) }
     var showAutoPlaylistsSheet by remember { mutableStateOf(false) }
 
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_media_library_title),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            IconButton(onClick = backstack::navigateBack) {
-              Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-              )
-            }
-          },
-        )
-      },
-    ) { padding ->
+    CollapsibleHeaderScreen(
+      title = stringResource(R.string.pref_media_library_title),
+      showBackButton = true,
+      onBackClick = backstack::navigateBack,
+    ) { contentModifier ->
       val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+      val listState = rememberPreferenceLazyListState()
       ProvidePreferenceLocals {
         LazyColumn(
-          state = rememberPreferenceLazyListState(),
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+          state = listState,
+          modifier = contentModifier.edgeBlend(listState, 16.dp),
           contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = navBarHeight + 16.dp),
         ) {
           // Content & Discovery Section
