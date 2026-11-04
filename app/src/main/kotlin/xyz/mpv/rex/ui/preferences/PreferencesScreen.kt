@@ -1,35 +1,21 @@
 package xyz.mpv.rex.ui.preferences
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ViewQuilt
-import androidx.compose.material.icons.outlined.Audiotrack
 import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.Gesture
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Subtitles
-import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,22 +24,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
+import org.koin.compose.koinInject
 import xyz.mpv.rex.R
+import xyz.mpv.rex.preferences.AppearancePreferences
+import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
-import xyz.mpv.rex.presentation.components.GroupPosition
-import xyz.mpv.rex.presentation.components.GroupedListColumn
-import xyz.mpv.rex.presentation.components.GroupedListItem
+import xyz.mpv.rex.presentation.components.RexSettingsGroup
+import xyz.mpv.rex.presentation.components.RexSettingsItem
+import xyz.mpv.rex.presentation.components.SettingsPalettes
+import xyz.mpv.rex.ui.icons.RexIcons
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 
@@ -63,11 +52,15 @@ object PreferencesScreen : Screen {
   @Composable
   override fun Content() {
     val backstack = LocalBackStack.current
-    val searchShape = RoundedCornerShape(24.dp)
+    val searchShape = RoundedCornerShape(20.dp)
+    val preferences = koinInject<AppearancePreferences>()
+    val badgeShapePref by preferences.settingsBadgeShape.collectAsState()
+    val badgeShape = if (badgeShapePref == "CIRCLE") CircleShape else RoundedCornerShape(12.dp)
+
     Scaffold(
       topBar = {
         TopAppBar(
-          title = { 
+          title = {
             Text(
               text = stringResource(R.string.pref_preferences),
               style = MaterialTheme.typography.headlineSmall,
@@ -78,7 +71,7 @@ object PreferencesScreen : Screen {
           navigationIcon = {
             IconButton(onClick = backstack::navigateBack) {
               Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack, 
+                Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
               )
@@ -96,7 +89,7 @@ object PreferencesScreen : Screen {
           contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = navBarHeight + 24.dp),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          // Search bar - full width, prominent placement
+          // Search bar
           item {
             Surface(
               onClick = { backstack.add(SettingsSearchScreen) },
@@ -130,230 +123,179 @@ object PreferencesScreen : Screen {
 
           // UI & Appearance Section
           item {
-            PreferenceSection(title = stringResource(R.string.pref_category_ui_appearance)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.ONLY,
-                  title = stringResource(id = R.string.pref_appearance_title),
-                  summary = stringResource(id = R.string.pref_appearance_summary),
-                  icon = Icons.Outlined.Palette,
-                  onClick = { backstack.add(AppearancePreferencesScreen) },
+            RexSettingsGroup(
+              title = stringResource(R.string.pref_category_ui_appearance),
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.Palette,
+                  palette = SettingsPalettes.Purple,
+                  title = { Text(stringResource(id = R.string.pref_appearance_title)) },
+                  description = { Text(stringResource(id = R.string.pref_appearance_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(AppearancePreferencesScreen) }
                 )
-              }
-            }
+              )
+            )
           }
 
           // Playback & Controls Section
           item {
-            PreferenceSection(title = stringResource(R.string.pref_category_playback_controls)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.FIRST,
-                  title = stringResource(id = R.string.pref_player),
-                  summary = stringResource(id = R.string.pref_player_summary),
-                  icon = Icons.Outlined.PlayCircle,
-                  onClick = { backstack.add(PlayerPreferencesScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.MIDDLE,
-                  title = stringResource(id = R.string.pref_layout_title),
-                  summary = stringResource(id = R.string.pref_layout_summary),
+            RexSettingsGroup(
+              title = stringResource(R.string.pref_category_playback_controls),
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.Play,
+                  palette = SettingsPalettes.SkyBlue,
+                  title = { Text(stringResource(id = R.string.pref_player)) },
+                  description = { Text(stringResource(id = R.string.pref_player_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(PlayerPreferencesScreen) }
+                ),
+                RexSettingsItem(
                   icon = Icons.AutoMirrored.Outlined.ViewQuilt,
-                  onClick = { backstack.add(PlayerControlsPreferencesScreen) },
+                  palette = SettingsPalettes.Teal,
+                  title = { Text(stringResource(id = R.string.pref_layout_title)) },
+                  description = { Text(stringResource(id = R.string.pref_layout_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(PlayerControlsPreferencesScreen) }
+                ),
+                RexSettingsItem(
+                  icon = RexIcons.Gesture,
+                  palette = SettingsPalettes.Emerald,
+                  title = { Text(stringResource(id = R.string.pref_gesture)) },
+                  description = { Text(stringResource(id = R.string.pref_gesture_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(GesturePreferencesScreen) }
                 )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = stringResource(id = R.string.pref_gesture),
-                  summary = stringResource(id = R.string.pref_gesture_summary),
-                  icon = Icons.Outlined.Gesture,
-                  onClick = { backstack.add(GesturePreferencesScreen) },
-                )
-              }
-            }
+              )
+            )
           }
 
           // Media & Library Section
           item {
-            PreferenceSection(title = stringResource(R.string.pref_media_library_title)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.ONLY,
-                  title = stringResource(R.string.pref_media_library_title),
-                  summary = stringResource(R.string.pref_media_library_summary),
-                  icon = Icons.Outlined.VideoLibrary,
-                  onClick = { backstack.add(MediaLibraryPreferencesScreen) },
+            RexSettingsGroup(
+              title = stringResource(R.string.pref_media_library_title),
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.VideoLibrary,
+                  palette = SettingsPalettes.Yellow,
+                  title = { Text(stringResource(R.string.pref_media_library_title)) },
+                  description = { Text(stringResource(R.string.pref_media_library_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(MediaLibraryPreferencesScreen) }
                 )
-              }
-            }
+              )
+            )
           }
 
           // Media Settings Section
           item {
-            PreferenceSection(title = stringResource(R.string.pref_category_media_settings)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.FIRST,
-                  title = stringResource(id = R.string.pref_decoder),
-                  summary = stringResource(id = R.string.pref_decoder_summary),
-                  icon = Icons.Outlined.Memory,
-                  onClick = { backstack.add(DecoderPreferencesScreen) },
+            RexSettingsGroup(
+              title = stringResource(R.string.pref_category_media_settings),
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.Hardware,
+                  palette = SettingsPalettes.Lime,
+                  title = { Text(stringResource(id = R.string.pref_decoder)) },
+                  description = { Text(stringResource(id = R.string.pref_decoder_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(DecoderPreferencesScreen) }
+                ),
+                RexSettingsItem(
+                  icon = RexIcons.Subtitles,
+                  palette = SettingsPalettes.Cyan,
+                  title = { Text(stringResource(id = R.string.pref_subtitles)) },
+                  description = { Text(stringResource(id = R.string.pref_subtitles_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(SubtitlesPreferencesScreen) }
+                ),
+                RexSettingsItem(
+                  icon = RexIcons.AudioTrack,
+                  palette = SettingsPalettes.Rose,
+                  title = { Text(stringResource(id = R.string.pref_audio)) },
+                  description = { Text(stringResource(id = R.string.pref_audio_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(AudioPreferencesScreen) }
                 )
-                PreferenceItem(
-                  position = GroupPosition.MIDDLE,
-                  title = stringResource(id = R.string.pref_subtitles),
-                  summary = stringResource(id = R.string.pref_subtitles_summary),
-                  icon = Icons.Outlined.Subtitles,
-                  onClick = { backstack.add(SubtitlesPreferencesScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = stringResource(id = R.string.pref_audio),
-                  summary = stringResource(id = R.string.pref_audio_summary),
-                  icon = Icons.Outlined.Audiotrack,
-                  onClick = { backstack.add(AudioPreferencesScreen) },
-                )
-              }
-            }
+              )
+            )
           }
 
           // RexShorts Section
           item {
-            PreferenceSection(title = stringResource(R.string.pref_category_rexshorts)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.ONLY,
-                  title = stringResource(R.string.pref_category_rexshorts_settings),
-                  summary = stringResource(R.string.pref_category_rexshorts_settings_desc),
-                  icon = Icons.Outlined.VideoLibrary,
-                  onClick = { backstack.add(ShortsPreferencesScreen) },
+            RexSettingsGroup(
+              title = stringResource(R.string.pref_category_rexshorts),
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.Movie,
+                  palette = SettingsPalettes.Coral,
+                  title = { Text(stringResource(R.string.pref_category_rexshorts_settings)) },
+                  description = { Text(stringResource(R.string.pref_category_rexshorts_settings_desc)) },
+                  showChevron = true,
+                  onClick = { backstack.add(ShortsPreferencesScreen) }
                 )
-              }
-            }
+              )
+            )
           }
 
           // Integrations Section
           item {
-            PreferenceSection(title = "Integrations") {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.FIRST,
-                  title = "Jellyfin",
-                  summary = "External player sync",
-                  icon = Icons.Outlined.VideoLibrary,
-                  onClick = { backstack.add(xyz.mpv.rex.jellyfin.ui.JellyfinSettingsScreen) },
-                )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = "yt-dlp",
-                  summary = "Manage REX Ytdlp & extractor preferences",
+            RexSettingsGroup(
+              title = "Integrations",
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.VideoLibrary,
+                  palette = SettingsPalettes.Indigo,
+                  title = { Text("Jellyfin") },
+                  description = { Text("External player sync") },
+                  showChevron = true,
+                  onClick = { backstack.add(xyz.mpv.rex.jellyfin.ui.JellyfinSettingsScreen) }
+                ),
+                RexSettingsItem(
                   icon = Icons.Outlined.CloudDownload,
-                  onClick = { backstack.add(YtdlSettingsScreen) },
+                  palette = SettingsPalettes.Amber,
+                  title = { Text("yt-dlp") },
+                  description = { Text("Manage REX Ytdlp & extractor preferences") },
+                  showChevron = true,
+                  onClick = { backstack.add(YtdlSettingsScreen) }
                 )
-              }
-            }
+              )
+            )
           }
 
           // Advanced & About Section
           item {
-            PreferenceSection(title = stringResource(R.string.pref_category_advanced_about)) {
-              GroupedListColumn {
-                PreferenceItem(
-                  position = GroupPosition.FIRST,
-                  title = stringResource(R.string.pref_advanced),
-                  summary = stringResource(id = R.string.pref_advanced_summary),
-                  icon = Icons.Outlined.Code,
-                  onClick = { backstack.add(AdvancedPreferencesScreen) },
+            RexSettingsGroup(
+              title = stringResource(R.string.pref_category_advanced_about),
+              badgeShape = badgeShape,
+              items = listOf(
+                RexSettingsItem(
+                  icon = RexIcons.Code,
+                  palette = SettingsPalettes.Indigo,
+                  title = { Text(stringResource(R.string.pref_advanced)) },
+                  description = { Text(stringResource(id = R.string.pref_advanced_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(AdvancedPreferencesScreen) }
+                ),
+                RexSettingsItem(
+                  icon = RexIcons.Info,
+                  palette = SettingsPalettes.Slate,
+                  title = { Text(stringResource(id = R.string.pref_about_title)) },
+                  description = { Text(stringResource(id = R.string.pref_about_summary)) },
+                  showChevron = true,
+                  onClick = { backstack.add(AboutScreen) }
                 )
-                PreferenceItem(
-                  position = GroupPosition.LAST,
-                  title = stringResource(id = R.string.pref_about_title),
-                  summary = stringResource(id = R.string.pref_about_summary),
-                  icon = Icons.Outlined.Info,
-                  onClick = { backstack.add(AboutScreen) },
-                )
-              }
-            }
+              )
+            )
           }
         }
       }
-    }
-  }
-}
-
-@Composable
-private fun PreferenceSection(
-  title: String,
-  content: @Composable () -> Unit,
-) {
-  Column(modifier = Modifier.fillMaxWidth()) {
-    Text(
-      text = title,
-      style = MaterialTheme.typography.titleSmall,
-      fontWeight = FontWeight.Bold,
-      color = MaterialTheme.colorScheme.primary,
-      modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
-    )
-    content()
-  }
-}
-
-@Composable
-private fun PreferenceItem(
-  position: GroupPosition,
-  title: String,
-  summary: String,
-  icon: ImageVector,
-  onClick: () -> Unit,
-) {
-  GroupedListItem(
-    position = position,
-    onClick = onClick,
-  ) {
-    Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 14.dp),
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Box(
-        modifier = Modifier
-          .size(42.dp)
-          .background(
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-            shape = RoundedCornerShape(12.dp),
-          ),
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(
-          imageVector = icon,
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(22.dp),
-        )
-      }
-      Spacer(modifier = Modifier.width(14.dp))
-      Column(modifier = Modifier.weight(1f)) {
-        Text(
-          text = title,
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.SemiBold,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
-        if (summary.isNotBlank()) {
-          Spacer(modifier = Modifier.height(2.dp))
-          Text(
-            text = summary,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
-      }
-      Icon(
-        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
-        modifier = Modifier.size(20.dp),
-      )
     }
   }
 }

@@ -203,6 +203,56 @@ object AppearancePreferencesScreen : Screen {
                                         },
                                         enabled = darkMode != DarkMode.Light,
                                     )
+                                    val themeIntensity by preferences.themeIntensity.collectAsState()
+                                    val intensityChoices = persistentListOf("Standard", "Medium", "Vivid")
+                                    val selectedIntensityIndex = when (themeIntensity.uppercase()) {
+                                        "VIVID" -> 2
+                                        "MEDIUM" -> 1
+                                        else -> 0
+                                    }
+                                    Spacer(modifier = Modifier.padding(top = 8.dp))
+                                    Text(
+                                        text = stringResource(R.string.pref_appearance_theme_intensity_title),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                                    )
+                                    MultiChoiceSegmentedButton(
+                                        choices = intensityChoices,
+                                        selectedIndices = persistentListOf(selectedIntensityIndex),
+                                        onClick = { idx ->
+                                            val value = when (idx) {
+                                                2 -> "VIVID"
+                                                1 -> "MEDIUM"
+                                                else -> "STANDARD"
+                                            }
+                                            preferences.themeIntensity.set(value)
+                                        },
+                                    )
+                                    val settingsBadgeShape by preferences.settingsBadgeShape.collectAsState()
+                                    val badgeChoices = persistentListOf("Squircle", "Circle")
+                                    val selectedBadgeIndex = if (settingsBadgeShape == "CIRCLE") 1 else 0
+                                    Spacer(modifier = Modifier.padding(top = 8.dp))
+                                    Text(
+                                        text = stringResource(R.string.pref_appearance_settings_badge_shape_title),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                                    )
+                                    MultiChoiceSegmentedButton(
+                                        choices = badgeChoices,
+                                        selectedIndices = persistentListOf(selectedBadgeIndex),
+                                        onClick = { idx ->
+                                            preferences.settingsBadgeShape.set(if (idx == 1) "CIRCLE" else "SQUIRCLE")
+                                        },
+                                    )
+                                    val useArtworkTheme by preferences.useArtworkTheme.collectAsState()
+                                    SwitchPreference(
+                                        value = useArtworkTheme,
+                                        onValueChange = { preferences.useArtworkTheme.set(it) },
+                                        title = { Text(text = stringResource(id = R.string.pref_appearance_use_artwork_theme_title)) },
+                                        summary = { Text(text = stringResource(id = R.string.pref_appearance_use_artwork_theme_summary)) },
+                                    )
                                 }
                             }
 
