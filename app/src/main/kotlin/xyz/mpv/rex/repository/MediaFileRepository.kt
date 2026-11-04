@@ -17,6 +17,8 @@ import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
 import java.io.File
@@ -155,31 +157,63 @@ object MediaFileRepository {
         val foldersPreferences = koin.get<xyz.mpv.rex.preferences.FoldersPreferences>()
         val blacklistedFolders = foldersPreferences.blacklistedFolders.get()
 
-        val folders = if (scanPolicy.includeNoMediaContent) {
-          val hybridIndex = koin.get<HybridMediaIndexRepository>()
-          hybridIndex.ensureFreshIfEmpty()
-          hybridIndex.getFoldersInDirectory(
-            parentPath = path,
-            playbackStates = playbackStates,
-            thresholdDays = thresholdDays,
-            watchedThreshold = browserPreferences.watchedThreshold.get(),
-          )
-        } else {
-          CoreMediaScanner.getFoldersInDirectory(
-            context = context,
-            parentPath = path,
-            playbackStates = playbackStates,
-            thresholdDays = thresholdDays,
-            blacklistedFolders = blacklistedFolders,
-            policy = scanPolicy,
-          )
-        }
-        folders
-          .filter { data ->
-            data.activeCount(isAudioEnabled) > 0 &&
-            (scanPolicy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(data.path)))
+        coroutineScope {
+          val foldersDeferred = async {
+            val folders = if (scanPolicy.includeNoMediaContent) {
+              val hybridIndex = koin.get<HybridMediaIndexRepository>()
+              hybridIndex.ensureFreshIfEmpty()
+              hybridIndex.getFoldersInDirectory(
+                parentPath = path,
+                playbackStates = playbackStates,
+                thresholdDays = thresholdDays,
+                watchedThreshold = browserPreferences.watchedThreshold.get(),
+              )
+            } else {
+              CoreMediaScanner.getFoldersInDirectory(
+                context = context,
+                parentPath = path,
+                playbackStates = playbackStates,
+                thresholdDays = thresholdDays,
+                blacklistedFolders = blacklistedFolders,
+                policy = scanPolicy,
+              )
+            }
+            folders.filter { data ->
+              data.activeCount(isAudioEnabled) > 0 &&
+                (scanPolicy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(data.path)))
+            }
           }
-          .forEach { folderData ->
+
+          val videosDeferred = async {
+            if (path !in blacklistedFolders) {
+              val folderScan = VideoScanUtils.scanFolder(context, path, scanPolicy)
+              if (folderScan.access == VideoScanUtils.FolderAccess.INACCESSIBLE) {
+                return@async Result.failure<List<FileSystemItem.VideoFile>>(Exception("Directory is not accessible: $path"))
+              }
+              val videoItems = folderScan.videos
+                .filter { video -> isAudioEnabled || !video.isAudio }
+                .map { video ->
+                  FileSystemItem.VideoFile(
+                    name = video.displayName,
+                    path = video.path,
+                    lastModified = if (video.dateModified > 0) video.dateModified * 1000L else File(video.path).lastModified(),
+                    video = video,
+                  )
+                }
+              Result.success(videoItems)
+            } else {
+              Result.success(emptyList())
+            }
+          }
+
+          val folderList = foldersDeferred.await()
+          val videoResult = videosDeferred.await()
+
+          if (videoResult.isFailure) {
+            return@coroutineScope Result.failure(videoResult.exceptionOrNull() ?: Exception("Unknown error"))
+          }
+
+          folderList.forEach { folderData ->
             items.add(
               FileSystemItem.Folder(
                 name = folderData.name,
@@ -200,27 +234,9 @@ object MediaFileRepository {
             )
           }
 
-        // Get videos in current directory - Hide if current path is blacklisted
-        if (path !in blacklistedFolders) {
-          val folderScan = VideoScanUtils.scanFolder(context, path, scanPolicy)
-          if (folderScan.access == VideoScanUtils.FolderAccess.INACCESSIBLE) {
-            return@withContext Result.failure(Exception("Directory is not accessible: $path"))
-          }
-          folderScan.videos
-            .filter { video -> isAudioEnabled || !video.isAudio }
-            .forEach { video ->
-              items.add(
-                FileSystemItem.VideoFile(
-                  name = video.displayName,
-                  path = video.path,
-                  lastModified = File(video.path).lastModified(),
-                  video = video,
-                ),
-              )
-            }
+          items.addAll(videoResult.getOrDefault(emptyList()))
+          Result.success(items)
         }
-
-        Result.success(items)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {

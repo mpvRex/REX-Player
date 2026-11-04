@@ -34,9 +34,10 @@ internal object MediaStoreDirectorySource {
         val videoUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI ?: return@withContext null
         val audioUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val result = LinkedHashMap<String, MutableList<ScannedItem>>()
-        val videosOk = queryBranchCollection(context, videoUri, folderPath, audio = false, result)
+        val dirContentsCache = mutableMapOf<String, Set<String>?>()
+        val videosOk = queryBranchCollection(context, videoUri, folderPath, audio = false, result, dirContentsCache)
         val audioOk = if (audioUri != null) {
-            queryBranchCollection(context, audioUri, folderPath, audio = true, result)
+            queryBranchCollection(context, audioUri, folderPath, audio = true, result, dirContentsCache)
         } else true
         if (!videosOk && !audioOk) return@withContext null
         result
@@ -48,6 +49,7 @@ internal object MediaStoreDirectorySource {
         folderPath: String,
         audio: Boolean,
         target: MutableMap<String, MutableList<ScannedItem>>,
+        dirContentsCache: MutableMap<String, Set<String>?>,
     ): Boolean {
         val projection = arrayOf(
             MediaStore.MediaColumns.DISPLAY_NAME,
@@ -76,13 +78,24 @@ internal object MediaStoreDirectorySource {
                 while (cursor.moveToNext()) {
                     currentCoroutineContext().ensureActive()
                     val path = cursor.getString(dataIdx) ?: continue
-                    val file = File(path)
-                    val parentFile = file.parentFile ?: continue
-                    val parentPath = folderKey(parentFile.absolutePath)
-                    if (!file.exists()) continue
+                    val lastSlash = path.lastIndexOf('/')
+                    if (lastSlash <= 0) continue
+                    val parentDir = path.substring(0, lastSlash)
+                    val fileName = path.substring(lastSlash + 1)
+
+                    val dirFiles = dirContentsCache.getOrPut(parentDir) {
+                        File(parentDir).list()?.toHashSet()
+                    }
+                    if (dirFiles != null) {
+                        if (fileName !in dirFiles) continue
+                    } else {
+                        if (!File(path).exists()) continue
+                    }
+
+                    val parentPath = folderKey(parentDir)
                     val items = target.getOrPut(parentPath) { mutableListOf() }
                     items += ScannedItem(
-                        name = cursor.getString(nameIdx) ?: file.name,
+                        name = cursor.getString(nameIdx) ?: fileName,
                         path = path,
                         size = cursor.getLong(sizeIdx),
                         duration = cursor.getLong(durationIdx),
@@ -151,6 +164,7 @@ internal object MediaStoreDirectorySource {
 
         try {
             val rows = ArrayList<ScannedItem>()
+            val directFileNames = File(folderPath).list()?.toHashSet()
             context.contentResolver.query(uri, projection, selection, args, null)?.use { cursor ->
                 val nameIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
                 val dataIdx = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
@@ -161,12 +175,18 @@ internal object MediaStoreDirectorySource {
                 while (cursor.moveToNext()) {
                     currentCoroutineContext().ensureActive()
                     val path = cursor.getString(dataIdx) ?: continue
-                    val file = File(path)
-                    // A LIKE on the prefix also matches deeper descendants; keep direct children.
-                    if (file.parentFile?.let(::normalizedPath) != folderPath) continue
-                    if (!file.exists()) continue
+                    val lastSlash = path.lastIndexOf('/')
+                    if (lastSlash <= 0) continue
+                    val parentDir = path.substring(0, lastSlash)
+                    if (folderKey(parentDir) != folderKey(folderPath)) continue
+                    val fileName = path.substring(lastSlash + 1)
+                    if (directFileNames != null) {
+                        if (fileName !in directFileNames) continue
+                    } else {
+                        if (!File(path).exists()) continue
+                    }
                     rows += ScannedItem(
-                        name = cursor.getString(nameIdx) ?: file.name,
+                        name = cursor.getString(nameIdx) ?: fileName,
                         path = path,
                         size = cursor.getLong(sizeIdx),
                         duration = cursor.getLong(durationIdx),

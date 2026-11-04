@@ -285,13 +285,14 @@ object VideoScanUtils {
         val videosMap = mutableMapOf<String, Video>()
         val normalizedFolderPath = normalizePath(folder)
         val directChildren = folder.listFiles()
+        val directFileNames = directChildren?.map { it.name }?.toHashSet()
 
-        scanVideosFromMediaStore(context, normalizedFolderPath, videosMap)
-        scanAudioFromMediaStore(context, normalizedFolderPath, videosMap)
+        scanVideosFromMediaStore(context, normalizedFolderPath, videosMap, directFileNames)
+        scanAudioFromMediaStore(context, normalizedFolderPath, videosMap, directFileNames)
 
         // Reconcile with direct filesystem to pick up newly added or unindexed files
         // (e.g. fresh torrent downloads from Flud, browser downloads, or external transfers).
-        val fsSuccess = scanMediaFromFileSystem(folder, videosMap, directChildren)
+        val fsSuccess = scanMediaFromFileSystem(folder, videosMap, directChildren, normalizedFolderPath)
         if (!fsSuccess && videosMap.isEmpty()) {
             return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
         }
@@ -350,7 +351,8 @@ object VideoScanUtils {
     private suspend fun scanVideosFromMediaStore(
         context: Context,
         folderPath: String,
-        videosMap: MutableMap<String, Video>
+        videosMap: MutableMap<String, Video>,
+        directFileNames: Set<String>? = null,
     ) {
         val projection = mutableListOf(
             MediaStore.Video.Media._ID,
@@ -372,8 +374,8 @@ object VideoScanUtils {
         
         val bucketId = folderPath.hashCode().toString()
         val bucketIdLower = folderPath.lowercase(Locale.ROOT).hashCode().toString()
-        val selection = "(${MediaStore.Video.Media.BUCKET_ID} = ? OR ${MediaStore.Video.Media.BUCKET_ID} = ? OR ${MediaStore.Video.Media.DATA} LIKE ?)"
-        val selectionArgs = arrayOf(bucketId, bucketIdLower, "$folderPath/%")
+        val selection = "(${MediaStore.Video.Media.BUCKET_ID} = ? OR ${MediaStore.Video.Media.BUCKET_ID} = ? OR (${MediaStore.Video.Media.DATA} LIKE ? AND ${MediaStore.Video.Media.DATA} NOT LIKE ?))"
+        val selectionArgs = arrayOf(bucketId, bucketIdLower, "$folderPath/%", "$folderPath/%/%")
         
         try {
             context.contentResolver.query(
@@ -399,16 +401,26 @@ object VideoScanUtils {
                 
                 while (cursor.moveToNext()) {
                     currentCoroutineContext().ensureActive()
-                    val path = cursor.getString(dataColumn)
-                    val file = File(path)
+                    val path = cursor.getString(dataColumn) ?: continue
+                    val lastSlash = path.lastIndexOf('/')
+                    if (lastSlash <= 0) continue
+                    val parentOfFile = path.substring(0, lastSlash)
                     
                     // Only direct children
-                    if (file.parentFile?.let(::normalizePath) != folderPath) continue
-                    if (!file.exists()) continue
+                    if (parentOfFile != folderPath && parentOfFile.lowercase(Locale.ROOT) != folderPath.lowercase(Locale.ROOT)) {
+                        continue
+                    }
+                    
+                    val fileName = path.substring(lastSlash + 1)
+                    if (directFileNames != null) {
+                        if (fileName !in directFileNames) continue
+                    } else {
+                        if (!File(path).exists()) continue
+                    }
                     
                     val id = cursor.getLong(idColumn)
-                    val displayName = cursor.getString(nameColumn)
-                    val title = file.nameWithoutExtension
+                    val displayName = cursor.getString(nameColumn) ?: fileName
+                    val title = fileName.substringBeforeLast('.')
                     val size = cursor.getLong(sizeColumn)
                     val duration = cursor.getLong(durationColumn)
                     val dateModified = cursor.getLong(dateModifiedColumn)
@@ -418,7 +430,7 @@ object VideoScanUtils {
                     val height = cursor.getInt(heightColumn)
                     val rotation = if (orientationColumn != -1) cursor.getInt(orientationColumn) else 0
                     
-                    val normalizedPath = normalizePath(file)
+                    val normalizedPath = "$folderPath/$fileName"
 
                     val uri = Uri.withAppendedPath(
                         MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
@@ -464,7 +476,8 @@ object VideoScanUtils {
     private suspend fun scanAudioFromMediaStore(
         context: Context,
         folderPath: String,
-        videosMap: MutableMap<String, Video>
+        videosMap: MutableMap<String, Video>,
+        directFileNames: Set<String>? = null,
     ) {
         val projection = arrayOf(
             MediaStore.Audio.Media._ID,
@@ -481,8 +494,8 @@ object VideoScanUtils {
         
         val bucketId = folderPath.hashCode().toString()
         val bucketIdLower = folderPath.lowercase(Locale.ROOT).hashCode().toString()
-        val selection = "(${MediaStore.Audio.Media.BUCKET_ID} = ? OR ${MediaStore.Audio.Media.BUCKET_ID} = ? OR ${MediaStore.Audio.Media.DATA} LIKE ?)"
-        val selectionArgs = arrayOf(bucketId, bucketIdLower, "$folderPath/%")
+        val selection = "(${MediaStore.Audio.Media.BUCKET_ID} = ? OR ${MediaStore.Audio.Media.BUCKET_ID} = ? OR (${MediaStore.Audio.Media.DATA} LIKE ? AND ${MediaStore.Audio.Media.DATA} NOT LIKE ?))"
+        val selectionArgs = arrayOf(bucketId, bucketIdLower, "$folderPath/%", "$folderPath/%/%")
         
         try {
             context.contentResolver.query(
@@ -505,16 +518,26 @@ object VideoScanUtils {
                 
                 while (cursor.moveToNext()) {
                     currentCoroutineContext().ensureActive()
-                    val path = cursor.getString(dataColumn)
-                    val file = File(path)
+                    val path = cursor.getString(dataColumn) ?: continue
+                    val lastSlash = path.lastIndexOf('/')
+                    if (lastSlash <= 0) continue
+                    val parentOfFile = path.substring(0, lastSlash)
                     
                     // Only direct children
-                    if (file.parentFile?.let(::normalizePath) != folderPath) continue
-                    if (!file.exists()) continue
+                    if (parentOfFile != folderPath && parentOfFile.lowercase(Locale.ROOT) != folderPath.lowercase(Locale.ROOT)) {
+                        continue
+                    }
+                    
+                    val fileName = path.substring(lastSlash + 1)
+                    if (directFileNames != null) {
+                        if (fileName !in directFileNames) continue
+                    } else {
+                        if (!File(path).exists()) continue
+                    }
                     
                     val id = cursor.getLong(idColumn)
-                    val displayName = cursor.getString(nameColumn)
-                    val title = file.nameWithoutExtension
+                    val displayName = cursor.getString(nameColumn) ?: fileName
+                    val title = fileName.substringBeforeLast('.')
                     val size = cursor.getLong(sizeColumn)
                     val duration = cursor.getLong(durationColumn)
                     val dateModified = cursor.getLong(dateModifiedColumn)
@@ -523,7 +546,7 @@ object VideoScanUtils {
                     val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
                     val album = cursor.getString(albumColumn) ?: "Unknown Album"
                     
-                    val normalizedPath = normalizePath(file)
+                    val normalizedPath = "$folderPath/$fileName"
 
                     val uri = Uri.withAppendedPath(
                         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -572,6 +595,7 @@ object VideoScanUtils {
         folder: File,
         videosMap: MutableMap<String, Video>,
         prelistedFiles: Array<File>? = null,
+        normalizedFolderPath: String = normalizePath(folder),
     ): Boolean {
         try {
             val files = prelistedFiles ?: folder.listFiles() ?: return false
@@ -585,7 +609,7 @@ object VideoScanUtils {
                     val isAudio = FileTypeUtils.isAudioFile(file)
                     if (!isVideo && !isAudio) continue
 
-                    val path = normalizePath(file)
+                    val path = "$normalizedFolderPath/${file.name}"
                     if (videosMap.containsKey(path)) continue
 
                     val size = file.length()
@@ -603,7 +627,7 @@ object VideoScanUtils {
                         dateModified = dateModified,
                         dateAdded = dateModified,
                         mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase()),
-                        bucketId = normalizePath(folder),
+                        bucketId = normalizedFolderPath,
                         bucketDisplayName = folder.name,
                         width = 0,
                         height = 0,
