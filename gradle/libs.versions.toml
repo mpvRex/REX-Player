@@ -21,6 +21,8 @@ junit = "4.13.2"
 mockk = "1.13.17"
 kotlinx-coroutines-test = "1.10.1"
 turbine = "1.2.0"
+googleMaterial = "1.12.0"
+paletteKtx = "1.0.0"
 
 [libraries]
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -50,6 +52,8 @@ mediasession = { group = "androidx.media", name = "media", version = "1.7.1" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version = "1.1.0" }
+com-google-android-material = { group = "com.google.android.material", name = "material", version.ref = "googleMaterial" }
+androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "paletteKtx" }
 seeker = "com.github.abdallahmehiz:seeker:2.0.1"
 mediainfo-lib = "com.github.marlboro-advance:mediainfoAndroid:v1.0.0-fix"
 mpv-lib = "com.github.sfsakhawat999:mpvRex-libmpv:0.0.9"
