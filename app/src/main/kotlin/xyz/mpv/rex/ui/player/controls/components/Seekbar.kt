@@ -58,6 +58,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import xyz.mpv.rex.presentation.components.AnimatedDigitTickerText
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -873,7 +875,7 @@ fun VideoTimer(
   
   val timeText = Utils.prettyTime(value().toInt(), isInverted)
   
-  Text(
+  AnimatedDigitTickerText(
     modifier =
       modifier
         .fillMaxHeight()
@@ -885,8 +887,8 @@ fun VideoTimer(
         .wrapContentHeight(Alignment.CenterVertically),
     text = timeText,
     color = if (matchTheme) MaterialTheme.colorScheme.primary else Color.White,
-    textAlign = TextAlign.Center,
     style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
+    fontWeight = FontWeight.Normal,
   )
 }
 

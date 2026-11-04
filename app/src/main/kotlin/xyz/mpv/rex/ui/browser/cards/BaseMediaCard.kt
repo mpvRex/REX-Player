@@ -13,6 +13,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +54,7 @@ fun MediaMetadataChip(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    shape: Shape = pillShape,
+    shape: Shape = RoundedCornerShape(8.dp),
 ) {
     Surface(
         modifier = modifier,
@@ -117,8 +120,14 @@ fun BaseMediaCard(
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
 ) {
-    val selectionScale by animateFloatAsState(
-        targetValue = if (isSelected) 0.96f else 1f,
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val cardScale by animateFloatAsState(
+        targetValue = when {
+            isPressed -> 0.96f
+            isSelected -> 0.96f
+            else -> 1f
+        },
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "cardScale"
     )
@@ -129,7 +138,7 @@ fun BaseMediaCard(
         label = "cardBackground"
     )
     val animatedCornerRadius by animateDpAsState(
-        targetValue = if (isSelected) 22.dp else 16.dp,
+        targetValue = if (isSelected) 22.dp else if (isGridMode) 20.dp else 16.dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -144,12 +153,14 @@ fun BaseMediaCard(
             .fillMaxWidth()
             .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
             .graphicsLayer {
-                scaleX = selectionScale
-                scaleY = selectionScale
+                scaleX = cardScale
+                scaleY = cardScale
             }
             .clip(cardShape)
             .background(cardBackground)
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),

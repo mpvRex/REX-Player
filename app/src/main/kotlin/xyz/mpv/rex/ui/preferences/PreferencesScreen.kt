@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +43,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.RexSettingsGroup
 import xyz.mpv.rex.presentation.components.RexSettingsItem
 import xyz.mpv.rex.presentation.components.SettingsPalettes
+import xyz.mpv.rex.presentation.components.edgeBlend
 import xyz.mpv.rex.ui.icons.RexIcons
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -81,11 +83,14 @@ object PreferencesScreen : Screen {
       },
     ) { padding ->
       val navBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
+      val listState = rememberLazyListState()
       ProvidePreferenceLocals {
         LazyColumn(
+          state = listState,
           modifier = Modifier
             .fillMaxSize()
-            .padding(padding),
+            .padding(padding)
+            .edgeBlend(listState, 16.dp),
           contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = navBarHeight + 24.dp),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {

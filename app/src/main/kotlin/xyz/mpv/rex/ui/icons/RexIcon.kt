@@ -79,6 +79,22 @@ object RexIconFontCache {
 }
 
 @Composable
+fun RexIcon(
+    icon: MaterialSymbolIcon,
+    contentDescription: String? = null,
+    modifier: Modifier = Modifier,
+    isFilled: Boolean = icon.filled,
+    tint: Color = LocalContentColor.current
+) {
+    Icon(
+        imageVector = if (icon.filled != isFilled) icon.filled(isFilled) else icon,
+        contentDescription = contentDescription,
+        modifier = modifier,
+        tint = tint
+    )
+}
+
+@Composable
 fun Icon(
     imageVector: MaterialSymbolIcon,
     contentDescription: String?,

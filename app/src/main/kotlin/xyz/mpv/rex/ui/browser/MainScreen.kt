@@ -4,6 +4,9 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,6 +17,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
@@ -58,6 +64,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
+import xyz.mpv.rex.ui.icons.RexIcon
+import xyz.mpv.rex.ui.icons.RexIcons
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
@@ -214,13 +222,13 @@ object MainScreen : Screen {
     ) {
       val rawTabs = buildList {
         add(
-          VisibleTab("home", homeLabel, Icons.Filled.Home) {
+          VisibleTab("home", homeLabel, Icons.Filled.Home, RexIcons.Home) {
             FolderListScreen.Content()
           }
         )
         if (isShortsEnabled) {
           add(
-            VisibleTab("shorts", shortsLabel, Icons.Outlined.VideoLibrary) {
+            VisibleTab("shorts", shortsLabel, Icons.Outlined.VideoLibrary, RexIcons.VideoLibrary) {
               ShortsScreen().Content()
             }
           )
@@ -228,14 +236,14 @@ object MainScreen : Screen {
         if (!enableTabYou) {
           if (enableTabRecents) {
             add(
-              VisibleTab("recents", recentsLabel, Icons.Filled.History) {
+              VisibleTab("recents", recentsLabel, Icons.Filled.History, RexIcons.History) {
                 RecentlyPlayedScreen.Content()
               }
             )
           }
           if (enableTabPlaylists) {
             add(
-              VisibleTab("playlists", playlistsLabel, Icons.AutoMirrored.Filled.PlaylistPlay) {
+              VisibleTab("playlists", playlistsLabel, Icons.AutoMirrored.Filled.PlaylistPlay, RexIcons.PlaylistPlay) {
                 PlaylistScreen.Content()
               }
             )
@@ -243,14 +251,14 @@ object MainScreen : Screen {
         }
         if (enableTabNetwork) {
           add(
-            VisibleTab("network", networkLabel, Icons.Filled.Language) {
+            VisibleTab("network", networkLabel, Icons.Filled.Language, RexIcons.Language) {
               NetworkStreamingScreen.Content()
             }
           )
         }
         if (enableTabYou) {
           add(
-            VisibleTab("you", youLabel, Icons.Filled.AccountCircle) {
+            VisibleTab("you", youLabel, Icons.Filled.AccountCircle, RexIcons.Person) {
               YouScreen.Content()
             }
           )
@@ -401,9 +409,27 @@ object MainScreen : Screen {
               }
 
               visibleTabs.forEachIndexed { index, tab ->
+                val isSelected = selectedTab == index
                 val isYouTabWithCustomAvatar = tab.id == "you" && customAvatarBitmap != null
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val pressScale by animateFloatAsState(
+                  targetValue = if (isPressed) 0.90f else 1f,
+                  animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                  ),
+                  label = "navItemPressScale"
+                )
+
                 NavigationBarItem(
-                  modifier = Modifier.offset(y = 2.dp),
+                  modifier = Modifier
+                    .offset(y = 2.dp)
+                    .graphicsLayer {
+                      scaleX = pressScale
+                      scaleY = pressScale
+                    },
+                  interactionSource = interactionSource,
                   icon = {
                     if (isYouTabWithCustomAvatar) {
                       Image(
@@ -414,20 +440,26 @@ object MainScreen : Screen {
                           .size(24.dp)
                           .clip(CircleShape)
                           .border(
-                            width = if (selectedTab == index) 1.5.dp else 1.dp,
-                            color = if (selectedTab == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            width = if (isSelected) 1.5.dp else 1.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                             shape = CircleShape,
                           ),
+                      )
+                    } else if (tab.rexIcon != null) {
+                      RexIcon(
+                        icon = tab.rexIcon,
+                        isFilled = isSelected,
+                        modifier = Modifier.size(24.dp),
                       )
                     } else {
                       Icon(tab.icon, contentDescription = tab.label)
                     }
                   },
                   label = { Text(tab.label) },
-                  selected = selectedTab == index,
+                  selected = isSelected,
                   onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    if (selectedTab == index) {
+                    if (isSelected) {
                       _scrollToTopRequest.tryEmit(tab.id)
                     } else {
                       selectedTab = index
@@ -541,5 +573,6 @@ private data class VisibleTab(
   val id: String,
   val label: String,
   val icon: androidx.compose.ui.graphics.vector.ImageVector,
+  val rexIcon: xyz.mpv.rex.ui.icons.MaterialSymbolIcon? = null,
   val content: @Composable () -> Unit
 )
