@@ -309,7 +309,7 @@ fun PlayerControls(
 
   val onOpenPanel: (Panels) -> Unit = {
     viewModel.panelShown.update { _ -> it }
-   if (it == Panels.None) {
+    if (it == Panels.None) {
       viewModel.showControls()
     } else {
       viewModel.hideControls()
