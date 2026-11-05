@@ -88,7 +88,7 @@ object CoreMediaScanner {
         val knownPaths = HashSet<String>(folders.size * 2)
         for ((path, folder) in folders) {
             currentCoroutineContext().ensureActive()
-            if (path in blacklistedFolders) continue
+            if (isPathExcluded(path, blacklistedFolders)) continue
             if (!policy.includeNoMediaContent && FileFilterUtils.isWithinNoMediaBoundary(File(path))) continue
             val stats = folder.items.toDirectStats(
                 showAudioFiles = showAudioFiles,
@@ -267,6 +267,7 @@ object CoreMediaScanner {
             context = context,
             flattenFolders = browserPreferences.flattenFolders.get(),
             showAudioFiles = browserPreferences.showAudioFiles.get(),
+            blacklistedFolders = blacklistedFolders,
         )
 
         snapshot.nodes.values
@@ -319,6 +320,7 @@ object CoreMediaScanner {
             context = context,
             flattenFolders = browserPreferences.flattenFolders.get(),
             showAudioFiles = showAudioFiles,
+            blacklistedFolders = blacklistedFolders,
         )
 
         val foldersByPath = snapshot
@@ -346,6 +348,7 @@ object CoreMediaScanner {
     private fun walkBranch(
         directory: File,
         policy: MediaScanPolicy,
+        blacklistedFolders: Set<String> = emptySet(),
     ): Map<String, List<ScannedItem>> {
         val result = LinkedHashMap<String, List<ScannedItem>>()
         val queue = ArrayDeque<File>().apply { add(directory) }
@@ -355,7 +358,11 @@ object CoreMediaScanner {
             if (!items.isNullOrEmpty()) {
                 result[folderKey(current.absolutePath)] = items
             }
-            val children = current.listFiles()?.filter { it.isDirectory && !FileFilterUtils.shouldSkipFolder(it, policy) }
+            val children = current.listFiles()?.filter {
+                it.isDirectory &&
+                    !isPathExcluded(it.absolutePath, blacklistedFolders) &&
+                    !FileFilterUtils.shouldSkipFolder(it, policy)
+            }
             if (children != null) {
                 queue.addAll(children)
             }
@@ -383,6 +390,8 @@ object CoreMediaScanner {
         playbackIndex: PlaybackStateIndex,
     ) {
         val rootPath = folderKey(directory.absolutePath)
+        // Never index a blacklisted folder or anything beneath it.
+        if (isPathExcluded(rootPath, blacklistedFolders)) return
         val currentGen = treeStore.generation()
 
         // 1. Fast cache check: if this directory is already recorded in the current generation,
@@ -394,14 +403,14 @@ object CoreMediaScanner {
 
         // 2. Query the entire branch in ONE MediaStore pass (or fallback branch walk)
         val branchMedia = MediaStoreDirectorySource.readBranch(context, directory)
-            ?: walkBranch(directory, policy)
+            ?: walkBranch(directory, policy, blacklistedFolders)
 
         val rows = ArrayList<FolderAggregateEntity>()
         val indexedPaths = HashSet<String>()
 
         // 3. For each folder in the branch that has media, compute direct stats
         for ((folderPath, items) in branchMedia) {
-            if (folderPath in blacklistedFolders) continue
+            if (isPathExcluded(folderPath, blacklistedFolders)) continue
             if (!policy.includeNoMediaContent && FileFilterUtils.isWithinNoMediaBoundary(File(folderPath))) continue
 
             val directItems = if (folderPath == rootPath) {
@@ -504,7 +513,7 @@ object CoreMediaScanner {
 
         for (child in children) {
             currentCoroutineContext().ensureActive()
-            if (!child.isDirectory || child.absolutePath in blacklistedFolders) continue
+            if (!child.isDirectory || isPathExcluded(child.absolutePath, blacklistedFolders)) continue
             if (FileFilterUtils.shouldSkipFolder(child, MediaScanPolicy(includeNoMediaContent = true))) continue
             if (!parentIsNoMedia && !FileFilterUtils.hasNoMediaFile(child)) continue
 
@@ -609,6 +618,7 @@ object CoreMediaScanner {
             context = context,
             flattenFolders = browserPreferences.flattenFolders.get(),
             showAudioFiles = browserPreferences.showAudioFiles.get(),
+            blacklistedFolders = blacklistedFolders,
         )
         snapshot.node(path)?.let { snapshot.toMediaFolder(it, recursive = true) }
     }

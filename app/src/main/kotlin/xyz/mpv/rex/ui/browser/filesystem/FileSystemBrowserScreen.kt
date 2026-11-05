@@ -666,6 +666,11 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   onClick = {
                     viewModel.blacklistFolders(folderSelectionManager.getSelectedItems())
                     folderSelectionManager.clear()
+                    Toast.makeText(
+                      context,
+                      context.getString(R.string.pref_folders_blacklisted),
+                      Toast.LENGTH_SHORT,
+                    ).show()
                   },
                 ))
               }

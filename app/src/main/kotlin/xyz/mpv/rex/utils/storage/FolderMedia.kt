@@ -51,6 +51,27 @@ internal data class MediaStoreScan(
 internal fun folderKey(path: String): String =
     path.trimEnd(File.separatorChar).ifEmpty { File.separator }
 
+/**
+ * True when [path] is a blacklisted folder or lives inside one.
+ *
+ * Blacklisting a folder must hide its whole subtree, not just the folder itself; otherwise a
+ * parent such as `Download` keeps showing because its media lives one level down.
+ * Paths are compared in [folderKey] form so trailing separators do not affect the match.
+ */
+internal fun isPathExcluded(path: String, excludedPaths: Set<String>): Boolean {
+    if (excludedPaths.isEmpty()) return false
+    val key = folderKey(path)
+    return excludedPaths.any { excluded ->
+        val excludedKey = folderKey(excluded)
+        excludedKey.isNotEmpty() &&
+            (key == excludedKey || excludedKey == File.separator || key.startsWith("$excludedKey/"))
+    }
+}
+
+/** Normalizes a blacklist into the comparable form used by [isPathExcluded]. */
+internal fun normalizedExcludedPaths(paths: Set<String>): Set<String> =
+    paths.filter { it.isNotBlank() }.mapTo(HashSet()) { folderKey(it) }
+
 /** Parent folder path, or an empty string for a volume/filesystem root. */
 internal fun parentKey(path: String): String {
     val key = folderKey(path)

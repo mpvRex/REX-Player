@@ -511,6 +511,52 @@ class CoreMediaScannerTest {
     assertEquals(1, folders.single().videoCount)
   }
 
+  @Test
+  fun foldersInDirectory_hidesBlacklistedFolderImmediately() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+    every { browserPreferences.flattenFolders.get() } returns false
+
+    val movies = File(tempDir, "Movies").apply { mkdirs() }
+    File(movies, "film.mkv").apply { writeText("video") }
+    mockMediaStoreRows(videoFiles = listOf(File(movies, "film.mkv")))
+
+    val before = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+    assertEquals(listOf("Movies"), before.map { it.name })
+
+    val after = CoreMediaScanner.getFoldersInDirectory(
+      context = context,
+      parentPath = tempDir.absolutePath,
+      blacklistedFolders = setOf(movies.absolutePath),
+    )
+    assertTrue("Blacklisted folder must disappear on the next listing", after.isEmpty())
+
+    // Lifting the blacklist must bring the persisted folder back without a rescan.
+    val restored = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+    assertEquals(listOf("Movies"), restored.map { it.name })
+  }
+
+  @Test
+  fun foldersInDirectory_hidesBlacklistedParentEvenWhenMediaIsInChildFolders() = runTest {
+    every { browserPreferences.showAudioFiles.get() } returns false
+    every { browserPreferences.flattenFolders.get() } returns false
+
+    val download = File(tempDir, "Download").apply { mkdirs() }
+    val movies = File(download, "Movies").apply { mkdirs() }
+    File(movies, "film.mkv").apply { writeText("video") }
+    mockMediaStoreRows(videoFiles = listOf(File(movies, "film.mkv")))
+
+    val before = CoreMediaScanner.getFoldersInDirectory(context, parentPath = tempDir.absolutePath)
+    assertEquals(listOf("Download"), before.map { it.name })
+
+    // The media is one level below Download, so an exact-path check would leave it visible.
+    val after = CoreMediaScanner.getFoldersInDirectory(
+      context = context,
+      parentPath = tempDir.absolutePath,
+      blacklistedFolders = setOf(download.absolutePath),
+    )
+    assertTrue("Blacklisting a parent must hide its whole subtree", after.isEmpty())
+  }
+
   /**
    * Answers the MediaStore video/audio queries with exactly [videoFiles]/[audioFiles].
    */

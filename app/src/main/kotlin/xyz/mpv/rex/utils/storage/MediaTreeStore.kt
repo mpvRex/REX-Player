@@ -69,13 +69,19 @@ internal class MediaTreeStore(
         context: Context,
         flattenFolders: Boolean,
         showAudioFiles: Boolean,
+        blacklistedFolders: Set<String> = emptySet(),
     ): LibrarySnapshot = withContext(Dispatchers.IO) {
-        val key = "${generation()}|$flattenFolders|$showAudioFiles"
+        val excludedPaths = normalizedExcludedPaths(blacklistedFolders)
+        val excludedKey = excludedPaths.sorted().joinToString("|")
+        val key = "${generation()}|$flattenFolders|$showAudioFiles|$excludedKey"
         cachedSnapshot?.let { if (cachedSnapshotKey == key) return@withContext it }
 
         val rows = repository.loadAll()
         val nodes = LinkedHashMap<String, TreeNode>(rows.size * 2)
         for (row in rows) {
+            // Blacklisted folders and everything below them are removed before folding so the
+            // tree cannot show them and their counts stop contributing to visible ancestors.
+            if (excludedPaths.isNotEmpty() && isPathExcluded(row.path, excludedPaths)) continue
             nodes[row.path] = TreeNode.from(row)
         }
 

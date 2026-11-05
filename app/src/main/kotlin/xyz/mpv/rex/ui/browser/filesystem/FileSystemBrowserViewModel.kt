@@ -21,6 +21,8 @@ import xyz.mpv.rex.utils.sort.SortUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.MediaTreeStore
 import xyz.mpv.rex.utils.storage.folderKey
+import xyz.mpv.rex.utils.storage.isPathExcluded
+import xyz.mpv.rex.utils.storage.normalizedExcludedPaths
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -166,7 +168,15 @@ class FileSystemBrowserViewModel(
 
     // Refresh when blacklist changes
     viewModelScope.launch {
-      foldersPreferences.blacklistedFolders.changes().drop(1).collectLatest {
+      foldersPreferences.blacklistedFolders.changes().drop(1).collectLatest { blacklist ->
+        // Hide the blacklisted folders (and their subtrees) from the list right away, then let
+        // the full refresh reconcile counts in the background.
+        val excludedPaths = normalizedExcludedPaths(blacklist)
+        if (excludedPaths.isNotEmpty()) {
+          _unsortedItems.value = _unsortedItems.value.filterNot { item ->
+            isPathExcluded(item.path, excludedPaths)
+          }
+        }
         refresh(silent = true)
       }
     }
@@ -346,6 +356,7 @@ class FileSystemBrowserViewModel(
         context = getApplication(),
         flattenFolders = browserPreferences.flattenFolders.get(),
         showAudioFiles = browserPreferences.showAudioFiles.get(),
+        blacklistedFolders = foldersPreferences.blacklistedFolders.get(),
       )
       val cachedFolders = snapshot
         .effectiveChildren(folderKey(path))

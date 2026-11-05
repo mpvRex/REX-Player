@@ -10,6 +10,7 @@ import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.VideoScanUtils
 import xyz.mpv.rex.utils.storage.FileSystemOps
 import xyz.mpv.rex.utils.storage.MediaScanPolicy
+import xyz.mpv.rex.utils.storage.isPathExcluded
 import xyz.mpv.rex.utils.media.MediaMetadataOps
 import xyz.mpv.rex.domain.playbackstate.repository.PlaybackStateRepository
 import xyz.mpv.rex.database.repository.HybridMediaIndexRepository
@@ -179,13 +180,14 @@ object MediaFileRepository {
               )
             }
             folders.filter { data ->
-              data.activeCount(isAudioEnabled) > 0 &&
+              !isPathExcluded(data.path, blacklistedFolders) &&
+                data.activeCount(isAudioEnabled) > 0 &&
                 (scanPolicy.includeNoMediaContent || !FileFilterUtils.isWithinNoMediaBoundary(File(data.path)))
             }
           }
 
           val videosDeferred = async {
-            if (path !in blacklistedFolders) {
+            if (!isPathExcluded(path, blacklistedFolders)) {
               val folderScan = VideoScanUtils.scanFolder(context, path, scanPolicy)
               if (folderScan.access == VideoScanUtils.FolderAccess.INACCESSIBLE) {
                 return@async Result.failure<List<FileSystemItem.VideoFile>>(Exception("Directory is not accessible: $path"))
