@@ -1,6 +1,7 @@
 package xyz.mpv.rex.ui.player.controls.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -137,7 +138,9 @@ fun CurrentChapter(
         } else {
           (slideInVertically { height -> -height } + fadeIn())
             .togetherWith(slideOutVertically { height -> height } + fadeOut())
-        }.using(null)
+        }.using(
+          SizeTransform(clip = false),
+        )
       },
       label = "Chapter",
     ) { currentChapter ->
