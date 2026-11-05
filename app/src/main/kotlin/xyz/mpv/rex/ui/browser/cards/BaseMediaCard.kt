@@ -134,7 +134,9 @@ fun BaseMediaCard(
         label = "cardScale"
     )
     val cardBackground by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+        // Fully opaque tint so the selection reads clearly against the
+        // near-white content surface instead of blending into it.
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
                       else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "cardBackground"
