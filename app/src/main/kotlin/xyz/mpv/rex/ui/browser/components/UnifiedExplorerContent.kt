@@ -796,7 +796,6 @@ fun <T> UnifiedExplorerContent(
           isRefreshing = isRefreshing,
           onRefresh = onRefresh,
           modifier = modifier.fillMaxSize(),
-          listState = listState,
           content = contentBlock
         )
       } else {

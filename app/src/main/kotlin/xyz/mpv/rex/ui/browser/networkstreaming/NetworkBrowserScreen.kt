@@ -250,7 +250,6 @@ private fun NetworkBrowserContent(
       PullRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
-        listState = networkListState,
         modifier = modifier.fillMaxSize(),
       ) {
         val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current

@@ -511,7 +511,6 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
         PullRefreshBox(
           isRefreshing = isRefreshing,
           enabled = pullToRefreshEnabled,
-          listState = listState,
           modifier = Modifier.fillMaxSize().padding(padding),
           onRefresh = {
             val isM3uPlaylist = playlist?.isM3uPlaylist == true
