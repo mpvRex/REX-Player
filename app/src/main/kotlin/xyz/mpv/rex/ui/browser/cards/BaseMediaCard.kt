@@ -119,13 +119,14 @@ fun BaseMediaCard(
     infoContent: @Composable (RowScope.() -> Unit)? = null,
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
+    shape: Shape? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val cardScale by animateFloatAsState(
         targetValue = when {
-            isPressed -> 0.96f
-            isSelected -> 0.96f
+            isPressed -> if (shape != null) 1f else 0.98f
+            isSelected -> if (shape != null) 1f else 0.96f
             else -> 1f
         },
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
@@ -145,13 +146,17 @@ fun BaseMediaCard(
         ),
         label = "cardCornerRadius"
     )
-    val cardShape = RoundedCornerShape(animatedCornerRadius)
+    val cardShape = shape ?: RoundedCornerShape(animatedCornerRadius)
     val thumbnailShape = RoundedCornerShape(14.dp)
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (isGridMode && gridColumns > 1) Modifier else Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+            .then(
+                if (isGridMode && gridColumns > 1) Modifier
+                else if (shape != null) Modifier
+                else Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            )
             .graphicsLayer {
                 scaleX = cardScale
                 scaleY = cardScale
@@ -164,7 +169,15 @@ fun BaseMediaCard(
                 onClick = onClick,
                 onLongClick = onLongClick,
             ),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = cardShape,
+        colors = CardDefaults.cardColors(
+            containerColor = if (shape != null) {
+                if (MaterialTheme.colorScheme.background == Color.Black) Color.Black
+                else MaterialTheme.colorScheme.surface
+            } else {
+                Color.Transparent
+            }
+        ),
     ) {
         if (isGridMode) {
             // GRID LAYOUT
@@ -312,7 +325,10 @@ fun BaseMediaCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp, horizontal = 8.dp),
+                    .padding(
+                        vertical = if (shape != null) 8.dp else 6.dp,
+                        horizontal = if (shape != null) 12.dp else 8.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
         // Thumbnail Box

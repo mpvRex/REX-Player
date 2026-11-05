@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +72,7 @@ fun FolderCard(
   thumbnailAspectRatio: Float = 1f,
   thumbnail: ImageBitmap? = null,
   isPinned: Boolean = false,
+  shape: Shape? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
@@ -111,6 +113,7 @@ fun FolderCard(
     isGridMode = isGridMode,
     gridColumns = gridColumns,
     maxTitleLines = maxLines,
+    shape = shape,
     overlayContent = {
       if (isPinned) {
         PinBadge(modifier = Modifier.align(Alignment.BottomStart).padding(6.dp))

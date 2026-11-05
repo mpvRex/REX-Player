@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -81,6 +82,7 @@ fun VideoCard(
   useFolderNameStyle: Boolean = false,
   allowThumbnailGeneration: Boolean = true,
   isPinned: Boolean = false,
+  shape: Shape? = null,
 ) {
   val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
   
@@ -149,6 +151,7 @@ fun VideoCard(
     isWatched = isWatched,
     isGridMode = isGridMode,
     gridColumns = gridColumns,
+    shape = shape,
     progressPercentage = if (uiSettings.showProgressBar && !isWatched) progressPercentage else null,
     maxTitleLines = maxLines,
     thumbnailSize = thumbWidthDp,

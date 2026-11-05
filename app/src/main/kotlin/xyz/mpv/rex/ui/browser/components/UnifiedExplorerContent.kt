@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Search
@@ -22,6 +23,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.domain.media.model.Video
@@ -88,6 +91,7 @@ fun <T> UnifiedExplorerContent(
   pinnedPaths: List<String> = emptyList(),
   listState: LazyListState? = null,
   gridState: LazyGridState? = null,
+  useContentSurface: Boolean = false,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -146,15 +150,38 @@ fun <T> UnifiedExplorerContent(
       )
     }
   } else if (items.isEmpty()) {
-    Box(
-      modifier = modifier.fillMaxSize(),
-      contentAlignment = Alignment.Center,
-    ) {
-      EmptyState(
-        icon = emptyIcon,
-        title = emptyTitle,
-        message = emptyMessage,
-      )
+    if (useContentSurface) {
+      Surface(
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(20.dp),
+        color = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+          androidx.compose.ui.graphics.Color.Black
+        } else {
+          MaterialTheme.colorScheme.surface
+        },
+      ) {
+        Box(
+          modifier = Modifier.fillMaxSize(),
+          contentAlignment = Alignment.Center,
+        ) {
+          EmptyState(
+            icon = emptyIcon,
+            title = emptyTitle,
+            message = emptyMessage,
+          )
+        }
+      }
+    } else {
+      Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+      ) {
+        EmptyState(
+          icon = emptyIcon,
+          title = emptyTitle,
+          message = emptyMessage,
+        )
+      }
     }
   } else {
     val safeItems = remember(items) {
@@ -298,12 +325,12 @@ fun <T> UnifiedExplorerContent(
           state = listState,
           modifier = Modifier.fillMaxSize(),
           contentPadding = PaddingValues(
-            start = 8.dp,
-            end = 8.dp,
-            top = 8.dp,
-            bottom = animatedBottomPadding
+            start = if (useContentSurface) 0.dp else 8.dp,
+            end = if (useContentSurface) 0.dp else 8.dp,
+            top = if (useContentSurface) 0.dp else 8.dp,
+            bottom = if (useContentSurface) 0.dp else animatedBottomPadding
           ),
-          verticalArrangement = Arrangement.spacedBy(2.dp)
+          verticalArrangement = if (useContentSurface) Arrangement.spacedBy(3.dp) else Arrangement.spacedBy(2.dp)
         ) {
           // --- FOLDERS SECTION ---
           if (folderItems.isNotEmpty()) {
@@ -368,10 +395,10 @@ fun <T> UnifiedExplorerContent(
               }
             } else {
               // List Mode
-              items(
+              itemsIndexed(
                 items = folderItems,
-                key = { getItemId(it) }
-              ) { item ->
+                key = { _, it -> getItemId(it) }
+              ) { index, item ->
                 val effectiveOnClick = {
                   if (isInSelectionMode) {
                     onToggleSelection(item)
@@ -386,6 +413,10 @@ fun <T> UnifiedExplorerContent(
                 } else {
                   null
                 }
+
+                val cardShape = if (useContentSurface) {
+                  RoundedCornerShape(2.dp)
+                } else null
 
                 ExplorerItemCard(
                   item = item,
@@ -406,6 +437,7 @@ fun <T> UnifiedExplorerContent(
                   showSections = showSections,
                   showAudioFiles = showAudioFiles,
                   pinnedPathSet = pinnedPathSet,
+                  shape = cardShape,
                 )
               }
             }
@@ -481,10 +513,10 @@ fun <T> UnifiedExplorerContent(
               }
             } else {
               // List Mode
-              items(
+              itemsIndexed(
                 items = videoItems,
-                key = { getItemId(it) }
-              ) { item ->
+                key = { _, it -> getItemId(it) }
+              ) { index, item ->
                 val effectiveOnClick = {
                   if (isInSelectionMode) {
                     onToggleSelection(item)
@@ -499,6 +531,10 @@ fun <T> UnifiedExplorerContent(
                 } else {
                   null
                 }
+
+                val cardShape = if (useContentSurface) {
+                  RoundedCornerShape(2.dp)
+                } else null
 
                 ExplorerItemCard(
                   item = item,
@@ -519,6 +555,7 @@ fun <T> UnifiedExplorerContent(
                   showSections = showSections,
                   showAudioFiles = showAudioFiles,
                   pinnedPathSet = pinnedPathSet,
+                  shape = cardShape,
                 )
               }
             }
@@ -590,17 +627,17 @@ fun <T> UnifiedExplorerContent(
           state = listState,
           modifier = Modifier.fillMaxSize(),
           contentPadding = PaddingValues(
-            start = 8.dp,
-            end = 8.dp,
-            top = 8.dp,
-            bottom = animatedBottomPadding
+            start = if (useContentSurface) 0.dp else 8.dp,
+            end = if (useContentSurface) 0.dp else 8.dp,
+            top = if (useContentSurface) 0.dp else 8.dp,
+            bottom = if (useContentSurface) 0.dp else animatedBottomPadding
           ),
-          verticalArrangement = Arrangement.spacedBy(2.dp)
+          verticalArrangement = if (useContentSurface) Arrangement.spacedBy(3.dp) else Arrangement.spacedBy(2.dp)
         ) {
-          items(
+          itemsIndexed(
             items = safeItems,
-            key = { getItemId(it) }
-          ) { item ->
+            key = { _, item -> getItemId(item) }
+          ) { index, item ->
             val effectiveOnClick = {
               if (isInSelectionMode) {
                 onToggleSelection(item)
@@ -615,6 +652,10 @@ fun <T> UnifiedExplorerContent(
             } else {
               null
             }
+
+            val cardShape = if (useContentSurface) {
+              RoundedCornerShape(2.dp)
+            } else null
 
             if (isReorderMode) {
               ReorderableItem(reorderState, key = getItemId(item)) { _ ->
@@ -642,6 +683,7 @@ fun <T> UnifiedExplorerContent(
                       showSections = showSections,
                       showAudioFiles = showAudioFiles,
                       pinnedPathSet = pinnedPathSet,
+                      shape = cardShape,
                     )
                   }
                   IconButton(
@@ -678,9 +720,12 @@ fun <T> UnifiedExplorerContent(
                 showSections = showSections,
                 showAudioFiles = showAudioFiles,
                 pinnedPathSet = pinnedPathSet,
+                shape = cardShape,
               )
             }
           }
+
+
         }
       }
 
@@ -692,7 +737,7 @@ fun <T> UnifiedExplorerContent(
           modifier = Modifier
             .align(Alignment.CenterEnd)
             .fillMaxHeight()
-            .padding(top = 8.dp, bottom = animatedBottomPadding),
+            .padding(top = 8.dp, bottom = if (useContentSurface) 16.dp else animatedBottomPadding),
           thumbColor = MaterialTheme.colorScheme.primary,
         )
       }
@@ -754,6 +799,7 @@ private fun <T> ExplorerItemCard(
   showSections: Boolean = false,
   showAudioFiles: Boolean = true,
   pinnedPathSet: Set<String> = emptySet(),
+  shape: Shape? = null,
 ) {
   val lastPlayedVideoPathsInFolder = LocalLastPlayedVideoPathsInFolder.current
   val recentlyPlayedFilePaths = LocalRecentlyPlayedFilePaths.current
@@ -788,6 +834,7 @@ private fun <T> ExplorerItemCard(
         gridColumns = columns,
         newVideoCount = item.newCount,
         isPinned = isPinned,
+        shape = shape,
       )
     }
     is Video -> {
@@ -809,6 +856,7 @@ private fun <T> ExplorerItemCard(
         isWatched = isWatched,
         isRecentlyPlayed = isRecentlyPlayed,
         isPinned = isPinned,
+        shape = shape,
       )
     }
     is VideoWithPlaybackInfo -> {

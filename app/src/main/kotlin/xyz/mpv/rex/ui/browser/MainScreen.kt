@@ -536,8 +536,8 @@ object MainScreen : Screen {
           val shortsIdx = visibleTabs.indexOfFirst { it.id == "shorts" }
           val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
-          
-          val navBarHeight = if (isNavBarVisible) 64.dp else 0.dp
+          val navBarBottomInset = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
+          val navBarHeight = if (isNavBarVisible) 64.dp + navBarBottomInset else 0.dp
           val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
           val totalBottomPadding = navBarHeight + miniPlayerHeight
           

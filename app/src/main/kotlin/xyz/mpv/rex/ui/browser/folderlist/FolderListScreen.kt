@@ -457,6 +457,11 @@ object FolderListScreen : Screen {
 
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
       topBar = {
         BrowserTopBar(
           title = stringResource(xyz.mpv.rex.R.string.app_name),
@@ -964,7 +969,17 @@ private fun FolderListContent(
 ) {
   val showLoading = isLoading && !hasCompletedInitialLoad
 
-  Box(modifier = Modifier.fillMaxSize()) {
+  Box(
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(
+        start = 8.dp,
+        end = 8.dp,
+        top = 2.dp,
+        bottom = navigationBarHeight + 14.dp
+      )
+      .clip(RoundedCornerShape(24.dp))
+  ) {
     UnifiedExplorerContent(
       items = folders,
       isLoading = showLoading,
@@ -988,6 +1003,7 @@ private fun FolderListContent(
       scrollTriggerKey = scrollTriggerKey,
       gridColumns = folderGridColumns,
       pinnedPaths = pinnedPaths,
+      useContentSurface = true,
     )
   }
 }
