@@ -3,6 +3,7 @@ package xyz.mpv.rex.ui.browser.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -23,9 +24,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.domain.media.model.VideoFolder
@@ -307,6 +312,32 @@ fun <T> UnifiedExplorerContent(
         }
       }
     }
+
+    val verticalGapDp = if (useContentSurface) 3.dp else 2.dp
+
+    // Viewport height of the list, and the height one card occupies. Together
+    // they size the content-surface filler to exactly the space left below the
+    // last card. Using fillParentMaxHeight() alone would give the filler the
+    // whole viewport, making even a 3-folder list scrollable.
+    var listViewportHeightPx by remember { mutableIntStateOf(0) }
+    var cardHeightPx by remember { mutableIntStateOf(0) }
+    val measureCard = Modifier.onGloballyPositioned { coordinates ->
+      // Cards differ slightly (1 vs 2 title lines); the tallest is used so the
+      // filler never overruns the bottom edge.
+      val height = coordinates.size.height
+      if (height > cardHeightPx) cardHeightPx = height
+    }
+    val gapPx = with(LocalDensity.current) { verticalGapDp.roundToPx() }
+    val itemCount = safeItems.size
+    // Cards plus their gaps, plus the gap between the last card and the filler.
+    val cardsHeightPx = cardHeightPx * itemCount + gapPx * itemCount
+    val leftoverPx = (listViewportHeightPx - cardsHeightPx).coerceAtLeast(0)
+    // Keep a fixed strip at the end even when the list already fills the
+    // screen: it lets the last card scroll clear of the selection action bar
+    // that appears over it. Matches the reserve used by animatedBottomPadding
+    // in selection mode (navigationBarHeight + 88.dp vs + 16.dp).
+    val selectionReservePx = with(LocalDensity.current) { (88.dp - 16.dp).roundToPx() }
+    val fillerHeightPx = maxOf(leftoverPx, selectionReservePx)
 
     val contentBlock: @Composable BoxScope.() -> Unit = {
       if (showSections) {
@@ -625,7 +656,9 @@ fun <T> UnifiedExplorerContent(
 
         LazyColumn(
           state = listState,
-          modifier = Modifier.fillMaxSize(),
+          modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { listViewportHeightPx = it.size.height },
           contentPadding = PaddingValues(
             start = if (useContentSurface) 0.dp else 8.dp,
             end = if (useContentSurface) 0.dp else 8.dp,
@@ -701,31 +734,42 @@ fun <T> UnifiedExplorerContent(
                 }
               }
             } else {
-              ExplorerItemCard(
-                item = item,
-                isSelected = isSelected(item),
-                showSubtitleIndicator = showSubtitleIndicator,
-                isGridMode = false,
-                columns = 1,
-                uiSettings = uiSettings,
-                onClick = effectiveOnClick,
-                onLongClick = { onLongClick(item) },
-                onThumbClick = effectiveOnThumbClick,
-                recentlyPlayedFilePath = recentlyPlayedFilePath,
-                recentlyPlayedPaths = recentlyPlayedPaths,
-                playedFolderPaths = playedFolderPaths,
-                newVideoIds = newVideoIds,
-                watchedVideoIds = watchedVideoIds,
-                videoPlaybackProgress = videoPlaybackProgress,
-                showSections = showSections,
-                showAudioFiles = showAudioFiles,
-                pinnedPathSet = pinnedPathSet,
-                shape = cardShape,
-              )
+              Box(modifier = measureCard) {
+                ExplorerItemCard(
+                  item = item,
+                  isSelected = isSelected(item),
+                  showSubtitleIndicator = showSubtitleIndicator,
+                  isGridMode = false,
+                  columns = 1,
+                  uiSettings = uiSettings,
+                  onClick = effectiveOnClick,
+                  onLongClick = { onLongClick(item) },
+                  onThumbClick = effectiveOnThumbClick,
+                  recentlyPlayedFilePath = recentlyPlayedFilePath,
+                  recentlyPlayedPaths = recentlyPlayedPaths,
+                  playedFolderPaths = playedFolderPaths,
+                  newVideoIds = newVideoIds,
+                  watchedVideoIds = watchedVideoIds,
+                  videoPlaybackProgress = videoPlaybackProgress,
+                  showSections = showSections,
+                  showAudioFiles = showAudioFiles,
+                  pinnedPathSet = pinnedPathSet,
+                  shape = cardShape,
+                )
+              }
             }
           }
 
-
+          if (useContentSurface) {
+            // Filler card: occupies the space left below the last item, or a
+            // fixed strip when the list fills the screen. The strip keeps the
+            // last card scrollable clear of the selection action bar, and the
+            // leftover keeps the surface reaching the container's rounded
+            // bottom edge.
+            item(key = "content_surface_filler") {
+              ContentSurfaceFiller(heightPx = fillerHeightPx)
+            }
+          }
         }
       }
 
@@ -777,6 +821,32 @@ private fun <T> getItemId(item: T): String {
     is PlaylistVideoItem -> "playlist_item_${item.playlistItem.id}"
     else -> "item_${item.hashCode()}"
   }
+}
+
+/**
+ * Empty card that closes off the content surface in surface mode.
+ *
+ * Takes exactly [heightPx]: either the space left below the last card (so a
+ * short list reaches the container's bottom edge and keeps its rounded corners
+ * visible) or a fixed strip when the list already fills the screen (so the last
+ * card can scroll clear of the selection action bar). Not using
+ * fillParentMaxHeight(), which would give it the whole viewport height and add
+ * unwanted scroll range to every list.
+ */
+@Composable
+private fun ContentSurfaceFiller(heightPx: Int) {
+  val containerColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+    Color.Black
+  } else {
+    MaterialTheme.colorScheme.surface
+  }
+  Box(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(with(LocalDensity.current) { heightPx.toDp() })
+      .clip(RoundedCornerShape(2.dp))
+      .background(containerColor)
+  )
 }
 
 @Composable
