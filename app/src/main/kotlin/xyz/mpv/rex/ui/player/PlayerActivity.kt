@@ -332,7 +332,6 @@ class PlayerActivity :
            } else {
               viewModel.hideControls()
            }
-          }
 
           playbackStateLoadJob?.cancel()
           activePlaybackLoadState = pendingPlaybackLoadStates.poll()
