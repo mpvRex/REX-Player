@@ -323,14 +323,15 @@ class PlayerActivity :
         webSubtitlesJob = null
 
         if (!isQualitySwitching) {
-          if (
-            isAutoplayNextTriggered ||
-            !playerPreferences.autoplayOnOpen.get() ||
-            playerPreferences.showControlsOnPlay.get()
-          ) {
-            viewModel.showControls()
-          } else {
-            viewModel.hideControls()
+           if (
+              playerPreferences.showControlsOnPlay.get() ||
+              (!isAutoAdvancing &&
+                (isAutoplayNextTriggered || !playerPreferences.autoplayOnOpen.get()))
+           ) {
+              viewModel.showControls()
+           } else {
+              viewModel.hideControls()
+           }
           }
 
           playbackStateLoadJob?.cancel()
@@ -354,6 +355,7 @@ class PlayerActivity :
       override fun onFileLoaded() {
         Log.d(TAG, "onFileLoaded called")
         lastFileLoadedTimeMs = SystemClock.elapsedRealtime()
+        val wasAutoAdvancing = isAutoAdvancing
         isAutoAdvancing = false
         val preparedState = if (isQualitySwitching) {
           null
@@ -364,7 +366,7 @@ class PlayerActivity :
           Log.d(TAG, "Ignoring stale FILE_LOADED restoration for generation ${preparedState.generation}")
           return
         }
-        handleFileLoaded(preparedState)
+        handleFileLoaded(preparedState, wasAutoAdvancing)
         isReady = true
 
         val subs = pendingWebSubtitles
@@ -2009,7 +2011,7 @@ class PlayerActivity :
    * Initializes playback state, loads saved playback data, restores custom settings,
    * applies user preferences, and sets up metadata and media session.
    */
-  private fun handleFileLoaded(preparedState: PlayerPlaybackStateController.PreparedPlaybackState? = null) {
+  private fun handleFileLoaded(preparedState: PlayerPlaybackStateController.PreparedPlaybackState? = null, wasAutoAdvancing: Boolean = false) {
     if (isQualitySwitching) {
       isQualitySwitching = false
       val loadedDurationSec = MPVLib.getPropertyDouble("duration") ?: 0.0
@@ -2081,7 +2083,7 @@ class PlayerActivity :
     val loadedMediaTitle = fileName
     val loadGeneration = preparedState?.generation ?: playbackLoadGeneration.get()
     val isPlaylistNavigation = isAutoplayNextTriggered
-    val shouldAutoplay = playerPreferences.autoplayOnOpen.get() || isAutoplayNextTriggered
+    val shouldAutoplay = playerPreferences.autoplayOnOpen.get() || wasAutoAdvancing
     isAutoplayNextTriggered = false
     isAutoAdvancing = false
 
