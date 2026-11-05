@@ -1627,8 +1627,18 @@ fun PlayerControls(
           visible = controlsShown && !areControlsLocked,
           enter =
             if (!reduceMotion) {
-              slideInHorizontally(playerControlsEnterAnimationSpec()) { it } +
-                fadeIn(playerControlsEnterAnimationSpec())
+              slideInHorizontally(
+                animationSpec = tween(
+                  durationMillis = 180,
+                  easing = LinearOutSlowInEasing,
+                ),
+              ) { it / 3 } +
+                fadeIn(
+                  tween(
+                    durationMillis = 180,
+                    easing = LinearOutSlowInEasing,
+                  ),
+                )
             } else {
               fadeIn(playerControlsEnterAnimationSpec())
             },
