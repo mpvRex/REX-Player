@@ -152,7 +152,7 @@ class BrowserPreferences(
   val showTreeViewPath = preferenceStore.getBoolean("show_tree_view_path", false)
 
   // Smart tree flattening: hide folders without media in Tree View when they only lead to a single media folder
-  val flattenFolders = preferenceStore.getBoolean("flatten_folders", true)
+  val flattenFolders = preferenceStore.getBoolean("flatten_folders", false)
 
   // RexShorts preferences
   val enableShorts = preferenceStore.getBoolean("enable_shorts", true)
