@@ -41,11 +41,11 @@ fun <T> GenericTracksSheet(
   track: @Composable (T) -> Unit = {},
   footer: @Composable () -> Unit = {},
   key: ((index: Int, item: T) -> Any)? = null,
-  trackIndexed: (@Composable (index: Int, item: T) -> Unit)? = null,
+  trackIndexed: (@Composable (index: Int, item: T, dismissSheet: () -> Unit) -> Unit)? = null,
 ) {
   val listState = lazyListState ?: rememberLazyListState()
 
-  PlayerSheet(onDismissRequest, customMaxWidth = customMaxWidth) {
+  PlayerSheet(onDismissRequest, customMaxWidth = customMaxWidth) { dismissSheet ->
     Column(modifier) {
       header()
       LazyColumn(
@@ -54,7 +54,7 @@ fun <T> GenericTracksSheet(
         verticalArrangement = Arrangement.spacedBy(6.dp),
       ) {
         itemsIndexed(items = tracks, key = key) { index, item ->
-          if (trackIndexed != null) trackIndexed(index, item) else track(item)
+          if (trackIndexed != null) trackIndexed(index, item, dismissSheet) else track(item)
         }
         item {
           footer()
