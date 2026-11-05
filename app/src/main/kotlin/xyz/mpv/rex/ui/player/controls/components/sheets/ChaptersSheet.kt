@@ -219,7 +219,7 @@ fun ChaptersSheet(
         },
       )
     },
-    trackIndexed = { _, item ->
+    trackIndexed = { _, item, dismissSheet ->
       when (item) {
         is ChapterSheetItem.BookmarkItem -> {
           val bookmark = item.bookmark
@@ -253,6 +253,7 @@ fun ChaptersSheet(
               } else {
                 onClick(item.chapter)
               }
+              dismissSheet()
             },
           )
         }
