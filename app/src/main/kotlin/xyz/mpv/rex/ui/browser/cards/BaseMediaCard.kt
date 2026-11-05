@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -139,7 +140,14 @@ fun BaseMediaCard(
         label = "cardBackground"
     )
     val animatedCornerRadius by animateDpAsState(
-        targetValue = if (isSelected) 22.dp else if (isGridMode) 20.dp else 16.dp,
+        // Constant when an explicit shape is supplied; avoids animating an
+        // unused value on every selection change.
+        targetValue = when {
+            shape != null -> 0.dp
+            isSelected -> 22.dp
+            isGridMode -> 20.dp
+            else -> 16.dp
+        },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -162,7 +170,6 @@ fun BaseMediaCard(
                 scaleY = cardScale
             }
             .clip(cardShape)
-            .background(cardBackground)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = ripple(),
@@ -171,12 +178,17 @@ fun BaseMediaCard(
             ),
         shape = cardShape,
         colors = CardDefaults.cardColors(
-            containerColor = if (shape != null) {
-                if (MaterialTheme.colorScheme.background == Color.Black) Color.Black
-                else MaterialTheme.colorScheme.surface
-            } else {
-                Color.Transparent
-            }
+            // The selection tint is composited into the container colour rather
+            // than painted as a separate .background() layer, so it is clipped
+            // by the card's own rounded surface and cannot bleed past its edge.
+            containerColor = cardBackground.compositeOver(
+                if (shape != null) {
+                    if (MaterialTheme.colorScheme.background == Color.Black) Color.Black
+                    else MaterialTheme.colorScheme.surface
+                } else {
+                    Color.Transparent
+                }
+            ),
         ),
     ) {
         if (isGridMode) {
