@@ -12,7 +12,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -67,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -541,7 +545,18 @@ fun MediaLibraryContent() {
         },
         onVideoLongClick = { video -> selectionManager.handleLongClick(video) },
         isFabVisible = isFabVisible,
-        modifier = Modifier.padding(padding),
+        // The Scaffold's padding includes the navigation-bar inset, and
+        // VideoListContent's ContentSurfaceContainer adds it again on top of its
+        // own 14.dp gap — which left a double-height empty band under the sheet.
+        // Drop only the bottom here; the container owns the bottom inset.
+        modifier = Modifier.padding(
+          PaddingValues(
+            start = padding.calculateStartPadding(LocalLayoutDirection.current),
+            top = padding.calculateTopPadding(),
+            end = padding.calculateEndPadding(LocalLayoutDirection.current),
+            bottom = 0.dp,
+          )
+        ),
         showFloatingBottomBar = showFloatingBottomBar,
         sortType = videoSortType,
         sortOrder = videoSortOrder,

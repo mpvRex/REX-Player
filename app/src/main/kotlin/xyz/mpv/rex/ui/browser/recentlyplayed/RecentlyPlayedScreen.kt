@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -67,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -399,7 +402,17 @@ object RecentlyPlayedScreen : Screen {
               // Navigate to playlist detail screen
               backStack.add(PlaylistDetailScreen(playlistItem.playlist.id))
             },
-            modifier = Modifier.padding(padding),
+            // The Scaffold padding repeats the navigation-bar inset that the
+            // content surface already adds (plus its own 14.dp gap), so keep the
+            // top inset only and let the container own the bottom.
+            modifier = Modifier.padding(
+              PaddingValues(
+                start = padding.calculateStartPadding(LocalLayoutDirection.current),
+                top = padding.calculateTopPadding(),
+                end = padding.calculateEndPadding(LocalLayoutDirection.current),
+                bottom = 0.dp,
+              )
+            ),
             isInSelectionMode = selectionManager.isInSelectionMode,
             listState = listState,
             gridState = gridState,
