@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonMenu
@@ -251,6 +252,15 @@ fun MediaLibraryContent() {
 
   Scaffold(
     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+    // Nested/pushed screens must set the screen tone themselves; it does not
+    // propagate from MainScreen across a NavDisplay boundary, and a nested
+    // Scaffold overrides it. surfaceContainer is what shows through the
+    // content surface's gaps and around its 24.dp corners.
+    containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+      androidx.compose.ui.graphics.Color.Black
+    } else {
+      MaterialTheme.colorScheme.surfaceContainer
+    },
     topBar = {
       if (isSearching) {
         SearchBar(

@@ -27,8 +27,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.AccountTree
@@ -124,6 +122,7 @@ import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.browser.cards.FolderCard
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
 import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
@@ -969,17 +968,7 @@ private fun FolderListContent(
 ) {
   val showLoading = isLoading && !hasCompletedInitialLoad
 
-  Box(
-    modifier = Modifier
-      .fillMaxSize()
-      .padding(
-        start = 8.dp,
-        end = 8.dp,
-        top = 2.dp,
-        bottom = navigationBarHeight + 14.dp
-      )
-      .clip(RoundedCornerShape(24.dp))
-  ) {
+  ContentSurfaceContainer(navigationBarHeight = navigationBarHeight) {
     UnifiedExplorerContent(
       items = folders,
       isLoading = showLoading,

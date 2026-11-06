@@ -91,6 +91,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.browser.components.BrowserBottomBar
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
@@ -249,6 +250,15 @@ data class SearchScreen(
     }
 
     Scaffold(
+      // Nested/pushed screens must set the screen tone themselves; it does not
+      // propagate from MainScreen across a NavDisplay boundary, and a nested
+      // Scaffold overrides it. surfaceContainer is what shows through the
+      // content surface's gaps and around its 24.dp corners.
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
       topBar = {
         val topBarContainerColor = if (MaterialTheme.colorScheme.background == Color.Black) {
           Color.Black
@@ -546,10 +556,9 @@ data class SearchScreen(
         }
       }
     ) { padding ->
-      Box(
-        modifier = Modifier
-          .fillMaxSize()
-          .padding(top = padding.calculateTopPadding())
+      ContentSurfaceContainer(
+        navigationBarHeight = LocalNavigationBarHeight.current,
+        modifier = Modifier.padding(top = padding.calculateTopPadding()),
       ) {
         UnifiedExplorerContent(
           items = searchResults,
@@ -609,50 +618,51 @@ data class SearchScreen(
           watchedVideoIds = watchedVideoIds,
           videoPlaybackProgress = videoFilesWithPlayback,
           showSections = true,
+          useContentSurface = true,
         )
 
-        // Floating Bottom Bar for multi-selection actions
-        AnimatedVisibility(
-          visible = showFloatingBottomBar,
-          enter = slideInVertically(
-            animationSpec = tween(durationMillis = 200),
-            initialOffsetY = { fullHeight -> fullHeight }
-          ),
-          exit = slideOutVertically(
-            animationSpec = tween(durationMillis = 200),
-            targetOffsetY = { fullHeight -> fullHeight }
-          ),
-          modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-          BrowserBottomBar(
-            isSelectionMode = true,
-            onCopyClick = {
-              operationType.value = CopyPasteOps.OperationType.Copy
-              if (CopyPasteOps.canUseDirectFileOperations()) {
-                folderPickerOpen.value = true
-              } else {
-                treePickerLauncher.launch(null)
-              }
-            },
-            onMoveClick = {
-              operationType.value = CopyPasteOps.OperationType.Move
-              if (CopyPasteOps.canUseDirectFileOperations()) {
-                folderPickerOpen.value = true
-              } else {
-                treePickerLauncher.launch(null)
-              }
-            },
-            onRenameClick = { renameDialogOpen = true },
-            onDeleteClick = { deleteDialogOpen = true },
-            onAddToPlaylistClick = { addToPlaylistDialogOpen = true },
-            onMarkAsClick = { showMarkAsSheet = true },
-            showRename = (videoSelectionManager.isSingleSelection || folderSelectionManager.isSingleSelection) && !isMixedSelection,
-            showAddToPlaylist = videoSelectionManager.isInSelectionMode && !isMixedSelection,
-            showDelete = !isMixedSelection && folderSelectionManager.selectedCount <= 1
-          )
+        Box(modifier = Modifier.fillMaxSize()) {
+          // Floating Bottom Bar for multi-selection actions
+          AnimatedVisibility(
+            visible = showFloatingBottomBar,
+            enter = slideInVertically(
+              animationSpec = tween(durationMillis = 200),
+              initialOffsetY = { fullHeight -> fullHeight }
+            ),
+            exit = slideOutVertically(
+              animationSpec = tween(durationMillis = 200),
+              targetOffsetY = { fullHeight -> fullHeight }
+            ),
+            modifier = Modifier.align(Alignment.BottomCenter)
+          ) {
+            BrowserBottomBar(
+              isSelectionMode = true,
+              onCopyClick = {
+                operationType.value = CopyPasteOps.OperationType.Copy
+                if (CopyPasteOps.canUseDirectFileOperations()) {
+                  folderPickerOpen.value = true
+                } else {
+                  treePickerLauncher.launch(null)
+                }
+              },
+              onMoveClick = {
+                operationType.value = CopyPasteOps.OperationType.Move
+                if (CopyPasteOps.canUseDirectFileOperations()) {
+                  folderPickerOpen.value = true
+                } else {
+                  treePickerLauncher.launch(null)
+                }
+              },
+              onRenameClick = { renameDialogOpen = true },
+              onDeleteClick = { deleteDialogOpen = true },
+              onAddToPlaylistClick = { addToPlaylistDialogOpen = true },
+              onMarkAsClick = { showMarkAsSheet = true },
+              showRename = (videoSelectionManager.isSingleSelection || folderSelectionManager.isSingleSelection) && !isMixedSelection,
+              showAddToPlaylist = videoSelectionManager.isInSelectionMode && !isMixedSelection,
+              showDelete = !isMixedSelection && folderSelectionManager.selectedCount <= 1
+            )
+          }
         }
-      }
-    }
 
     // Rename Dialog
     if (renameDialogOpen) {
@@ -857,6 +867,8 @@ data class SearchScreen(
           videoSelectionManager.clear()
         },
       )
+    }
+      }
     }
   }
 }

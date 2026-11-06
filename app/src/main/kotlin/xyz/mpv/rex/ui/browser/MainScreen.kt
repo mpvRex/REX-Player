@@ -367,6 +367,12 @@ object MainScreen : Screen {
     // Scaffold with bottom navigation bar
     Scaffold(
       modifier = Modifier.fillMaxSize(),
+      // The screen tone behind the content surface. The cards are painted in
+      // `surface` and the gaps between them only read as gaps because this
+      // backdrop is the darker `surfaceContainer`; leaving the Scaffold on the
+      // default `background` made the filled sheet sit on an almost identical
+      // tone.
+      containerColor = MaterialTheme.colorScheme.surfaceContainer,
       bottomBar = {
         // Animated bottom navigation bar with slide animations
         // Also hide if Shorts tab is active (index 1 when enabled, index -1 when disabled)

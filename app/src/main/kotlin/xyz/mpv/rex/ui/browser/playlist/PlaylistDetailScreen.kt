@@ -77,6 +77,7 @@ import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
 import xyz.mpv.rex.ui.browser.cards.M3UVideoCard
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
 import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
@@ -213,6 +214,15 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
 
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // Nested/pushed screens must set the screen tone themselves; it does not
+      // propagate from MainScreen across a NavDisplay boundary, and a nested
+      // Scaffold overrides it. surfaceContainer is what shows through the
+      // content surface's gaps and around its 24.dp corners.
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
       topBar = {
         if (isSearching) {
           // Search mode - show search bar
@@ -632,22 +642,27 @@ private fun PlaylistVideoListContent(
   modifier: Modifier = Modifier,
   isM3uPlaylist: Boolean = false,
 ) {
-  UnifiedExplorerContent(
-    items = videoItems,
-    isLoading = isLoading,
-    uiSettings = uiSettings,
-    isSelected = { selectionManager.isSelected(it) },
-    onClick = onVideoItemClick,
-    onLongClick = onVideoItemLongClick,
-    onToggleSelection = { selectionManager.toggle(it) },
+  ContentSurfaceContainer(
+    navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current,
     modifier = modifier,
-    emptyTitle = stringResource(R.string.no_videos_in_playlist),
-    emptyMessage = stringResource(R.string.no_videos_in_playlist_desc),
-    isInSelectionMode = selectionManager.isInSelectionMode,
-    isReorderMode = isReorderMode,
-    onReorder = onReorder,
-    listState = listState
-  )
+  ) {
+    UnifiedExplorerContent(
+      items = videoItems,
+      isLoading = isLoading,
+      uiSettings = uiSettings,
+      isSelected = { selectionManager.isSelected(it) },
+      onClick = onVideoItemClick,
+      onLongClick = onVideoItemLongClick,
+      onToggleSelection = { selectionManager.toggle(it) },
+      emptyTitle = stringResource(R.string.no_videos_in_playlist),
+      emptyMessage = stringResource(R.string.no_videos_in_playlist_desc),
+      isInSelectionMode = selectionManager.isInSelectionMode,
+      isReorderMode = isReorderMode,
+      onReorder = onReorder,
+      listState = listState,
+      useContentSurface = true,
+    )
+  }
 }
 
 @Composable

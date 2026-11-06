@@ -80,6 +80,7 @@ import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
 import xyz.mpv.rex.ui.browser.cards.PlaylistCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.dialogs.DeleteConfirmationDialog
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
@@ -213,6 +214,15 @@ object PlaylistScreen : Screen {
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // Nested/pushed screens must set the screen tone themselves; it does not
+      // propagate from MainScreen across a NavDisplay boundary, and a nested
+      // Scaffold overrides it. surfaceContainer is what shows through the
+      // content surface's gaps and around its 24.dp corners.
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
         topBar = {
           if (isSearching) {
             // Search mode - show search bar
@@ -476,21 +486,26 @@ object PlaylistScreen : Screen {
     modifier: Modifier = Modifier,
     isInSelectionMode: Boolean = false,
   ) {
-    UnifiedExplorerContent(
-      items = playlistsWithCount,
-      isLoading = false,
-      uiSettings = uiSettings,
-      isSelected = { selectionManager.isSelected(it) },
-      onClick = onPlaylistClick,
-      onLongClick = onPlaylistLongClick,
-      onToggleSelection = { selectionManager.toggle(it) },
+    ContentSurfaceContainer(
+      navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current,
       modifier = modifier,
-      emptyTitle = stringResource(R.string.no_playlists_found),
-      emptyMessage = stringResource(R.string.empty_playlists_desc),
-      isRefreshing = isRefreshing,
-      onRefresh = onRefresh,
-      isInSelectionMode = isInSelectionMode,
-      listState = listState,
-      gridState = gridState,
-    )
+    ) {
+      UnifiedExplorerContent(
+        items = playlistsWithCount,
+        isLoading = false,
+        uiSettings = uiSettings,
+        isSelected = { selectionManager.isSelected(it) },
+        onClick = onPlaylistClick,
+        onLongClick = onPlaylistLongClick,
+        onToggleSelection = { selectionManager.toggle(it) },
+        emptyTitle = stringResource(R.string.no_playlists_found),
+        emptyMessage = stringResource(R.string.empty_playlists_desc),
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        isInSelectionMode = isInSelectionMode,
+        listState = listState,
+        gridState = gridState,
+        useContentSurface = true,
+      )
+    }
   }

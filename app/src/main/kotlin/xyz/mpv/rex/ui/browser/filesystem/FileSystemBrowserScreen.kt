@@ -118,6 +118,7 @@ import xyz.mpv.rex.ui.browser.cards.FolderCard
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserBottomBar
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
 import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
@@ -464,6 +465,15 @@ fun FileSystemBrowserScreen(path: String? = null) {
   Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // Nested/pushed screens must set the screen tone themselves; it does not
+      // propagate from MainScreen across a NavDisplay boundary, and a nested
+      // Scaffold overrides it. surfaceContainer is what shows through the
+      // content surface's gaps and around its 24.dp corners.
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
       topBar = {
         BrowserTopBar(
           title = if (isAtRoot) {
@@ -1352,7 +1362,13 @@ private fun FileSystemBrowserContent(
     }
   }
 
-  Column(modifier = modifier.fillMaxSize()) {
+  // The breadcrumb stays on the screen tone above the sheet; only the list
+  // itself is painted inside the content surface.
+  Column(
+    modifier = modifier
+      .fillMaxSize()
+      .padding(bottom = navigationBarHeight),
+  ) {
     // Breadcrumb navigation (if not at root and enabled)
     if (showTreeViewPath && !isAtRoot && breadcrumbs.isNotEmpty()) {
       xyz.mpv.rex.ui.browser.filesystem.BreadcrumbNavigation(
@@ -1361,7 +1377,10 @@ private fun FileSystemBrowserContent(
       )
     }
 
-    UnifiedExplorerContent(
+    ContentSurfaceContainer(
+      navigationBarHeight = 0.dp,
+    ) {
+      UnifiedExplorerContent(
       items = items,
       isLoading = isLoading,
       uiSettings = uiSettings,
@@ -1406,7 +1425,10 @@ private fun FileSystemBrowserContent(
       scrollTriggerKey = scrollTriggerKey,
       showSections = true,
       pinnedPaths = pinnedPaths,
+      useContentSurface = true,
+      keepListGaps = true,
     )
+    }
   }
 }
 

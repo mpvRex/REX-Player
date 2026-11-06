@@ -114,6 +114,7 @@ import xyz.mpv.rex.BuildConfig
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserBottomBar
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.components.SelectionOverflowAction
 import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
@@ -394,6 +395,16 @@ data class VideoListScreen(
 
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // Pushed screens render in MainActivity's root Box, outside
+      // MainScreen's Scaffold, so they must set the screen tone themselves.
+      // surfaceContainer is what shows through the 3.dp card gaps and around
+      // the content surface's 24.dp corners; the default `background` is too
+      // close to the cards' `surface` fill for either to be visible.
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
       topBar = {
         BrowserTopBar(
           title = displayFolderName,
@@ -628,7 +639,8 @@ data class VideoListScreen(
           },
           onVideoLongClick = { video -> selectionManager.handleLongClick(video) },
           isFabVisible = isFabVisible,
-          modifier = Modifier.padding(padding),
+          // Top inset only: the content surface owns its own bottom inset.
+          modifier = Modifier.padding(top = padding.calculateTopPadding()),
           showFloatingBottomBar = showFloatingBottomBar,
           sortType = videoSortType,
           sortOrder = videoSortOrder,
@@ -897,37 +909,43 @@ fun VideoListContent(
     }
   }
 
-  UnifiedExplorerContent(
-    items = videosWithInfo,
-    isLoading = isLoading,
-    uiSettings = uiSettings,
-    isSelected = { selectionManager.isSelected(it.video) },
-    onClick = { onVideoClick(it.video) },
-    onLongClick = { onVideoLongClick(it.video) },
-    onToggleSelection = { selectionManager.toggle(it.video) },
+  ContentSurfaceContainer(
+    navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current,
     modifier = modifier,
-    emptyTitle = if (searchQuery != null) {
-      if (searchQuery.isBlank()) stringResource(R.string.search_empty_title) else stringResource(R.string.search_no_results_title)
-    } else {
-      stringResource(R.string.no_videos_in_folder)
-    },
-    emptyMessage = if (searchQuery != null) {
-      if (searchQuery.isBlank()) stringResource(R.string.search_empty_message) else stringResource(R.string.search_no_results_message)
-    } else {
-      stringResource(R.string.no_videos_in_folder_desc)
-    },
-    emptyIcon = if (searchQuery != null) Icons.Filled.Search else Icons.Filled.VideoLibrary,
-    isRefreshing = isRefreshing,
-    onRefresh = onRefresh,
-    isInSelectionMode = selectionManager.isInSelectionMode,
-    recentlyPlayedFilePath = recentlyPlayedFilePath,
-    recentlyPlayedFilePaths = recentlyPlayedFilePaths,
-    recentlyPlayedPaths = recentlyPlayedPaths,
-    autoScrollToLastPlayed = autoScrollToLastPlayed,
-    scrollTriggerKey = "${sortType.name}:${sortOrder.name}",
-    listState = listState,
-    gridState = gridState,
-    pinnedPaths = pinnedPaths,
-  )
+  ) {
+    UnifiedExplorerContent(
+      items = videosWithInfo,
+      isLoading = isLoading,
+      uiSettings = uiSettings,
+      isSelected = { selectionManager.isSelected(it.video) },
+      onClick = { onVideoClick(it.video) },
+      onLongClick = { onVideoLongClick(it.video) },
+      onToggleSelection = { selectionManager.toggle(it.video) },
+      emptyTitle = if (searchQuery != null) {
+        if (searchQuery.isBlank()) stringResource(R.string.search_empty_title) else stringResource(R.string.search_no_results_title)
+      } else {
+        stringResource(R.string.no_videos_in_folder)
+      },
+      emptyMessage = if (searchQuery != null) {
+        if (searchQuery.isBlank()) stringResource(R.string.search_empty_message) else stringResource(R.string.search_no_results_message)
+      } else {
+        stringResource(R.string.no_videos_in_folder_desc)
+      },
+      emptyIcon = if (searchQuery != null) Icons.Filled.Search else Icons.Filled.VideoLibrary,
+      isRefreshing = isRefreshing,
+      onRefresh = onRefresh,
+      isInSelectionMode = selectionManager.isInSelectionMode,
+      recentlyPlayedFilePath = recentlyPlayedFilePath,
+      recentlyPlayedFilePaths = recentlyPlayedFilePaths,
+      recentlyPlayedPaths = recentlyPlayedPaths,
+      autoScrollToLastPlayed = autoScrollToLastPlayed,
+      scrollTriggerKey = "${sortType.name}:${sortOrder.name}",
+      listState = listState,
+      gridState = gridState,
+      pinnedPaths = pinnedPaths,
+      useContentSurface = true,
+      keepListGaps = true,
+    )
+  }
 }
 

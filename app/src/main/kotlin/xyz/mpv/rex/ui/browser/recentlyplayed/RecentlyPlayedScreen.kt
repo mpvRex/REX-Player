@@ -87,6 +87,7 @@ import xyz.mpv.rex.ui.browser.cards.FolderCard
 import xyz.mpv.rex.ui.browser.cards.PlaylistCard
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.components.UnifiedExplorerContent
 import xyz.mpv.rex.ui.browser.playlist.PlaylistDetailScreen
 import xyz.mpv.rex.ui.browser.selection.rememberSelectionManager
@@ -191,6 +192,15 @@ object RecentlyPlayedScreen : Screen {
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // Nested/pushed screens must set the screen tone themselves; it does not
+      // propagate from MainScreen across a NavDisplay boundary, and a nested
+      // Scaffold overrides it. surfaceContainer is what shows through the
+      // content surface's gaps and around its 24.dp corners.
+      containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
+        androidx.compose.ui.graphics.Color.Black
+      } else {
+        MaterialTheme.colorScheme.surfaceContainer
+      },
         topBar = {
           BrowserTopBar(
             title = stringResource(R.string.recently_played),
@@ -473,30 +483,35 @@ private fun RecentItemsContent(
 ) {
   val coroutineScope = rememberCoroutineScope()
 
-  UnifiedExplorerContent(
-    items = recentItems,
-    isLoading = false,
-    uiSettings = uiSettings,
-    isSelected = { selectionManager.isSelected(it) },
-    onClick = { item ->
-      when (item) {
-        is RecentlyPlayedItem.VideoItem -> onVideoClick(item.video)
-        is RecentlyPlayedItem.PlaylistItem -> {
-          coroutineScope.launch {
-            onPlaylistClick(item)
+  ContentSurfaceContainer(
+    navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current,
+    modifier = modifier,
+  ) {
+    UnifiedExplorerContent(
+      items = recentItems,
+      isLoading = false,
+      uiSettings = uiSettings,
+      isSelected = { selectionManager.isSelected(it) },
+      onClick = { item ->
+        when (item) {
+          is RecentlyPlayedItem.VideoItem -> onVideoClick(item.video)
+          is RecentlyPlayedItem.PlaylistItem -> {
+            coroutineScope.launch {
+              onPlaylistClick(item)
+            }
           }
         }
-      }
-    },
-    onLongClick = { item -> selectionManager.handleLongClick(item) },
-    onToggleSelection = { selectionManager.toggle(it) },
-    emptyTitle = stringResource(R.string.no_recently_played_items),
-    emptyMessage = stringResource(R.string.no_recently_played_items_message),
-    isRefreshing = isRefreshing,
-    onRefresh = onRefresh,
-    modifier = modifier,
-    isInSelectionMode = isInSelectionMode,
-    listState = listState,
-    gridState = gridState,
-  )
+      },
+      onLongClick = { item -> selectionManager.handleLongClick(item) },
+      onToggleSelection = { selectionManager.toggle(it) },
+      emptyTitle = stringResource(R.string.no_recently_played_items),
+      emptyMessage = stringResource(R.string.no_recently_played_items_message),
+      isRefreshing = isRefreshing,
+      onRefresh = onRefresh,
+      isInSelectionMode = isInSelectionMode,
+      listState = listState,
+      gridState = gridState,
+      useContentSurface = true,
+    )
+  }
 }
