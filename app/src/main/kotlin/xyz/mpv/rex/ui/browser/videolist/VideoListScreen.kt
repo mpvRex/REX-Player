@@ -944,7 +944,6 @@ fun VideoListContent(
       gridState = gridState,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
-      keepListGaps = true,
     )
   }
 }

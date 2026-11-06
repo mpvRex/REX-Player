@@ -993,7 +993,6 @@ private fun FolderListContent(
       gridColumns = folderGridColumns,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
-      keepListGaps = true,
     )
   }
 }
