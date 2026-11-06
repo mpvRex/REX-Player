@@ -378,8 +378,8 @@ fun <T> UnifiedExplorerContent(
 
         // The list must be composed whether the backplate paints or not — only
         // the background is conditional. White sheet behind the sectioned list;
-        // tree view no longer opts out, so media view's plain list is the only
-        // remaining keepListGaps consumer.
+        // tree view no longer opts out; the lattice opt-outs (media view,
+        // folder view) are all plain-list or grid screens, not sections.
         Box(
           modifier = Modifier
             .fillMaxSize()
@@ -797,8 +797,8 @@ fun <T> UnifiedExplorerContent(
 
         // The list must be composed whether the backplate paints or not — only
         // the background is conditional. White sheet behind the plain list,
-        // except media view, which passes keepListGaps = true and keeps the
-        // grey 3.dp lattice.
+        // except media view and folder view, which pass keepListGaps = true
+        // and keep the grey 3.dp lattice.
         Box(
           modifier = Modifier
             .fillMaxSize()
@@ -1200,6 +1200,7 @@ private fun <T> ExplorerItemCard(
         gridColumns = columns,
         newVideoCount = item.newCount,
         isPinned = isPinned,
+        shape = shape,
       )
     }
     is FileSystemItem.VideoFile -> {
