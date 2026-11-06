@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import xyz.mpv.rex.domain.network.NetworkFile
@@ -22,6 +23,7 @@ fun NetworkFolderCard(
   modifier: Modifier = Modifier,
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
+  shape: Shape? = null,
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
@@ -43,5 +45,6 @@ fun NetworkFolderCard(
     onLongClick = onLongClick,
     isSelected = isSelected,
     maxTitleLines = maxLines,
+    shape = shape,
   )
 }

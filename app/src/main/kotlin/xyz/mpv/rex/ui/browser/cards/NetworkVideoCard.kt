@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ fun NetworkVideoCard(
   modifier: Modifier = Modifier,
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
+  shape: Shape? = null,
 ) {
   val thumbnailRepository = koinInject<ThumbnailRepository>()
   var thumbnail by remember(file.path) { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -76,6 +78,7 @@ fun NetworkVideoCard(
     onLongClick = onLongClick,
     isSelected = isSelected,
     maxTitleLines = maxLines,
+    shape = shape,
     chipsContent = {
       if (uiSettings.showSizeChip && file.size > 0) {
         MediaMetadataChip(text = MediaFormatter.formatFileSize(file.size))

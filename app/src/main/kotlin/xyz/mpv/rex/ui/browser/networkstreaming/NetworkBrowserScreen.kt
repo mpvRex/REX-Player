@@ -3,8 +3,13 @@ package xyz.mpv.rex.ui.browser.networkstreaming
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,10 +39,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.io.File
+import kotlinx.serialization.Serializable
+import xyz.mpv.rex.R
 import xyz.mpv.rex.database.dao.NetworkConnectionDao
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.domain.network.NetworkFile
@@ -47,15 +61,13 @@ import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
 import xyz.mpv.rex.ui.browser.cards.NetworkFolderCard
 import xyz.mpv.rex.ui.browser.cards.NetworkVideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
+import xyz.mpv.rex.ui.browser.components.FastScrollbar
 import xyz.mpv.rex.ui.browser.dialogs.NetworkSortDialog
 import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.storage.FileTypeUtils
-import java.io.File
-import kotlinx.serialization.Serializable
-import androidx.compose.foundation.layout.fillMaxHeight
-import xyz.mpv.rex.ui.browser.components.FastScrollbar
 
 @Serializable
 data class NetworkBrowserScreen(
@@ -102,8 +114,17 @@ data class NetworkBrowserScreen(
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
+    val contentSurfaceScaffoldColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surfaceContainer
+    }
+
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // The screen tone behind the content surface. This screen is pushed, so it
+      // must set its own — a tone is not inherited across a NavDisplay boundary.
+      containerColor = contentSurfaceScaffoldColor,
       topBar = {
         BrowserTopBar(
           title = connectionName,
@@ -151,7 +172,14 @@ data class NetworkBrowserScreen(
         onVideoClick = { video ->
           viewModel.playVideo(video)
         },
-        modifier = Modifier.padding(top = padding.calculateTopPadding()),
+        modifier = Modifier.padding(
+          PaddingValues(
+            start = padding.calculateStartPadding(LocalLayoutDirection.current),
+            top = padding.calculateTopPadding(),
+            end = padding.calculateEndPadding(LocalLayoutDirection.current),
+            bottom = 0.dp,
+          )
+        ),
       )
     }
 
@@ -185,145 +213,169 @@ private fun NetworkBrowserContent(
     connection = dao.getConnectionById(connectionId)
   }
 
-  when {
-    isLoading -> {
-      Box(
-        modifier = modifier
-          .fillMaxSize()
-          .padding(bottom = 64.dp), // Account for bottom navigation bar
-        contentAlignment = Alignment.Center,
-      ) {
-        CircularProgressIndicator(
-          modifier = Modifier.size(48.dp),
-          color = MaterialTheme.colorScheme.primary,
-        )
-      }
+  ContentSurfaceContainer(
+    navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current,
+    modifier = modifier,
+  ) {
+    val contentSurfaceSheetColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surface
     }
-
-    error != null -> {
-      Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-      ) {
-        EmptyState(
-          icon = Icons.Filled.Folder,
-          title = "Error loading files",
-          message = error,
-        )
-      }
-    }
-
-    folders.isEmpty() && videos.isEmpty() -> {
-      Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-      ) {
-        EmptyState(
-          icon = Icons.Filled.Folder,
-          title = "Empty folder",
-          message = "This folder contains no files or directories",
-        )
-      }
-    }
-
-    else -> {
-      
-      val networkListState = remember { LazyListState() }
-
-      // Check if at top of list to hide scrollbar during pull-to-refresh
-      val isAtTop by remember {
-        derivedStateOf {
-          networkListState.firstVisibleItemIndex == 0 && networkListState.firstVisibleItemScrollOffset == 0
-        }
-      }
-
-      // Only show scrollbar if list has more than 20 items (folders + videos)
-      val hasEnoughItems = (folders.size + videos.size) > 20
-
-      // Animate scrollbar alpha
-      val scrollbarAlpha by animateFloatAsState(
-        targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-        animationSpec = tween(durationMillis = 200),
-        label = "scrollbarAlpha",
-      )
-
-      PullRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        modifier = modifier.fillMaxSize(),
-      ) {
-        val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
-        Box(modifier = Modifier.fillMaxSize()) {
-          LazyColumn(
-            state = networkListState,
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .background(contentSurfaceSheetColor),
+    ) {
+      when {
+        isLoading -> {
+          Box(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-              start = 8.dp,
-              end = 8.dp,
-              top = 8.dp,
-              bottom = navigationBarHeight
-            ),
+            contentAlignment = Alignment.Center,
           ) {
-            // Folders section
-            if (folders.isNotEmpty()) {
-              item {
-                Text(
-                  text = "Folders",
-                  style = MaterialTheme.typography.titleMedium,
-                  color = MaterialTheme.colorScheme.primary,
-                  modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
-                )
-              }
-              items(
-                items = folders,
-                key = { it.path },
-              ) { folder ->
-                NetworkFolderCard(
-                  file = folder,
-                  onClick = { onFolderClick(folder) },
-                  modifier = Modifier,
-                )
-              }
-            }
+            CircularProgressIndicator(
+              modifier = Modifier.size(48.dp),
+              color = MaterialTheme.colorScheme.primary,
+            )
+          }
+        }
 
-            // Videos section
-            if (videos.isNotEmpty()) {
-              item {
-                Text(
-                  text = "Videos",
-                  style = MaterialTheme.typography.titleMedium,
-                  color = MaterialTheme.colorScheme.primary,
-                  modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
-                )
-              }
-              items(
-                items = videos,
-                key = { it.path },
-              ) { video ->
-                // Only show card if connection is loaded
-                connection?.let { conn ->
-                  NetworkVideoCard(
-                    file = video,
-                    connection = conn,
-                    uiSettings = uiSettings,
-                    onClick = { onVideoClick(video) },
-                    modifier = Modifier,
-                  )
-                }
-              }
+        error != null -> {
+          Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+          ) {
+            EmptyState(
+              icon = Icons.Filled.Folder,
+              title = "Error loading files",
+              message = error,
+            )
+          }
+        }
+
+        folders.isEmpty() && videos.isEmpty() -> {
+          Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+          ) {
+            EmptyState(
+              icon = Icons.Filled.Folder,
+              title = "Empty folder",
+              message = "This folder contains no files or directories",
+            )
+          }
+        }
+
+        else -> {
+          val networkListState = remember { LazyListState() }
+
+          // Check if at top of list to hide scrollbar during pull-to-refresh
+          val isAtTop by remember {
+            derivedStateOf {
+              networkListState.firstVisibleItemIndex == 0 && networkListState.firstVisibleItemScrollOffset == 0
             }
           }
 
-          FastScrollbar(
-            listState = networkListState,
-            modifier = Modifier
-              .align(Alignment.CenterEnd)
-              .fillMaxHeight()
-              .padding(top = 8.dp, bottom = navigationBarHeight),
-            thumbColor = MaterialTheme.colorScheme.primary,
+          // Only show scrollbar if list has more than 20 items (folders + videos)
+          val hasEnoughItems = (folders.size + videos.size) > 20
+
+          // Animate scrollbar alpha
+          val scrollbarAlpha by animateFloatAsState(
+            targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
+            animationSpec = tween(durationMillis = 200),
+            label = "scrollbarAlpha",
           )
+
+          PullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize(),
+          ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+              LazyColumn(
+                state = networkListState,
+                modifier = Modifier.fillMaxSize(),
+                // The container owns the bottom gap, so the list only carries
+                // the 3.dp grid rhythm and its horizontal breathing room.
+                contentPadding = PaddingValues(
+                  start = 8.dp,
+                  end = 8.dp,
+                  top = 8.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+              ) {
+                // Folders section
+                if (folders.isNotEmpty()) {
+                  item(key = "folders_header") {
+                    SectionHeader(title = stringResource(R.string.folders_count, folders.size))
+                  }
+                  items(
+                    items = folders,
+                    key = { it.path },
+                  ) { folder ->
+                    NetworkFolderCard(
+                      file = folder,
+                      onClick = { onFolderClick(folder) },
+                      modifier = Modifier,
+                      // Connected-list rows take the sheet's inner radius.
+                      shape = RoundedCornerShape(2.dp),
+                    )
+                  }
+                }
+
+                // Videos section
+                if (videos.isNotEmpty()) {
+                  item(key = "videos_header") {
+                    SectionHeader(title = "Videos")
+                  }
+                  items(
+                    items = videos,
+                    key = { it.path },
+                  ) { video ->
+                    // Only show card if connection is loaded
+                    connection?.let { conn ->
+                      NetworkVideoCard(
+                        file = video,
+                        connection = conn,
+                        uiSettings = uiSettings,
+                        onClick = { onVideoClick(video) },
+                        modifier = Modifier,
+                        shape = RoundedCornerShape(2.dp),
+                      )
+                    }
+                  }
+                }
+              }
+
+              FastScrollbar(
+                listState = networkListState,
+                modifier = Modifier
+                  .align(Alignment.CenterEnd)
+                  .fillMaxHeight()
+                  .padding(top = 8.dp),
+                thumbColor = MaterialTheme.colorScheme.primary,
+              )
+            }
+          }
         }
       }
     }
   }
+}
+
+/**
+ * Section label on the content surface. Same style as the one in
+ * `UnifiedExplorerContent`, which is private to that file.
+ */
+@Composable
+private fun SectionHeader(title: String, modifier: Modifier = Modifier) {
+  Text(
+    text = title,
+    style = MaterialTheme.typography.titleMedium,
+    color = MaterialTheme.colorScheme.primary,
+    fontWeight = FontWeight.Bold,
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 8.dp, vertical = 12.dp),
+  )
 }

@@ -1,11 +1,14 @@
 package xyz.mpv.rex.ui.browser.networkstreaming
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -53,22 +57,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import xyz.mpv.rex.domain.network.NetworkConnection
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
-import xyz.mpv.rex.presentation.components.GroupedListColumn
-import xyz.mpv.rex.presentation.components.GroupedListItem
-import xyz.mpv.rex.presentation.components.GroupPosition
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.cards.NetworkConnectionCard
 import xyz.mpv.rex.ui.browser.dialogs.AddConnectionSheet
 import xyz.mpv.rex.ui.browser.dialogs.EditConnectionSheet
-import xyz.mpv.rex.ui.preferences.GroupedPreferenceCard
-import xyz.mpv.rex.ui.preferences.PreferenceSectionHeader
 import xyz.mpv.rex.ui.preferences.PreferencesScreen
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
@@ -142,11 +144,25 @@ object NetworkStreamingScreen : Screen {
       backstack.navigateBack()
     }
 
+    val contentSurfaceScaffoldColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surfaceContainer
+    }
+    val contentSurfaceSheetColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surface
+    }
+
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // The tab renders inside MainScreen's Scaffold, but setting the tone here
+        // too keeps it identical whether it is a tab or pushed.
+        containerColor = contentSurfaceScaffoldColor,
         topBar = {
           BrowserTopBar(
             title = stringResource(R.string.network),
@@ -184,245 +200,267 @@ object NetworkStreamingScreen : Screen {
         }
       },
     ) { padding ->
-      LazyColumn(
-        state = listState,
-        modifier = Modifier
-          .fillMaxSize()
-          .padding(padding),
-        contentPadding = PaddingValues(
-          start = 0.dp,
-          end = 0.dp,
-          top = 4.dp,
-          bottom = navigationBarHeight + 12.dp
+      // The Scaffold's padding carries the header and the system insets; the
+      // container owns the horizontal inset and the bottom gap, so only the
+      // top/horizontal insets are passed through.
+      ContentSurfaceContainer(
+        navigationBarHeight = navigationBarHeight,
+        modifier = Modifier.padding(
+          PaddingValues(
+            start = padding.calculateStartPadding(LocalLayoutDirection.current),
+            top = padding.calculateTopPadding(),
+            end = padding.calculateEndPadding(LocalLayoutDirection.current),
+            bottom = 0.dp,
+          )
         ),
       ) {
-          // Section 1: Stream Link
-          item(key = "stream_link") {
-            StreamLinkSection(
-              onPlayLink = { url ->
-                val currentList = playedLinks.toMutableList()
-                currentList.remove(url)
-                currentList.add(0, url)
-                val cappedList = if (currentList.size > 20) currentList.take(20) else currentList
-                browserPreferences.playedNetworkLinks.set(cappedList.joinToString("\n"))
+        // The sheet paints the card colour; rows sit on a flat fill rather than
+        // floating as grouped boxes.
+        Box(
+          modifier = Modifier
+            .fillMaxSize()
+            .background(contentSurfaceSheetColor),
+        ) {
+          LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+              start = 8.dp,
+              end = 8.dp,
+              top = 4.dp,
+              bottom = 8.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+          ) {
+            // Section 1: Stream Link
+            item(key = "stream_link") {
+              StreamLinkSection(
+                onPlayLink = { url ->
+                  val currentList = playedLinks.toMutableList()
+                  currentList.remove(url)
+                  currentList.add(0, url)
+                  val cappedList = if (currentList.size > 20) currentList.take(20) else currentList
+                  browserPreferences.playedNetworkLinks.set(cappedList.joinToString("\n"))
 
-                MediaUtils.playFile(url, context, "network_stream")
-              },
-            )
-          }
-
-          // Section 1b: Played Links History Section
-          if (playedLinks.isNotEmpty()) {
-            item(key = "recent_links_header") {
-              Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                PreferenceSectionHeader(
-                  title = stringResource(R.string.network_recent_links),
-                  modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                  onClick = { browserPreferences.playedNetworkLinks.set("") },
-                  modifier = Modifier.padding(end = 12.dp),
-                ) {
-                  Text(stringResource(R.string.network_clear_all_links))
-                }
-              }
+                  MediaUtils.playFile(url, context, "network_stream")
+                },
+              )
             }
 
-            item(key = "recent_links_list") {
-              GroupedListColumn(
-                modifier = Modifier.padding(horizontal = 16.dp),
-              ) {
-                val clipboardManager =
-                  context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-
-                playedLinks.forEachIndexed { index, link ->
-                  GroupedListItem(
-                    position = when {
-                      playedLinks.size == 1 -> GroupPosition.ONLY
-                      index == 0 -> GroupPosition.FIRST
-                      index == playedLinks.size - 1 -> GroupPosition.LAST
-                      else -> GroupPosition.MIDDLE
-                    },
+            // Section 1b: Played Links History Section
+            if (playedLinks.isNotEmpty()) {
+              item(key = "recent_links_header") {
+                Row(
+                  modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                ) {
+                  SurfaceSectionHeader(
+                    title = stringResource(R.string.network_recent_links),
+                    modifier = Modifier.weight(1f),
+                  )
+                  TextButton(
+                    onClick = { browserPreferences.playedNetworkLinks.set("") },
+                    modifier = Modifier.padding(end = 12.dp),
                   ) {
-                    @OptIn(ExperimentalFoundationApi::class)
-                    Row(
-                      modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
+                    Text(stringResource(R.string.network_clear_all_links))
+                  }
+                }
+              }
+
+              item(key = "recent_links_list") {
+                Column(
+                  modifier = Modifier.fillMaxWidth(),
+                  verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                  val clipboardManager =
+                    context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+
+                  playedLinks.forEachIndexed { index, link ->
+                    Surface(
+                      shape = RoundedCornerShape(2.dp),
+                      color = if (MaterialTheme.colorScheme.background == Color.Black) {
+                        Color.Black
+                      } else {
+                        MaterialTheme.colorScheme.surface
+                      },
+                    ) {
+                      @OptIn(ExperimentalFoundationApi::class)
+                      Row(
+                        modifier = Modifier
+                          .fillMaxWidth()
+                          .combinedClickable(
+                            onClick = {
+                              // Play link and move to top
+                              val currentList = playedLinks.toMutableList()
+                              currentList.remove(link)
+                              currentList.add(0, link)
+                              browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
+                              MediaUtils.playFile(link, context, "network_stream")
+                            },
+                            onLongClick = {
+                              // Copy link to clipboard
+                              clipboardManager?.setPrimaryClip(
+                                android.content.ClipData.newPlainText("link", link)
+                              )
+                              Toast.makeText(
+                                context,
+                                context.getString(R.string.copied_to_clipboard),
+                                Toast.LENGTH_SHORT,
+                              ).show()
+                            },
+                          )
+                          .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                      ) {
+                        Surface(
+                          shape = CircleShape,
+                          color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                          modifier = Modifier.size(36.dp),
+                        ) {
+                          Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                              imageVector = Icons.Filled.Link,
+                              contentDescription = null,
+                              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                              modifier = Modifier.size(18.dp),
+                            )
+                          }
+                        }
+                        Column(
+                          modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp),
+                          verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                          Text(
+                            text = android.net.Uri.parse(link).lastPathSegment
+                              ?.takeIf { it.isNotBlank() } ?: link,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                          )
+                          Text(
+                            text = link,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                          )
+                        }
+                        IconButton(
                           onClick = {
-                            // Play link and move to top
                             val currentList = playedLinks.toMutableList()
                             currentList.remove(link)
-                            currentList.add(0, link)
                             browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
-                            MediaUtils.playFile(link, context, "network_stream")
                           },
-                          onLongClick = {
-                            // Copy link to clipboard
-                            clipboardManager?.setPrimaryClip(
-                              android.content.ClipData.newPlainText("link", link)
-                            )
-                            Toast.makeText(
-                              context,
-                              context.getString(R.string.copied_to_clipboard),
-                              Toast.LENGTH_SHORT,
-                            ).show()
-                          },
-                        )
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                      verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                      Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        modifier = Modifier.size(36.dp),
-                      ) {
-                        Box(contentAlignment = Alignment.Center) {
+                          modifier = Modifier.size(28.dp),
+                        ) {
                           Icon(
-                            imageVector = Icons.Filled.Link,
-                            contentDescription = null,
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.network_remove_link_action),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(16.dp),
                           )
                         }
                       }
-                      Column(
-                        modifier = Modifier
-                          .weight(1f)
-                          .padding(horizontal = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                      ) {
-                        Text(
-                          text = android.net.Uri.parse(link).lastPathSegment
-                            ?.takeIf { it.isNotBlank() } ?: link,
-                          style = MaterialTheme.typography.bodyMedium,
-                          fontWeight = FontWeight.Medium,
-                          color = MaterialTheme.colorScheme.onSurface,
-                          maxLines = 1,
-                          overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                          text = link,
-                          style = MaterialTheme.typography.bodySmall,
-                          color = MaterialTheme.colorScheme.onSurfaceVariant,
-                          maxLines = 1,
-                          overflow = TextOverflow.Ellipsis,
-                        )
-                      }
-                      IconButton(
-                        onClick = {
-                          val currentList = playedLinks.toMutableList()
-                          currentList.remove(link)
-                          browserPreferences.playedNetworkLinks.set(currentList.joinToString("\n"))
-                        },
-                        modifier = Modifier.size(28.dp),
-                      ) {
-                        Icon(
-                          imageVector = Icons.Filled.Close,
-                          contentDescription = stringResource(R.string.network_remove_link_action),
-                          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                          modifier = Modifier.size(16.dp),
-                        )
-                      }
                     }
                   }
                 }
               }
             }
-          }
 
-          // Section 2: Local Network header
-          item(key = "local_network_header") {
-            PreferenceSectionHeader(
-              title = stringResource(R.string.network_local_network),
-              modifier = Modifier.padding(top = 16.dp),
-            )
-          }
+            // Section 2: Local Network header
+            item(key = "local_network_header") {
+              SurfaceSectionHeader(title = stringResource(R.string.network_local_network))
+            }
 
-          // Show empty state or connection list
-          if (connections.isEmpty()) {
-            item(key = "connections_empty") {
-              GroupedPreferenceCard(position = GroupPosition.ONLY) {
-                Row(
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(14.dp),
+            // Show empty state or connection list
+            if (connections.isEmpty()) {
+              item(key = "connections_empty") {
+                Surface(
+                  shape = RoundedCornerShape(2.dp),
+                  color = if (MaterialTheme.colorScheme.background == Color.Black) {
+                    Color.Black
+                  } else {
+                    MaterialTheme.colorScheme.surface
+                  },
+                  modifier = Modifier.fillMaxWidth(),
                 ) {
-                  Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.size(42.dp),
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                   ) {
-                    Box(contentAlignment = Alignment.Center) {
-                      Icon(
-                        imageVector = Icons.Rounded.SignalWifiStatusbarConnectedNoInternet4,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(24.dp),
+                    Surface(
+                      shape = CircleShape,
+                      color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                      modifier = Modifier.size(42.dp),
+                    ) {
+                      Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                          imageVector = Icons.Rounded.SignalWifiStatusbarConnectedNoInternet4,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.outline,
+                          modifier = Modifier.size(24.dp),
+                        )
+                      }
+                    }
+                    Column {
+                      Text(
+                        text = stringResource(R.string.network_empty_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                      )
+                      Text(
+                        text = stringResource(R.string.network_empty_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline,
                       )
                     }
                   }
-                  Column {
-                    Text(
-                      text = stringResource(R.string.network_empty_title),
-                      style = MaterialTheme.typography.bodyMedium,
-                      fontWeight = FontWeight.SemiBold,
-                      color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                      text = stringResource(R.string.network_empty_description),
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  }
                 }
               }
-            }
-          } else {
-            itemsIndexed(connections, key = { _, item -> item.id }) { index, connection ->
-              val status = connectionStatuses[connection.id]
-              NetworkConnectionCard(
-                connection = connection,
-                onConnect = { conn ->
-                  viewModel.connect(conn)
-                },
-                onDisconnect = { conn -> viewModel.disconnect(conn) },
-                onEdit = { conn -> editingConnection = conn },
-                onDelete = { conn -> viewModel.deleteConnection(conn) },
-                onBrowse = { conn ->
-                  // Navigate to browser screen if connected
-                  if (status?.isConnected == true) {
-                    backstack.add(
-                      NetworkBrowserScreen(
-                        connectionId = conn.id,
-                        connectionName = conn.name,
-                        currentPath = "/",  // Always start at root - conn.path is already included in connection
-                      ),
-                    )
-                  }
-                },
-                onAutoConnectChange = { conn, autoConnect ->
-                  viewModel.updateConnection(conn.copy(autoConnect = autoConnect))
-                },
-                isConnected = status?.isConnected ?: false,
-                isConnecting = status?.isConnecting ?: false,
-                error = status?.error,
-                position = when {
-                  connections.size == 1 -> GroupPosition.ONLY
-                  index == 0 -> GroupPosition.FIRST
-                  index == connections.size - 1 -> GroupPosition.LAST
-                  else -> GroupPosition.MIDDLE
-                },
-                modifier = Modifier.padding(bottom = 3.dp),
-              )
+            } else {
+              itemsIndexed(connections, key = { _, item -> item.id }) { index, connection ->
+                val status = connectionStatuses[connection.id]
+                NetworkConnectionCard(
+                  connection = connection,
+                  onConnect = { conn ->
+                    viewModel.connect(conn)
+                  },
+                  onDisconnect = { conn -> viewModel.disconnect(conn) },
+                  onEdit = { conn -> editingConnection = conn },
+                  onDelete = { conn -> viewModel.deleteConnection(conn) },
+                  onBrowse = { conn ->
+                    // Navigate to browser screen if connected
+                    if (status?.isConnected == true) {
+                      backstack.add(
+                        NetworkBrowserScreen(
+                          connectionId = conn.id,
+                          connectionName = conn.name,
+                          currentPath = "/",  // Always start at root - conn.path is already included in connection
+                        ),
+                      )
+                    }
+                  },
+                  onAutoConnectChange = { conn, autoConnect ->
+                    viewModel.updateConnection(conn.copy(autoConnect = autoConnect))
+                  },
+                  isConnected = status?.isConnected ?: false,
+                  isConnecting = status?.isConnecting ?: false,
+                  error = status?.error,
+                  shape = RoundedCornerShape(2.dp),
+                )
+              }
             }
           }
         }
+      }
 
       // Add Connection Sheet
       AddConnectionSheet(
@@ -473,16 +511,11 @@ private fun StreamLinkSection(
   Column(
     modifier = Modifier.fillMaxWidth(),
   ) {
-    PreferenceSectionHeader(
-      title = stringResource(R.string.stream_link),
-      modifier = Modifier.padding(top = 4.dp),
-    )
+    SurfaceSectionHeader(title = stringResource(R.string.stream_link))
 
     // Single M3E row: text input + one combined Paste/Play action
     Row(
-      modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp),
+      modifier = Modifier.fillMaxWidth(),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -533,4 +566,22 @@ private fun StreamLinkSection(
       }
     }
   }
+}
+
+/**
+ * Section label on the content surface. Matches the header used by
+ * `UnifiedExplorerContent`, which is private to that file; the grouped-preference
+ * header's 22.dp side padding belongs to the old 16.dp-margin cards.
+ */
+@Composable
+private fun SurfaceSectionHeader(title: String, modifier: Modifier = Modifier) {
+  Text(
+    text = title,
+    style = MaterialTheme.typography.titleMedium,
+    color = MaterialTheme.colorScheme.primary,
+    fontWeight = FontWeight.Bold,
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 8.dp, vertical = 12.dp),
+  )
 }

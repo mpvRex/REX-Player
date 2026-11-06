@@ -39,7 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -77,14 +79,12 @@ fun NetworkConnectionCard(
   isConnecting: Boolean = false,
   error: String? = null,
   position: GroupPosition = GroupPosition.ONLY,
+  shape: Shape? = null,
 ) {
   val haptics = LocalHapticFeedback.current
   var showOptionsSheet by remember { mutableStateOf(false) }
 
-  GroupedPreferenceCard(
-    position = position,
-    modifier = modifier,
-  ) {
+  val cardContent: @Composable () -> Unit = {
     Column(
       modifier = Modifier
         .fillMaxWidth()
@@ -192,6 +192,34 @@ fun NetworkConnectionCard(
           modifier = Modifier.padding(top = 8.dp),
         )
       }
+    }
+  }
+
+  if (shape != null) {
+    // Content-surface mode: a flat card painting the sheet's card colour, so on
+    // a white sheet the rows read through their 3.dp gaps instead of as boxes.
+    Surface(
+      modifier = modifier
+        .fillMaxWidth()
+        .clip(shape),
+      shape = shape,
+      color = if (MaterialTheme.colorScheme.background == Color.Black) {
+        Color.Black
+      } else {
+        MaterialTheme.colorScheme.surface
+      },
+      contentColor = MaterialTheme.colorScheme.onSurface,
+      tonalElevation = 0.dp,
+      shadowElevation = 0.dp,
+    ) {
+      cardContent()
+    }
+  } else {
+    GroupedPreferenceCard(
+      position = position,
+      modifier = modifier,
+    ) {
+      cardContent()
     }
   }
 
