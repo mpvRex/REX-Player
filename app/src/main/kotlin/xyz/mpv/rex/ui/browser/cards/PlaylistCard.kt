@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +66,7 @@ fun PlaylistCard(
   isRecentlyPlayed: Boolean = false,
   thumbnailSize: Dp = 128.dp,
   thumbnailAspectRatio: Float = 16f / 9f,
+  shape: Shape? = null,
 ) {
   val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
 
@@ -216,6 +218,7 @@ fun PlaylistCard(
     isGridMode = isGridMode,
     gridColumns = gridColumns,
     maxTitleLines = maxLines,
+    shape = shape,
     overlayContent = {
       // Center Playlist Icon over the video thumbnail (exact same size as fallback, no circular shape)
       if (thumbnail != null) {

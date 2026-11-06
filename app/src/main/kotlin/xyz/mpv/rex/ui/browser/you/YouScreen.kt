@@ -12,6 +12,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -100,6 +102,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import xyz.mpv.rex.ui.theme.pillShape
 import androidx.compose.foundation.Image
@@ -108,6 +111,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
@@ -135,6 +139,7 @@ import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.browser.MainScreen
 import xyz.mpv.rex.ui.browser.cards.PlaylistCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
+import xyz.mpv.rex.ui.browser.components.ContentSurfaceContainer
 import xyz.mpv.rex.ui.browser.dialogs.AddToPlaylistDialog
 import xyz.mpv.rex.ui.browser.playlist.PlaylistDetailScreen
 import xyz.mpv.rex.ui.browser.playlist.PlaylistScreen
@@ -232,11 +237,28 @@ object YouScreen : Screen {
 
     val navigationBarHeight = LocalNavigationBarHeight.current
 
+    // The painted face of the content surface: the card colour. In AMOLED it is
+    // black so the sheet fuses with the OLED background; elsewhere it is
+    // `surface`, one step lighter than the Scaffold's `surfaceContainer`.
+    val contentSurfaceSheetColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surface
+    }
+    val contentSurfaceScaffoldColor = if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surfaceContainer
+    }
+
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // Matches the rest of the browser so the content surface's rounded bottom
+      // edge reads against the darker tone instead of an almost identical one.
+      containerColor = contentSurfaceScaffoldColor,
       topBar = {
         BrowserTopBar(
           title = stringResource(R.string.you),
@@ -255,210 +277,232 @@ object YouScreen : Screen {
         )
       },
     ) { paddingValues ->
-      PullRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-          isRefreshing.value = true
-          scope.launch {
-            recentsViewModel.refresh()
-            playlistViewModel.refresh()
-            kotlinx.coroutines.delay(400)
-            isRefreshing.value = false
-          }
-        },
-        modifier = Modifier
-          .fillMaxSize()
-          .padding(top = paddingValues.calculateTopPadding()),
+      // Same reason as MediaLibraryContent: the Scaffold's padding already
+      // carries the navigation-bar inset, and ContentSurfaceContainer adds it
+      // again along with its own 14.dp gap. Pass the horizontal/top insets only
+      // and let the container own the bottom.
+      ContentSurfaceContainer(
+        navigationBarHeight = navigationBarHeight,
+        modifier = Modifier.padding(
+          PaddingValues(
+            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+            top = paddingValues.calculateTopPadding(),
+            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+            bottom = 0.dp,
+          )
+        ),
       ) {
-        LazyColumn(
-          state = listState,
+        PullRefreshBox(
+          isRefreshing = isRefreshing,
+          onRefresh = {
+            isRefreshing.value = true
+            scope.launch {
+              recentsViewModel.refresh()
+              playlistViewModel.refresh()
+              kotlinx.coroutines.delay(400)
+              isRefreshing.value = false
+            }
+          },
           modifier = Modifier.fillMaxSize(),
-          contentPadding = PaddingValues(
-            bottom = navigationBarHeight + 16.dp,
-          ),
-          verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+          // The sheet paints the card colour; the shelves and the filler sit on
+          // top of it, so the empty space under the last shelf still keeps the
+          // container's rounded bottom edge visible.
+          Box(
+            modifier = Modifier
+              .fillMaxSize()
+              .background(contentSurfaceSheetColor)
+          ) {
+            LazyColumn(
+              state = listState,
+              modifier = Modifier.fillMaxSize(),
+              verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
 
-          // ==========================================
-          // PROFILE & QUICK ACTIONS HEADER
-          // ==========================================
-          item(key = "profile_header") {
-            YouProfileHeader(
-              name = customProfileName,
-              avatarBitmap = customAvatarBitmap,
-              onAvatarLongClick = {
-                showProfileCustomizationDialog = true
-              },
-              recentCount = recentItems.size,
-              playlistCount = playlistsWithCount.size,
-              onHistoryClick = { backStack.add(RecentlyPlayedScreen) },
-              onPlaylistsClick = { backStack.add(PlaylistScreen) },
-              onNetworkClick = if (!enableTabNetwork) { { backStack.add(NetworkStreamingScreen) } } else null,
-              onShortsClick = if (!isShortsEnabled) { { backStack.add(ShortsScreen()) } } else null,
-            )
-          }
-
-          // ==========================================
-          // 1. RECENTLY PLAYED SECTION (HORIZONTAL SHELF)
-          // ==========================================
-          item(key = "header_recents") {
-            SectionHeader(
-              title = stringResource(R.string.recently_played),
-              onViewAllClick = {
-                backStack.add(RecentlyPlayedScreen)
-              },
-            )
-          }
-
-          item(key = "content_recents") {
-            if (!enableRecentlyPlayed) {
-              ShelfEmptyCard(
-                icon = Icons.Filled.History,
-                title = stringResource(R.string.recently_played_disabled_title),
-                message = stringResource(R.string.recently_played_disabled_message),
-              )
-            } else {
-              val previewRecents = recentItems.take(15)
-              if (previewRecents.isEmpty()) {
-                ShelfEmptyCard(
-                  icon = Icons.Filled.History,
-                  title = stringResource(R.string.no_recently_played_videos),
-                  message = stringResource(R.string.no_recently_played_videos_message),
+              // ==========================================
+              // PROFILE & QUICK ACTIONS HEADER
+              // ==========================================
+              item(key = "profile_header") {
+                YouProfileHeader(
+                  name = customProfileName,
+                  avatarBitmap = customAvatarBitmap,
+                  onAvatarLongClick = {
+                    showProfileCustomizationDialog = true
+                  },
+                  recentCount = recentItems.size,
+                  playlistCount = playlistsWithCount.size,
+                  onHistoryClick = { backStack.add(RecentlyPlayedScreen) },
+                  onPlaylistsClick = { backStack.add(PlaylistScreen) },
+                  onNetworkClick = if (!enableTabNetwork) { { backStack.add(NetworkStreamingScreen) } } else null,
+                  onShortsClick = if (!isShortsEnabled) { { backStack.add(ShortsScreen()) } } else null,
                 )
-              } else {
-                LazyRow(
-                  contentPadding = PaddingValues(horizontal = 16.dp),
-                  horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                  items(previewRecents, key = { item ->
-                    when (item) {
-                      is RecentlyPlayedItem.VideoItem -> "video_${item.video.id}_${item.timestamp}"
-                      is RecentlyPlayedItem.PlaylistItem -> "playlist_${item.playlist.id}_${item.timestamp}"
-                    }
-                  }) { item ->
-                    when (item) {
-                      is RecentlyPlayedItem.VideoItem -> {
-                        RecentlyPlayedVideoShelfCard(
-                          video = item.video,
-                          progressPercentage = item.progress,
-                          isWatched = item.isWatched,
-                          isRecentlyPlayed = true,
-                          showThumbnails = recentsUiSettings.showVideoThumbnails,
-                          onClick = {
-                            MediaUtils.playFile(item.video, context, "you_tab")
-                          },
-                          onLongClick = {
-                            activeVideoItem = item
-                          },
-                          modifier = Modifier.width(160.dp),
-                        )
-                      }
-                      is RecentlyPlayedItem.PlaylistItem -> {
-                        PlaylistShelfCard(
-                          playlist = item.playlist,
-                          itemCount = item.videoCount,
-                          mostRecentVideoPath = item.mostRecentVideoPath,
-                          showThumbnails = recentsUiSettings.showVideoThumbnails,
-                          onClick = {
-                            backStack.add(PlaylistDetailScreen(item.playlist.id))
-                          },
-                          onLongClick = {
-                            activePlaylist = item.playlist
-                          },
-                          modifier = Modifier.width(160.dp),
-                        )
-                      }
-                    }
-                  }
-                }
               }
-            }
-          }
 
-          // ==========================================
-          // 2. PLAYLISTS SECTION (HORIZONTAL SHELF)
-          // ==========================================
-          item(key = "header_playlists") {
-            SectionHeader(
-              title = stringResource(R.string.playlists),
-              onViewAllClick = {
-                backStack.add(PlaylistScreen)
-              },
-            )
-          }
-
-          item(key = "content_playlists") {
-            val isGrid = mediaLayoutMode == MediaLayoutMode.GRID
-            val previewPlaylists = if (isGrid) {
-              playlistsWithCount.take(videoGridColumns * 3)
-            } else {
-              playlistsWithCount.take(8)
-            }
-            if (previewPlaylists.isEmpty()) {
-              ShelfEmptyCard(
-                icon = Icons.AutoMirrored.Filled.PlaylistPlay,
-                title = stringResource(R.string.no_playlists_yet),
-                message = "Custom playlists you create will appear here",
-              )
-            } else if (isGrid) {
-              Column(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-              ) {
-                val chunkedPlaylists = previewPlaylists.chunked(videoGridColumns)
-                for (rowItems in chunkedPlaylists) {
-                  Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                  ) {
-                    for (playlistWithCount in rowItems) {
-                      Box(modifier = Modifier.weight(1f)) {
-                        PlaylistCard(
-                          playlist = playlistWithCount.playlist,
-                          itemCount = playlistWithCount.itemCount,
-                          uiSettings = playlistUiSettings,
-                          onClick = {
-                            backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
-                          },
-                          onLongClick = {
-                            activePlaylist = playlistWithCount.playlist
-                          },
-                          isGridMode = true,
-                          gridColumns = videoGridColumns,
-                          mostRecentVideoPath = playlistWithCount.firstItemPath,
-                        )
-                      }
-                    }
-                    val emptySlots = videoGridColumns - rowItems.size
-                    repeat(emptySlots) {
-                      Spacer(modifier = Modifier.weight(1f))
-                    }
-                  }
-                }
+              // ==========================================
+              // 1. RECENTLY PLAYED SECTION (HORIZONTAL SHELF)
+              // ==========================================
+              item(key = "header_recents") {
+                SectionHeader(
+                  title = stringResource(R.string.recently_played),
+                  onViewAllClick = {
+                    backStack.add(RecentlyPlayedScreen)
+                  },
+                )
               }
-            } else {
-              Column(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-              ) {
-                previewPlaylists.forEach { playlistWithCount ->
-                  PlaylistCard(
-                    playlist = playlistWithCount.playlist,
-                    itemCount = playlistWithCount.itemCount,
-                    uiSettings = playlistUiSettings,
-                    onClick = {
-                      backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
-                    },
-                    onLongClick = {
-                      activePlaylist = playlistWithCount.playlist
-                    },
-                    isGridMode = false,
-                    mostRecentVideoPath = playlistWithCount.firstItemPath,
+
+              item(key = "content_recents") {
+                if (!enableRecentlyPlayed) {
+                  ShelfEmptyCard(
+                    icon = Icons.Filled.History,
+                    title = stringResource(R.string.recently_played_disabled_title),
+                    message = stringResource(R.string.recently_played_disabled_message),
                   )
+                } else {
+                  val previewRecents = recentItems.take(15)
+                  if (previewRecents.isEmpty()) {
+                    ShelfEmptyCard(
+                      icon = Icons.Filled.History,
+                      title = stringResource(R.string.no_recently_played_videos),
+                      message = stringResource(R.string.no_recently_played_videos_message),
+                    )
+                  } else {
+                    LazyRow(
+                      contentPadding = PaddingValues(horizontal = 8.dp),
+                      horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                      items(previewRecents, key = { item ->
+                        when (item) {
+                          is RecentlyPlayedItem.VideoItem -> "video_${item.video.id}_${item.timestamp}"
+                          is RecentlyPlayedItem.PlaylistItem -> "playlist_${item.playlist.id}_${item.timestamp}"
+                        }
+                      }) { item ->
+                        when (item) {
+                          is RecentlyPlayedItem.VideoItem -> {
+                            RecentlyPlayedVideoShelfCard(
+                              video = item.video,
+                              progressPercentage = item.progress,
+                              isWatched = item.isWatched,
+                              isRecentlyPlayed = true,
+                              showThumbnails = recentsUiSettings.showVideoThumbnails,
+                              onClick = {
+                                MediaUtils.playFile(item.video, context, "you_tab")
+                              },
+                              onLongClick = {
+                                activeVideoItem = item
+                              },
+                              modifier = Modifier.width(160.dp),
+                            )
+                          }
+                          is RecentlyPlayedItem.PlaylistItem -> {
+                            PlaylistShelfCard(
+                              playlist = item.playlist,
+                              itemCount = item.videoCount,
+                              mostRecentVideoPath = item.mostRecentVideoPath,
+                              showThumbnails = recentsUiSettings.showVideoThumbnails,
+                              onClick = {
+                                backStack.add(PlaylistDetailScreen(item.playlist.id))
+                              },
+                              onLongClick = {
+                                activePlaylist = item.playlist
+                              },
+                              modifier = Modifier.width(160.dp),
+                            )
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+              // ==========================================
+              // 2. PLAYLISTS SECTION (HORIZONTAL SHELF)
+              // ==========================================
+              item(key = "header_playlists") {
+                SectionHeader(
+                  title = stringResource(R.string.playlists),
+                  onViewAllClick = {
+                    backStack.add(PlaylistScreen)
+                  },
+                )
+              }
+
+              item(key = "content_playlists") {
+                val isGrid = mediaLayoutMode == MediaLayoutMode.GRID
+                val previewPlaylists = if (isGrid) {
+                  playlistsWithCount.take(videoGridColumns * 3)
+                } else {
+                  playlistsWithCount.take(8)
+                }
+                if (previewPlaylists.isEmpty()) {
+                  ShelfEmptyCard(
+                    icon = Icons.AutoMirrored.Filled.PlaylistPlay,
+                    title = stringResource(R.string.no_playlists_yet),
+                    message = "Custom playlists you create will appear here",
+                  )
+                } else if (isGrid) {
+                  Column(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                  ) {
+                    val chunkedPlaylists = previewPlaylists.chunked(videoGridColumns)
+                    for (rowItems in chunkedPlaylists) {
+                      Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                      ) {
+                        for (playlistWithCount in rowItems) {
+                          Box(modifier = Modifier.weight(1f)) {
+                            PlaylistCard(
+                              playlist = playlistWithCount.playlist,
+                              itemCount = playlistWithCount.itemCount,
+                              uiSettings = playlistUiSettings,
+                              onClick = {
+                                backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
+                              },
+                              onLongClick = {
+                                activePlaylist = playlistWithCount.playlist
+                              },
+                              isGridMode = true,
+                              gridColumns = videoGridColumns,
+                              mostRecentVideoPath = playlistWithCount.firstItemPath,
+                            )
+                          }
+                        }
+                        val emptySlots = videoGridColumns - rowItems.size
+                        repeat(emptySlots) {
+                          Spacer(modifier = Modifier.weight(1f))
+                        }
+                      }
+                    }
+                  }
+                } else {
+                  Column(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .padding(horizontal = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                  ) {
+                    previewPlaylists.forEach { playlistWithCount ->
+                      PlaylistCard(
+                        playlist = playlistWithCount.playlist,
+                        itemCount = playlistWithCount.itemCount,
+                        uiSettings = playlistUiSettings,
+                        onClick = {
+                          backStack.add(PlaylistDetailScreen(playlistWithCount.playlist.id))
+                        },
+                        onLongClick = {
+                          activePlaylist = playlistWithCount.playlist
+                        },
+                        isGridMode = false,
+                        mostRecentVideoPath = playlistWithCount.firstItemPath,
+                        // List rows take the connected-list radius of the sheet.
+                        shape = RoundedCornerShape(2.dp),
+                      )
+                    }
+                  }
                 }
               }
             }
@@ -1119,6 +1163,18 @@ object YouScreen : Screen {
   }
 
   /**
+   * Card face of the shelves. The content surface sheet is painted in the same
+   * colour, so the cards only read as cards through the 3.dp gaps and the tonal
+   * contrast of their thumbnails against it.
+   */
+  @Composable
+  private fun cardSurfaceColor(): Color = if (MaterialTheme.colorScheme.background == Color.Black) {
+    Color.Black
+  } else {
+    MaterialTheme.colorScheme.surface
+  }
+
+  /**
    * Compact card for recently played video in horizontal shelf
    * Guarantees fixed dimensions to prevent layout shifts during horizontal scrolling
    */
@@ -1133,6 +1189,7 @@ object YouScreen : Screen {
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    cardRadius: Dp = 4.dp,
   ) {
     val thumbnailRepository = koinInject<ThumbnailRepository>()
     val density = LocalDensity.current
@@ -1166,13 +1223,13 @@ object YouScreen : Screen {
     Card(
       modifier = modifier
         .height(148.dp)
-        .clip(RoundedCornerShape(10.dp))
+        .clip(RoundedCornerShape(cardRadius))
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-      shape = RoundedCornerShape(10.dp),
-      colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+      shape = RoundedCornerShape(cardRadius),
+      colors = CardDefaults.cardColors(containerColor = cardSurfaceColor()),
     ) {
       Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1182,7 +1239,7 @@ object YouScreen : Screen {
           modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(cardRadius))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
           contentAlignment = Alignment.Center,
         ) {
@@ -1272,6 +1329,7 @@ object YouScreen : Screen {
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    cardRadius: Dp = 4.dp,
   ) {
     val thumbnailRepository = koinInject<ThumbnailRepository>()
     val context = LocalContext.current
@@ -1380,13 +1438,13 @@ object YouScreen : Screen {
     Card(
       modifier = modifier
         .height(148.dp)
-        .clip(RoundedCornerShape(10.dp))
+        .clip(RoundedCornerShape(cardRadius))
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-      shape = RoundedCornerShape(10.dp),
-      colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+      shape = RoundedCornerShape(cardRadius),
+      colors = CardDefaults.cardColors(containerColor = cardSurfaceColor()),
     ) {
       Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1395,7 +1453,7 @@ object YouScreen : Screen {
           modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(cardRadius))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
           contentAlignment = Alignment.Center,
         ) {
@@ -1507,11 +1565,14 @@ object YouScreen : Screen {
     modifier: Modifier = Modifier,
   ) {
     Card(
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-      shape = RoundedCornerShape(12.dp),
+      // Sits on the sheet itself: the same face colour, with an outline ring so
+      // it still reads as a distinct block against the white.
+      colors = CardDefaults.cardColors(containerColor = cardSurfaceColor()),
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+      shape = RoundedCornerShape(4.dp),
       modifier = modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp),
+        .padding(horizontal = 8.dp),
     ) {
       Row(
         modifier = Modifier.padding(16.dp),
