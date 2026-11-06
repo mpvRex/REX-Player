@@ -1626,16 +1626,12 @@ fun PlayerControls(
         AnimatedVisibility(
           visible = controlsShown && !areControlsLocked,
           enter =
-            if (!reduceMotion) {
-              fadeIn(
-                tween(
-                  durationMillis = 180,
-                  easing = LinearOutSlowInEasing,
-                ),
-              )
-            } else {
+          if (!reduceMotion) {
+            slideInHorizontally(playerControlsEnterAnimationSpec()) { it } +
+                fadeIn(playerControlsEnterAnimationSpec())
+          } else {
               fadeIn(playerControlsEnterAnimationSpec())
-            },
+          },
           exit =
             if (!reduceMotion) {
               slideOutHorizontally(playerControlsExitAnimationSpec()) { it } +
