@@ -377,9 +377,9 @@ fun <T> UnifiedExplorerContent(
         val videoGridColumns = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
 
         // The list must be composed whether the backplate paints or not — only
-        // the background is conditional. White sheet behind the sectioned list,
-        // except tree view (file manager), which passes keepListGaps = true and
-        // keeps the scaffold-tone gaps.
+        // the background is conditional. White sheet behind the sectioned list;
+        // tree view no longer opts out, so media view's plain list is the only
+        // remaining keepListGaps consumer.
         Box(
           modifier = Modifier
             .fillMaxSize()
@@ -441,6 +441,7 @@ fun <T> UnifiedExplorerContent(
                           showSubtitleIndicator = showSubtitleIndicator,
                           isGridMode = true,
                           columns = folderGridColumns,
+                          shape = if (useContentSurface) RoundedCornerShape(4.dp) else null,
                           uiSettings = uiSettings,
                           onClick = effectiveOnClick,
                           onLongClick = { onLongClick(item) },
@@ -559,6 +560,7 @@ fun <T> UnifiedExplorerContent(
                           showSubtitleIndicator = showSubtitleIndicator,
                           isGridMode = true,
                           columns = videoGridColumns,
+                          shape = if (useContentSurface) RoundedCornerShape(4.dp) else null,
                           uiSettings = uiSettings,
                           onClick = effectiveOnClick,
                           onLongClick = { onLongClick(item) },

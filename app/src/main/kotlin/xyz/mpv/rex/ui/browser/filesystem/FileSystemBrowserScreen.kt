@@ -1426,7 +1426,6 @@ private fun FileSystemBrowserContent(
       showSections = true,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
-      keepListGaps = true,
     )
     }
   }
