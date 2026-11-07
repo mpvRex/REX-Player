@@ -27,13 +27,35 @@ class HybridMediaIndexRepositoryTest {
     every { showAudioFiles.get() } returns false
     every { flattenFolders.get() } returns true
   }
+  private val foldersPreferences = mockk<FoldersPreferences>(relaxed = true) {
+    every { blacklistedFolders.get() } returns emptySet()
+  }
   private val repository = HybridMediaIndexRepository(
     context = mockk<Context>(relaxed = true),
     dao = dao,
     browserPreferences = browserPreferences,
-    foldersPreferences = mockk<FoldersPreferences>(relaxed = true),
+    foldersPreferences = foldersPreferences,
     metadataCacheRepository = metadataCacheRepository,
   )
+
+  @Test
+  fun cachedMediaFiltersExcludedDescendantsBeforeRescan() = runTest {
+    val regular = media("file:/storage/primary/Public/clip.mp4", "/storage/primary/Public/clip.mp4", "/storage/primary/Public")
+    val excluded = media("file:/storage/primary/Big/Child/clip.mp4", "/storage/primary/Big/Child/clip.mp4", "/storage/primary/Big/Child")
+    every { foldersPreferences.blacklistedFolders.get() } returns setOf("/storage/primary/Big")
+    coEvery { dao.getAvailableMedia(true) } returns listOf(regular, excluded)
+    assertEquals(listOf(regular.parentIdentity), repository.getFlatFolders(emptyList(), 7, 95, true).map { it.path })
+    assertEquals(1, repository.getRecursiveFolder("/storage/primary", emptyList(), 7, 95, true)?.videoCount)
+  }
+
+  @Test
+  fun cachedSearchHonorsParentExclusionBeforeRescan() = runTest {
+    val child = media("file:/storage/primary/Big/Child/clip.mp4", "/storage/primary/Big/Child/clip.mp4", "/storage/primary/Big/Child")
+    coEvery { dao.searchMedia("clip", true) } returns listOf(child)
+    assertEquals(1, repository.searchMedia("clip", includeNoMedia = true).size)
+    every { foldersPreferences.blacklistedFolders.get() } returns setOf("/storage/primary/Big")
+    assertEquals(0, repository.searchMedia("clip", includeNoMedia = true).size)
+  }
 
   @Test
   fun flatFolders_keepDuplicateNamesSeparateAndMatchPlaybackByLocation() = runTest {
