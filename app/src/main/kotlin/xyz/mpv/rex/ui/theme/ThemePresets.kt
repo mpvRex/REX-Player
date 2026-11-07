@@ -35,32 +35,20 @@ val PRESET_THEMES = listOf(
 private val PRESET_THEMES_MAP = PRESET_THEMES.associateBy { it.name }
 private val presetCache = ConcurrentHashMap<String, ColorScheme>()
 
-fun resolveIntensity(intensity: String): Pair<Double, Double> {
-    return when (intensity.uppercase()) {
-        "VIVID" -> Pair(0.22, 1.25)
-        "MEDIUM" -> Pair(0.12, 1.12)
-        else -> Pair(0.0, 1.0)
-    }
-}
-
 fun getPresetColorScheme(
     name: String,
     darkTheme: Boolean,
-    intensity: String = "STANDARD"
 ): ColorScheme {
-    val cacheKey = "${name}_${if (darkTheme) "dark" else "light"}_$intensity"
+    val cacheKey = "${name}_${if (darkTheme) "dark" else "light"}"
     presetCache[cacheKey]?.let { return it }
 
     val preset = PRESET_THEMES_MAP[name] ?: PRESET_THEMES.first()
     val hct = Hct.fromInt(preset.seedColor.toArgb())
-    val (contrast, chroma) = resolveIntensity(intensity)
 
     val scheme = ColorExtractor.createDynamicScheme(
         sourceHct = hct,
         paletteStyle = preset.paletteStyle,
         isDark = darkTheme,
-        contrastLevel = contrast,
-        chromaMultiplier = chroma
     )
     presetCache[cacheKey] = scheme
     return scheme
@@ -69,7 +57,6 @@ fun getPresetColorScheme(
 fun parseCustomHexColorScheme(
     hexString: String,
     darkTheme: Boolean,
-    intensity: String = "STANDARD"
 ): ColorScheme? {
     val cleanHex = hexString.removePrefix("#").trim()
     val colorInt = try {
@@ -82,17 +69,14 @@ fun parseCustomHexColorScheme(
         return null
     }
 
-    val cacheKey = "custom_${cleanHex}_${if (darkTheme) "dark" else "light"}_$intensity"
+    val cacheKey = "custom_${cleanHex}_${if (darkTheme) "dark" else "light"}"
     presetCache[cacheKey]?.let { return it }
 
     val hct = Hct.fromInt(colorInt)
-    val (contrast, chroma) = resolveIntensity(intensity)
     val scheme = ColorExtractor.createDynamicScheme(
         sourceHct = hct,
         paletteStyle = "VIBRANT",
         isDark = darkTheme,
-        contrastLevel = contrast,
-        chromaMultiplier = chroma
     )
     presetCache[cacheKey] = scheme
     return scheme

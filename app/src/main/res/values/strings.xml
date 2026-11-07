@@ -132,13 +132,6 @@
     <!-- Appearance Preferences - M3 Expressive -->
     <string name="pref_appearance_theme_preset_title">Theme preset</string>
     <string name="pref_appearance_theme_preset_summary">Choose an expressive dynamic color palette</string>
-    <string name="pref_appearance_theme_intensity_title">Theme intensity</string>
-    <string name="pref_appearance_theme_intensity_summary">Adjust color saturation and contrast</string>
-    <string name="pref_appearance_theme_intensity_standard">Standard</string>
-    <string name="pref_appearance_theme_intensity_medium">Medium</string>
-    <string name="pref_appearance_theme_intensity_vivid">Vivid</string>
-    <string name="pref_appearance_use_artwork_theme_title">Artwork dynamic theme</string>
-    <string name="pref_appearance_use_artwork_theme_summary">Tint player and interface using media artwork</string>
     <string name="pref_appearance_settings_badge_shape_title">Settings badge shape</string>
     <string name="pref_appearance_settings_badge_shape_summary">Choose squircle or circular badges in settings</string>
 

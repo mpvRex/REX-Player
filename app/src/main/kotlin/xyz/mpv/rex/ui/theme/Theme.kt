@@ -409,7 +409,6 @@ fun ColorScheme.toAmoledElevationScheme(): ColorScheme = this.copy(
 fun resolveColorScheme(
     appTheme: AppTheme,
     themePreset: String,
-    themeIntensity: String,
     useDarkTheme: Boolean,
     isAmoled: Boolean,
     context: android.content.Context,
@@ -419,7 +418,7 @@ fun resolveColorScheme(
             if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         themePreset.isNotEmpty() && themePreset != "Default" -> {
-            getPresetColorScheme(name = themePreset, darkTheme = useDarkTheme, intensity = themeIntensity)
+            getPresetColorScheme(name = themePreset, darkTheme = useDarkTheme)
         }
         useDarkTheme -> appTheme.getDarkColorScheme()
         else -> appTheme.getLightColorScheme()
@@ -440,7 +439,6 @@ fun MpvexTheme(content: @Composable () -> Unit) {
   val amoledMode by preferences.amoledMode.collectAsState()
   val appTheme by preferences.appTheme.collectAsState()
   val themePreset by preferences.themePreset.collectAsState()
-  val themeIntensity by preferences.themeIntensity.collectAsState()
   val useSystemFont by preferences.useSystemFont.collectAsState()
   val darkTheme = isSystemInDarkTheme()
   val context = LocalContext.current
@@ -455,7 +453,6 @@ fun MpvexTheme(content: @Composable () -> Unit) {
     val colorScheme = resolveColorScheme(
         appTheme = appTheme,
         themePreset = themePreset,
-        themeIntensity = themeIntensity,
         useDarkTheme = useDarkTheme,
         isAmoled = isAmoled,
         context = context,
@@ -488,7 +485,6 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val amoledMode by preferences.amoledMode.collectAsState()
     val appTheme by preferences.appTheme.collectAsState()
     val themePreset by preferences.themePreset.collectAsState()
-    val themeIntensity by preferences.themeIntensity.collectAsState()
     val useSystemFont by preferences.useSystemFont.collectAsState()
     val darkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
@@ -508,7 +504,6 @@ fun MpvexPlayerTheme(content: @Composable () -> Unit) {
     val colorScheme = resolveColorScheme(
         appTheme = appTheme,
         themePreset = themePreset,
-        themeIntensity = themeIntensity,
         useDarkTheme = useDarkTheme,
         isAmoled = isAmoled,
         context = context,

@@ -69,22 +69,6 @@ object SearchablePreferences {
                 targetIndex = 3,
             ))
             add(SearchablePreference(
-                titleRes = R.string.pref_appearance_theme_intensity_title,
-                summaryRes = R.string.pref_appearance_theme_intensity_summary,
-                keywords = listOf("intensity", "vivid", "contrast", "saturation", "chroma"),
-                category = "Appearance",
-                screen = AppearancePreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
-                titleRes = R.string.pref_appearance_use_artwork_theme_title,
-                summaryRes = R.string.pref_appearance_use_artwork_theme_summary,
-                keywords = listOf("artwork", "thumbnail", "color", "extract", "dynamic"),
-                category = "Appearance",
-                screen = AppearancePreferencesScreen,
-                targetIndex = 3,
-            ))
-            add(SearchablePreference(
                 titleRes = R.string.pref_appearance_settings_badge_shape_title,
                 summaryRes = R.string.pref_appearance_settings_badge_shape_summary,
                 keywords = listOf("badge", "shape", "squircle", "circle", "icon"),
