@@ -792,6 +792,7 @@ fun FolderSortDialog(
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+  val showHiddenFiles by browserPreferences.showHiddenFiles.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val showFileExtension by browserPreferences.showFileExtension.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
@@ -930,6 +931,11 @@ fun FolderSortDialog(
         onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
       ),
       ContentToggle(
+        label = stringResource(R.string.pref_show_hidden_files_title),
+        checked = showHiddenFiles,
+        onCheckedChange = { browserPreferences.showHiddenFiles.set(it) },
+      ),
+      ContentToggle(
         label = stringResource(R.string.filter_show_nomedia_folders),
         checked = includeNoMediaContent,
         onCheckedChange = { browserPreferences.includeNoMediaContent.set(it) },
@@ -1031,6 +1037,7 @@ fun VideoSortDialog(
   val appearancePreferences = koinInject<AppearancePreferences>()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+  val showHiddenFiles by browserPreferences.showHiddenFiles.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
@@ -1162,6 +1169,11 @@ fun VideoSortDialog(
         onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
       ),
       ContentToggle(
+        label = stringResource(R.string.pref_show_hidden_files_title),
+        checked = showHiddenFiles,
+        onCheckedChange = { browserPreferences.showHiddenFiles.set(it) },
+      ),
+      ContentToggle(
         label = stringResource(R.string.filter_show_nomedia_folders),
         checked = includeNoMediaContent,
         onCheckedChange = { browserPreferences.includeNoMediaContent.set(it) },
@@ -1265,6 +1277,7 @@ fun FileSystemSortDialog(
   val showFileExtension by browserPreferences.showFileExtension.collectAsState()
   val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
   val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+  val showHiddenFiles by browserPreferences.showHiddenFiles.collectAsState()
   val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
   val showDateChip by browserPreferences.showDateChip.collectAsState()
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
@@ -1391,6 +1404,11 @@ fun FileSystemSortDialog(
         label = stringResource(R.string.filter_audio_files),
         checked = showAudioFiles,
         onCheckedChange = { browserPreferences.showAudioFiles.set(it) },
+      ),
+      ContentToggle(
+        label = stringResource(R.string.pref_show_hidden_files_title),
+        checked = showHiddenFiles,
+        onCheckedChange = { browserPreferences.showHiddenFiles.set(it) },
       ),
       ContentToggle(
         label = stringResource(R.string.filter_show_nomedia_folders),

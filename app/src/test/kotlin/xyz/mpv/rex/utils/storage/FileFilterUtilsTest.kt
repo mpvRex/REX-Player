@@ -8,6 +8,32 @@ import org.junit.Test
 
 class FileFilterUtilsTest {
   @Test
+  fun hiddenPathChecksAllAncestorsIncludingDocumentIds() {
+    assertTrue(FileFilterUtils.isHiddenPath("/storage/emulated/0/.hidden/Child/film.mp4"))
+    assertTrue(FileFilterUtils.isHiddenPath("/storage/emulated/0/Movies/.film.mp4"))
+    assertTrue(FileFilterUtils.isHiddenPath("/storage/emulated/0/.hidden/film:part1.mp4"))
+    assertTrue(FileFilterUtils.isHiddenPath("content://com.android.externalstorage.documents/tree/primary%3A.hidden/document/primary%3A.hidden%2FChild"))
+    assertFalse(FileFilterUtils.isHiddenPath("/storage/emulated/0/Movies/film.mp4"))
+  }
+
+  @Test
+  fun hiddenAndNoMediaOptionsAreIndependent() {
+    withTempDirectory { root ->
+      val hidden = File(root, ".private").apply { mkdirs() }
+      val media = File(hidden, ".clip.mp4").apply { createNewFile() }
+      val showHidden = MediaScanPolicy(showHiddenFiles = true)
+      assertFalse(FileFilterUtils.shouldSkipFolder(hidden, showHidden))
+      assertFalse(FileFilterUtils.shouldSkipFile(media, showHidden))
+      assertTrue(FileFilterUtils.shouldSkipFile(media))
+      File(hidden, ".nomedia").createNewFile()
+      assertTrue(FileFilterUtils.shouldSkipFolder(hidden, showHidden))
+      assertTrue(FileFilterUtils.shouldSkipFolder(hidden, MediaScanPolicy(includeNoMediaContent = true)))
+      assertFalse(FileFilterUtils.shouldSkipFolder(hidden, showHidden.copy(includeNoMediaContent = true)))
+      assertTrue(FileFilterUtils.shouldSkipFolderName(".cache", showHidden))
+    }
+  }
+
+  @Test
   fun noMediaFolder_isControlledIndependentlyByPolicy() {
     withTempDirectory { root ->
       val folder = File(root, "Private").apply { mkdirs() }

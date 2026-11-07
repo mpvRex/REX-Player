@@ -816,6 +816,14 @@ object SearchablePreferences {
                 targetIndex = 1,
             ))
             add(SearchablePreference(
+                titleRes = R.string.pref_show_hidden_files_title,
+                summaryRes = R.string.pref_show_hidden_files_summary,
+                keywords = listOf("hidden", "dot", "folders", "files", "private"),
+                category = "Media & Library",
+                screen = MediaLibraryPreferencesScreen,
+                targetIndex = 1,
+            ))
+            add(SearchablePreference(
                 titleRes = R.string.pref_show_audio_files_title,
                 summaryRes = R.string.pref_show_audio_files_summary,
                 keywords = listOf("audio", "music", "songs", "sound", "media", "library"),

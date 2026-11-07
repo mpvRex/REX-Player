@@ -55,19 +55,27 @@ object FileFilterUtils {
             return true
         }
 
-        return shouldSkipFolderName(folder.name)
+        return shouldSkipFolderName(folder.name, policy)
     }
 
-    fun shouldSkipFolderName(name: String): Boolean {
+    fun shouldSkipFolderName(name: String, policy: MediaScanPolicy = MediaScanPolicy()): Boolean {
         val normalizedName = name.lowercase()
-        return normalizedName.startsWith(".") || SKIP_FOLDERS.contains(normalizedName)
+        return (!policy.showHiddenFiles && normalizedName.startsWith(".")) || SKIP_FOLDERS.contains(normalizedName)
     }
 
     /**
      * Checks if a file should be skipped during file listing
      */
-    fun shouldSkipFile(file: File): Boolean {
-        return file.name.startsWith(".")
+    fun shouldSkipFile(file: File, policy: MediaScanPolicy = MediaScanPolicy()): Boolean {
+        return !policy.showHiddenFiles && file.name.startsWith(".")
+    }
+
+    fun isHiddenPath(path: String): Boolean {
+        val normalized = selectedFolderPath(path)
+        val components = if (normalized.startsWith("content://")) {
+            normalized.substringAfter("/document/").substringAfter(':')
+        } else normalized
+        return components.split('/').any { it.startsWith(".") && it != "." && it != ".." }
     }
 
     /**

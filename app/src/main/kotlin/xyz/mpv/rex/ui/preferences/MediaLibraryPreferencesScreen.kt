@@ -74,6 +74,7 @@ object MediaLibraryPreferencesScreen : Screen {
     val scope = rememberCoroutineScope()
 
     val includeNoMediaContent by browserPreferences.includeNoMediaContent.collectAsState()
+    val showHiddenFiles by browserPreferences.showHiddenFiles.collectAsState()
     val showAudioFiles by browserPreferences.showAudioFiles.collectAsState()
     val libraryScanRoots by foldersPreferences.libraryScanRoots.collectAsState()
     val showNetworkThumbnails by appearancePreferences.showNetworkThumbnails.collectAsState()
@@ -151,6 +152,18 @@ object MediaLibraryPreferencesScreen : Screen {
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
+                )
+              }
+
+              GroupedPreferenceCard(
+                position = GroupPosition.MIDDLE,
+                highlightKey = R.string.pref_show_hidden_files_title,
+              ) {
+                SwitchPreference(
+                  value = showHiddenFiles,
+                  onValueChange = { browserPreferences.showHiddenFiles.set(it) },
+                  title = { Text(stringResource(R.string.pref_show_hidden_files_title)) },
+                  summary = { Text(stringResource(R.string.pref_show_hidden_files_summary)) },
                 )
               }
 

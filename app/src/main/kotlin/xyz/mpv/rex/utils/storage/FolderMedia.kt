@@ -112,7 +112,7 @@ internal fun listDirectMedia(folder: File, policy: MediaScanPolicy): List<Scanne
 
     val result = ArrayList<ScannedItem>(entries.size)
     for (entry in entries) {
-        if (!entry.isFile || FileFilterUtils.shouldSkipFile(entry)) continue
+        if (!entry.isFile || FileFilterUtils.shouldSkipFile(entry, policy)) continue
         val isVideo = FileTypeUtils.isVideoFile(entry)
         val isAudio = FileTypeUtils.isAudioFile(entry)
         if (!isVideo && !isAudio) continue
