@@ -91,7 +91,11 @@ object AppearancePreferencesScreen : Screen {
         val context = LocalContext.current
         var showLanguageDialog by remember { mutableStateOf(false) }
 
+        val pageColor = MaterialTheme.colorScheme.surfaceContainer
+        val cardColor = MaterialTheme.colorScheme.surface
+
         CollapsibleHeaderScreen(
+          containerColor = pageColor,
             title = stringResource(R.string.pref_appearance_title),
             showBackButton = true,
             onBackClick = backstack::navigateBack,
@@ -112,6 +116,7 @@ object AppearancePreferencesScreen : Screen {
                         val currentLanguage = remember { LocaleHelper.getCurrentLanguage(context) }
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.ONLY,
                                 highlightKey = R.string.pref_appearance_language_title,
                             ) {
@@ -151,6 +156,7 @@ object AppearancePreferencesScreen : Screen {
 
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = listOf(
                                     R.string.pref_appearance_title,
@@ -235,6 +241,7 @@ object AppearancePreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_use_system_font_title,
                             ) {
@@ -252,6 +259,7 @@ object AppearancePreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_appearance_hide_play_fab_show_in_header_title,
                             ) {
@@ -385,13 +393,14 @@ object AppearancePreferencesScreen : Screen {
                                 }
 
                                 val elevation by androidx.compose.animation.core.animateDpAsState(
-                                    targetValue = if (isDragging) 8.dp else 1.dp,
+                                    targetValue = if (isDragging) 8.dp else 0.dp,
                                     label = "elevation"
                                 )
 
                                 GroupedPreferenceCard(
                                     position = position,
                                     highlightKey = item.titleRes,
+                                    color = cardColor,
                                     tonalElevation = elevation,
                                 ) {
                                     SwitchPreference(

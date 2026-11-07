@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -79,10 +80,16 @@ object JellyfinSettingsScreen : Screen {
       configured = prefs.isConfigured()
     }
 
+    // Same recipe as the settings screens: the page is the `surfaceContainer`
+    // backdrop and the cards are lifted onto `surface` above it.
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
       title = "Jellyfin",
       showBackButton = true,
       onBackClick = { backstack.navigateBack() },
+      containerColor = pageColor,
     ) { contentModifier ->
       val scrollState = rememberScrollState()
       Column(
@@ -93,7 +100,10 @@ object JellyfinSettingsScreen : Screen {
           .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+          modifier = Modifier.fillMaxWidth(),
+          colors = CardDefaults.cardColors(containerColor = cardColor),
+        ) {
           Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Jellyfin Server", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
@@ -179,7 +189,10 @@ object JellyfinSettingsScreen : Screen {
           }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+          modifier = Modifier.fillMaxWidth(),
+          colors = CardDefaults.cardColors(containerColor = cardColor),
+        ) {
           Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
               modifier = Modifier.fillMaxWidth(),

@@ -169,7 +169,11 @@ object CodecInformationScreen : Screen {
 
     var selectedFilter by remember { mutableStateOf(CodecFilter.ALL) }
 
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(R.string.pref_decoder_codec_info_title),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -205,7 +209,7 @@ object CodecInformationScreen : Screen {
             // Overview Summary Card
             item {
               GroupedListColumn {
-                GroupedPreferenceCard(position = GroupPosition.ONLY) {
+                GroupedPreferenceCard(position = GroupPosition.ONLY, color = cardColor, tonalElevation = 0.dp) {
                   Column(
                     modifier = Modifier
                       .fillMaxWidth()
@@ -357,7 +361,7 @@ object CodecInformationScreen : Screen {
                     index == filteredCodecs.lastIndex -> GroupPosition.LAST
                     else -> GroupPosition.MIDDLE
                   }
-                  GroupedPreferenceCard(position = pos) {
+                  GroupedPreferenceCard(position = pos, color = cardColor, tonalElevation = 0.dp) {
                     Column(
                       modifier = Modifier
                         .fillMaxWidth()

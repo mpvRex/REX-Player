@@ -51,7 +51,11 @@ object AudioPreferencesScreen : Screen {
     val backstack = LocalBackStack.current
     val preferences = koinInject<AudioPreferences>()
 
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(R.string.pref_audio),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -77,6 +81,7 @@ object AudioPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = listOf(R.string.pref_audio, R.string.pref_preferred_languages),
               ) {
@@ -112,6 +117,7 @@ object AudioPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_audio_pitch_correction_title,
               ) {
@@ -129,6 +135,7 @@ object AudioPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_audio_volume_normalization_title,
               ) {
@@ -146,6 +153,7 @@ object AudioPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_audio_channels,
               ) {
@@ -165,6 +173,7 @@ object AudioPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_audio_volume_boost_cap,
               ) {

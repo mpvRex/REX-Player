@@ -99,7 +99,11 @@ object SubtitlesPreferencesScreen : Screen {
     val preferences = koinInject<SubtitlesPreferences>()
     val fileManager = koinInject<FileManager>()
 
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(R.string.pref_subtitles),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -204,6 +208,7 @@ object SubtitlesPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = listOf(R.string.pref_subtitles, R.string.pref_preferred_languages),
               ) {
@@ -240,6 +245,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_disable_by_default_title,
               ) {
@@ -257,6 +263,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_autoload_title,
               ) {
@@ -274,6 +281,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.player_sheets_sub_override_ass,
               ) {
@@ -291,6 +299,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.player_sheets_sub_scale_by_window,
               ) {
@@ -308,6 +317,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_force_ltr_title,
               ) {
@@ -326,6 +336,7 @@ object SubtitlesPreferencesScreen : Screen {
 
               val subtitleEncoding by preferences.subtitleEncoding.collectAsState()
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_encoding_title,
               ) {
@@ -345,6 +356,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_open_at_video_location_title,
               ) {
@@ -362,6 +374,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_custom_picker_folder_title,
               ) {
@@ -402,6 +415,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_subtitles_fonts_dir,
               ) {
@@ -508,6 +522,7 @@ object SubtitlesPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_subtitles_wyzie_api_key_title,
               ) {
@@ -564,6 +579,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_save_location,
               ) {
@@ -593,6 +609,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = listOf("Subtitle Sources", R.string.pref_subtitle_search_title),
               ) {
@@ -614,6 +631,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_subdl_languages,
               ) {
@@ -635,6 +653,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = listOf("Advanced Search Filters", "Hearing-impaired friendly"),
               ) {
@@ -712,6 +731,7 @@ object SubtitlesPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_subtitles_clear_downloads,
               ) {
@@ -759,7 +779,7 @@ object SubtitlesPreferencesScreen : Screen {
                 }
               }
 
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(position = GroupPosition.LAST, color = cardColor, tonalElevation = 0.dp) {
                 Row(
                   modifier = Modifier
                     .fillMaxWidth()

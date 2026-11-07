@@ -60,10 +60,17 @@ object PreferencesScreen : Screen {
     val badgeShapePref by preferences.settingsBadgeShape.collectAsState()
     val badgeShape = if (badgeShapePref == "CIRCLE") CircleShape else RoundedCornerShape(12.dp)
 
+    // Same recipe as the home screen: the page is the `surfaceContainer` backdrop
+    // (what BrowserTopBar paints) and the rows are lifted onto `surface` above it.
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+    val searchColor = MaterialTheme.colorScheme.surfaceContainerHigh
+
     CollapsibleHeaderScreen(
       title = stringResource(R.string.pref_preferences),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
+      containerColor = pageColor,
       headerContent = {
         Surface(
           onClick = { backstack.add(SettingsSearchScreen) },
@@ -72,8 +79,8 @@ object PreferencesScreen : Screen {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .clip(searchShape),
-          color = MaterialTheme.colorScheme.surfaceContainerHigh,
-          tonalElevation = 2.dp,
+          color = searchColor,
+          tonalElevation = 0.dp,
         ) {
           Row(
             modifier = Modifier
@@ -111,6 +118,7 @@ object PreferencesScreen : Screen {
           // UI & Appearance Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = stringResource(R.string.pref_category_ui_appearance),
               badgeShape = badgeShape,
               items = listOf(
@@ -129,6 +137,7 @@ object PreferencesScreen : Screen {
           // Playback & Controls Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = stringResource(R.string.pref_category_playback_controls),
               badgeShape = badgeShape,
               items = listOf(
@@ -163,6 +172,7 @@ object PreferencesScreen : Screen {
           // Media & Library Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = stringResource(R.string.pref_media_library_title),
               badgeShape = badgeShape,
               items = listOf(
@@ -181,6 +191,7 @@ object PreferencesScreen : Screen {
           // Media Settings Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = stringResource(R.string.pref_category_media_settings),
               badgeShape = badgeShape,
               items = listOf(
@@ -215,6 +226,7 @@ object PreferencesScreen : Screen {
           // RexShorts Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = stringResource(R.string.pref_category_rexshorts),
               badgeShape = badgeShape,
               items = listOf(
@@ -233,6 +245,7 @@ object PreferencesScreen : Screen {
           // Integrations Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = "Integrations",
               badgeShape = badgeShape,
               items = listOf(
@@ -259,6 +272,7 @@ object PreferencesScreen : Screen {
           // Advanced & About Section
           item {
             RexSettingsGroup(
+              containerColor = cardColor,
               title = stringResource(R.string.pref_category_advanced_about),
               badgeShape = badgeShape,
               items = listOf(

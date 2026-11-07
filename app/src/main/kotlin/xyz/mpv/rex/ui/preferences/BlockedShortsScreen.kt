@@ -57,10 +57,14 @@ object BlockedShortsScreen : Screen {
         val blockedVideos by shortsMediaDao.observeAllShortsMedia().collectAsState(initial = emptyList())
         val filteredBlocked = blockedVideos.filter { it.isBlocked }
 
+        val pageColor = MaterialTheme.colorScheme.surfaceContainer
+        val cardColor = MaterialTheme.colorScheme.surface
+
         CollapsibleHeaderScreen(
             title = stringResource(R.string.pref_blocked_videos),
             showBackButton = true,
             onBackClick = backstack::navigateBack,
+            containerColor = pageColor,
         ) { contentModifier ->
             if (filteredBlocked.isEmpty()) {
                 Box(
@@ -92,7 +96,7 @@ object BlockedShortsScreen : Screen {
                                     backstack.add(ShortsScreen(initialVideoPath = media.path, blockedOnly = true))
                                 },
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                                containerColor = cardColor
                             )
                         ) {
                             Row(

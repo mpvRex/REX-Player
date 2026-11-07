@@ -66,7 +66,11 @@ object DecoderPreferencesScreen : Screen {
     val context = LocalContext.current
     val isVulkanSupported = remember { VulkanUtils.isVulkanSupported(context) }
     var showGpuNextWarning by remember { mutableStateOf(false) }
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(R.string.pref_decoder),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -96,6 +100,7 @@ object DecoderPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = listOf(R.string.pref_decoder, R.string.pref_decoder_profile_title),
               ) {
@@ -114,6 +119,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_decoder_try_hw_dec_title,
               ) {
@@ -125,6 +131,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_decoder_codec_info_title,
               ) {
@@ -141,6 +148,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_decoder_gpu_next_title,
               ) {
@@ -214,6 +222,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_decoder_vulkan_title,
               ) {
@@ -245,6 +254,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_decoder_debanding_title,
               ) {
@@ -263,6 +273,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_decoder_yuv420p_title,
               ) {
@@ -280,6 +291,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_anime4k_title,
               ) {
@@ -317,6 +329,7 @@ object DecoderPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = "HDR-to-SDR Tone Mapping (hdr-toys)",
               ) {

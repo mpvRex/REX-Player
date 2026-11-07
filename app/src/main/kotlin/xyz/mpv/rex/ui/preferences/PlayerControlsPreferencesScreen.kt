@@ -128,7 +128,11 @@ object PlayerControlsPreferencesScreen : Screen {
             orderedOrphans + remainingOrphans
         }
 
+        val pageColor = MaterialTheme.colorScheme.surfaceContainer
+        val cardColor = MaterialTheme.colorScheme.surface
+
         CollapsibleHeaderScreen(
+          containerColor = pageColor,
             title = stringResource(id = R.string.pref_layout_title),
             showBackButton = true,
             onBackClick = backstack::navigateBack,
@@ -148,6 +152,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = listOf(R.string.pref_layout_title, R.string.pref_layout_top_right_controls),
                             ) {
@@ -163,6 +168,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_layout_bottom_right_controls,
                             ) {
@@ -178,6 +184,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_layout_bottom_left_controls,
                             ) {
@@ -201,6 +208,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.ONLY,
                                 highlightKey = R.string.pref_layout_portrait_bottom_controls,
                             ) {
@@ -223,6 +231,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     item {
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.ONLY,
                                 highlightKey = R.string.pref_layout_more_sheet_controls_title,
                             ) {
@@ -252,6 +261,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = R.string.pref_seekbar_style_header,
                             ) {
@@ -267,9 +277,6 @@ object PlayerControlsPreferencesScreen : Screen {
                                                     onClick = null
                                                 )
                                             },
-                                            colors = androidx.compose.material3.ListItemDefaults.colors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            ),
                                             modifier = Modifier
                                                 .clickable { appearancePrefs.seekbarStyle.set(style) }
                                         )
@@ -281,6 +288,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_player_white_seekbar_title,
                             ) {
@@ -297,6 +305,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_player_show_seekbar_chapters_title,
                             ) {
@@ -313,6 +322,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_player_show_seekbar_read_ahead_title,
                             ) {
@@ -329,6 +339,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_player_speed_adjusted_remaining_title,
                             ) {
@@ -356,6 +367,7 @@ object PlayerControlsPreferencesScreen : Screen {
                         val swapVolumeAndBrightness by playerPrefs.swapVolumeAndBrightness.collectAsState()
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = R.string.pref_playback_controls_position_title,
                             ) {
@@ -374,6 +386,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.swap_the_volume_and_brightness_slider,
                             ) {
@@ -385,6 +398,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_controls_layout_below_seekbar_title,
                             ) {
@@ -435,6 +449,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = R.string.pref_appearance_enable_bounce_animation_title,
                             ) {
@@ -455,6 +470,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_match_player_controls_to_theme_title,
                             ) {
@@ -467,6 +483,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_hide_player_buttons_background_title,
                             ) {
@@ -487,6 +504,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_show_next_previous_buttons_title,
                             ) {
@@ -507,6 +525,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_player_controls_show_loading_circle,
                             ) {
@@ -520,6 +539,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_enable_glass_player_controls_title,
                             ) {
@@ -540,6 +560,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_enable_glass_seekbar_title,
                             ) {
@@ -561,6 +582,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_player_always_dark_mode_title,
                             ) {
@@ -585,6 +607,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_show_controls_on_play_title,
                             ) {
@@ -601,6 +624,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_appearance_player_gradient_opacity_title,
                             ) {
@@ -625,6 +649,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_player_display_reduce_player_animation,
                             ) {
@@ -638,6 +663,7 @@ object PlayerControlsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_player_display_hide_player_control_time,
                             ) {
@@ -738,6 +764,7 @@ object PlayerControlsPreferencesScreen : Screen {
                         val enableLuaScriptsForButtons by advancedPrefs.enableLuaScripts.collectAsState()
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.ONLY,
                                 highlightKey = R.string.pref_custom_lua_title,
                             ) {

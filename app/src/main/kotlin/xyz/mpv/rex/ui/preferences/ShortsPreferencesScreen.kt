@@ -85,7 +85,11 @@ object ShortsPreferencesScreen : Screen {
             allFolders = xyz.mpv.rex.utils.storage.CoreMediaScanner.getFlatMediaFolders(context)
         }
 
+        val pageColor = MaterialTheme.colorScheme.surfaceContainer
+        val cardColor = MaterialTheme.colorScheme.surface
+
         CollapsibleHeaderScreen(
+          containerColor = pageColor,
             title = stringResource(R.string.pref_category_rexshorts_settings),
             showBackButton = true,
             onBackClick = backstack::navigateBack,
@@ -105,6 +109,7 @@ object ShortsPreferencesScreen : Screen {
                     item {
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = listOf(R.string.pref_category_rexshorts_settings, R.string.pref_enable_rexshorts),
                             ) {
@@ -117,6 +122,7 @@ object ShortsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_auto_swipe_shorts,
                             ) {
@@ -129,6 +135,7 @@ object ShortsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_enable_glass_shorts_controls,
                             ) {
@@ -141,6 +148,7 @@ object ShortsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_show_shorts_back_button,
                             ) {
@@ -161,6 +169,7 @@ object ShortsPreferencesScreen : Screen {
                     item {
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.FIRST,
                                 highlightKey = R.string.pref_include_short_horizontal_videos,
                             ) {
@@ -173,6 +182,7 @@ object ShortsPreferencesScreen : Screen {
                             }
 
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.MIDDLE,
                                 highlightKey = R.string.pref_max_horizontal_video_duration,
                             ) {
@@ -197,6 +207,7 @@ object ShortsPreferencesScreen : Screen {
                             val sourcedAllText = stringResource(R.string.pref_sourced_folders_all)
                             val sourcedCountText = stringResource(R.string.pref_sourced_folders_count, shortsSourceFolders.size)
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.LAST,
                                 highlightKey = R.string.pref_sourced_folders,
                             ) {
@@ -228,6 +239,7 @@ object ShortsPreferencesScreen : Screen {
                     item {
                         GroupedListColumn {
                             GroupedPreferenceCard(
+                              color = cardColor, tonalElevation = 0.dp,
                                 position = GroupPosition.ONLY,
                                 highlightKey = R.string.pref_blocked_videos,
                             ) {

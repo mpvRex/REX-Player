@@ -112,7 +112,11 @@ object AboutScreen : Screen {
         }
     }
 
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(id = R.string.pref_about_title),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -142,7 +146,7 @@ object AboutScreen : Screen {
               .edgeBlend(scrollState, 16.dp),
         ) {
           GroupedListColumn {
-            GroupedPreferenceCard(position = GroupPosition.ONLY) {
+            GroupedPreferenceCard(position = GroupPosition.ONLY, color = cardColor, tonalElevation = 0.dp) {
               Box(
                 modifier =
                   Modifier
@@ -300,7 +304,7 @@ object AboutScreen : Screen {
 
           PreferenceSectionHeader(title = stringResource(id = R.string.pref_about_telegram_title))
           GroupedListColumn {
-            GroupedPreferenceCard(position = GroupPosition.FIRST) {
+            GroupedPreferenceCard(position = GroupPosition.FIRST, color = cardColor, tonalElevation = 0.dp) {
               Preference(
                 title = { Text(text = stringResource(id = R.string.pref_about_telegram_channel)) },
                 summary = {
@@ -327,7 +331,7 @@ object AboutScreen : Screen {
               )
             }
 
-            GroupedPreferenceCard(position = GroupPosition.LAST) {
+            GroupedPreferenceCard(position = GroupPosition.LAST, color = cardColor, tonalElevation = 0.dp) {
               Preference(
                 title = { Text(text = stringResource(id = R.string.pref_about_telegram_group)) },
                 summary = {
@@ -361,7 +365,7 @@ object AboutScreen : Screen {
           if (BuildConfig.ENABLE_UPDATE_FEATURE) {
             PreferenceSectionHeader(title = stringResource(R.string.pref_category_updates))
             GroupedListColumn {
-              GroupedPreferenceCard(position = GroupPosition.FIRST) {
+              GroupedPreferenceCard(position = GroupPosition.FIRST, color = cardColor, tonalElevation = 0.dp) {
                 SwitchPreference(
                   value = isAutoUpdateEnabled,
                   onValueChange = { updateViewModel?.toggleAutoUpdate(it) },
@@ -382,7 +386,7 @@ object AboutScreen : Screen {
                 )
               }
               
-              GroupedPreferenceCard(position = GroupPosition.LAST) {
+              GroupedPreferenceCard(position = GroupPosition.LAST, color = cardColor, tonalElevation = 0.dp) {
                 Preference(
                   title = { Text(stringResource(R.string.pref_about_check_updates)) },
                   summary = {

@@ -94,7 +94,11 @@ object MediaLibraryPreferencesScreen : Screen {
     var showNetworkWarning by remember { mutableStateOf(false) }
     var showAutoPlaylistsSheet by remember { mutableStateOf(false) }
 
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(R.string.pref_media_library_title),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -115,6 +119,7 @@ object MediaLibraryPreferencesScreen : Screen {
           item {
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = listOf(R.string.pref_media_library_title, R.string.pref_include_no_media_content_title),
               ) {
@@ -138,6 +143,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_show_audio_files_title,
               ) {
@@ -158,6 +164,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_appearance_show_network_thumbnails_title,
               ) {
@@ -212,6 +219,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.auto_playlists,
               ) {
@@ -237,6 +245,7 @@ object MediaLibraryPreferencesScreen : Screen {
           item {
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_appearance_unlimited_name_lines_title,
               ) {
@@ -254,6 +263,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_appearance_show_unplayed_old_video_label_title,
               ) {
@@ -271,6 +281,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_appearance_unplayed_old_video_days_title,
               ) {
@@ -295,6 +306,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_appearance_auto_scroll_title,
               ) {
@@ -312,6 +324,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_appearance_watched_threshold_title,
               ) {
@@ -336,6 +349,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_show_tree_view_path_title,
               ) {
@@ -353,6 +367,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_flatten_folders_title,
               ) {
@@ -379,6 +394,7 @@ object MediaLibraryPreferencesScreen : Screen {
           item {
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_folders_title,
               ) {
@@ -395,6 +411,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_pins_isolate_title,
               ) {
@@ -414,6 +431,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_library_roots_title,
               ) {
@@ -445,6 +463,7 @@ object MediaLibraryPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_advanced_enable_recently_played_title,
               ) {
@@ -462,6 +481,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_advanced_history_auto_remove_deleted_title,
               ) {
@@ -480,6 +500,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_advanced_history_exclude_external_title,
               ) {
@@ -498,6 +519,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_advanced_clear_playback_history,
               ) {
@@ -555,6 +577,7 @@ object MediaLibraryPreferencesScreen : Screen {
           item {
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_rescan_library_title,
               ) {
@@ -576,6 +599,7 @@ object MediaLibraryPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_clear_metadata_cache_title,
               ) {

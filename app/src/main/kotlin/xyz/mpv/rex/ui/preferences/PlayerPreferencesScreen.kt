@@ -50,7 +50,11 @@ object PlayerPreferencesScreen : Screen {
     val backstack = LocalBackStack.current
     val context = LocalContext.current
     val preferences = koinInject<PlayerPreferences>()
+    val pageColor = MaterialTheme.colorScheme.surfaceContainer
+    val cardColor = MaterialTheme.colorScheme.surface
+
     CollapsibleHeaderScreen(
+      containerColor = pageColor,
       title = stringResource(id = R.string.pref_player),
       showBackButton = true,
       onBackClick = backstack::navigateBack,
@@ -84,6 +88,7 @@ object PlayerPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = listOf(R.string.pref_player, R.string.pref_player_orientation),
               ) {
@@ -103,6 +108,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_default_aspect_ratio,
               ) {
@@ -125,6 +131,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_remember_aspect_ratio,
               ) {
@@ -142,6 +149,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = if (resumePlaybackMode != ResumePlaybackMode.Ask) {
                   listOf(R.string.pref_player_resume_playback_title, R.string.pref_player_auto_resume_on_ask_title)
@@ -166,6 +174,7 @@ object PlayerPreferencesScreen : Screen {
 
               if (resumePlaybackMode == ResumePlaybackMode.Ask) {
                 GroupedPreferenceCard(
+                  color = cardColor, tonalElevation = 0.dp,
                   position = GroupPosition.MIDDLE,
                   highlightKey = R.string.pref_player_auto_resume_on_ask_title,
                 ) {
@@ -190,6 +199,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_close_after_eof,
               ) {
@@ -201,6 +211,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = listOf(R.string.pref_player_autoplay_on_open, R.string.pref_autoplay_on_open_title),
               ) {
@@ -221,6 +232,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_autoplay_title,
               ) {
@@ -241,6 +253,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_remember_brightness,
               ) {
@@ -252,6 +265,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = listOf(R.string.pref_player_auto_pip, R.string.pref_auto_pip_title),
               ) {
@@ -268,6 +282,7 @@ object PlayerPreferencesScreen : Screen {
                 )
               }
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_pip_on_home,
               ) {
@@ -293,6 +308,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_player_keep_screen_on_when_paused_title,
               ) {
@@ -325,6 +341,7 @@ object PlayerPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = listOf(R.string.pref_player_background_playback, R.string.background_playback_title),
               ) {
@@ -344,6 +361,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_player_play_in_mini_player,
               ) {
@@ -378,6 +396,7 @@ object PlayerPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_player_use_precise_seeking,
               ) {
@@ -389,6 +408,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_show_seekbar_when_seeking_title,
               ) {
@@ -401,6 +421,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.MIDDLE,
                 highlightKey = R.string.pref_player_hide_osd_text_title,
               ) {
@@ -413,6 +434,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = R.string.pref_player_custom_skip_duration_title,
               ) {
@@ -446,6 +468,7 @@ object PlayerPreferencesScreen : Screen {
 
             GroupedListColumn {
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.FIRST,
                 highlightKey = R.string.pref_player_display_show_status_bar,
               ) {
@@ -457,6 +480,7 @@ object PlayerPreferencesScreen : Screen {
               }
 
               GroupedPreferenceCard(
+                color = cardColor, tonalElevation = 0.dp,
                 position = GroupPosition.LAST,
                 highlightKey = listOf(R.string.pref_player_display_show_navigation_bar, R.string.pref_show_navigation_bar_title),
               ) {
