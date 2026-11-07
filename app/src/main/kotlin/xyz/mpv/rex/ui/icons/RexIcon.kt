@@ -135,11 +135,11 @@ fun Icon(
         contentAlignment = Alignment.Center
     ) {
         val density = LocalDensity.current
-        val glyphSize = if (constraints.hasBoundedWidth) {
-            with(density) { constraints.maxWidth.toDp() }
-        } else {
-            24.dp
-        }
+        // Use the *minimum* constraint: `defaultMinSize` floors it at 24.dp, and a
+        // caller's `Modifier.size(n)` fixes min == max == n. Reading maxWidth
+        // instead would pick up a generous parent slot (e.g. the navigation bar's
+        // icon area) and blow the glyph up to that width when no size is passed.
+        val glyphSize = with(density) { constraints.minWidth.toDp() }
         val iconSizeSp = with(density) { glyphSize.toSp() }
 
         // Material Symbols draws one em per glyph, but the ink does not sit
@@ -176,10 +176,17 @@ fun Icon(
             softWrap = false,
             onTextLayout = { result ->
                 if (result.lineCount > 0) {
+                    // The glyph ink is centred on the em square, whose centre sits
+                    // half a font size above the baseline. The Box centres the
+                    // paragraph, so move the paragraph until the em centre lands
+                    // on the box centre.
                     val fontSizePx = with(density) { iconSizeSp.toPx() }
-                    val emCenter = result.getLineTop(0) + result.getLineBaseline(0) - fontSizePx / 2f
-                    val boxCenter = result.size.height / 2f
-                    val shift = boxCenter - emCenter
+                    val emCentreY = result.getLineTop(0) + result.getLineBaseline(0) - fontSizePx / 2f
+                    // Where the paragraph's centre currently sits, in paragraph
+                    // coordinates; the Box has already centred it on the box.
+                    val paragraphCentreY = result.size.height / 2f
+                    // Positive = ink is low = move the paragraph up.
+                    val shift = paragraphCentreY - emCentreY
                     if (kotlin.math.abs(shift - inkShiftY) > 0.01f) inkShiftY = shift
                 }
             },
