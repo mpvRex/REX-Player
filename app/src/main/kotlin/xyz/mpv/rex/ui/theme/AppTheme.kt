@@ -403,8 +403,8 @@ enum class AppTheme(
       surfaceContainerLowest = backgroundLight,
       surfaceContainerLow = surfaceTint,
       surfaceContainer = primaryLight.copy(alpha = 0.06f).compositeOver(backgroundLight),
-      surfaceContainerHigh = primaryLight.copy(alpha = 0.08f).compositeOver(backgroundLight),
-      surfaceContainerHighest = primaryLight.copy(alpha = 0.11f).compositeOver(backgroundLight),
+      surfaceContainerHigh = primaryLight.copy(alpha = 0.12f).compositeOver(backgroundLight),
+      surfaceContainerHighest = primaryLight.copy(alpha = 0.18f).compositeOver(backgroundLight),
     )
   }
 
@@ -444,8 +444,8 @@ enum class AppTheme(
       surfaceContainerLowest = backgroundDark.darken(0.2f),
       surfaceContainerLow = surfaceTint,
       surfaceContainer = primaryDark.copy(alpha = 0.05f).compositeOver(backgroundDark),
-      surfaceContainerHigh = primaryDark.copy(alpha = 0.08f).compositeOver(backgroundDark),
-      surfaceContainerHighest = primaryDark.copy(alpha = 0.11f).compositeOver(backgroundDark),
+      surfaceContainerHigh = primaryDark.copy(alpha = 0.10f).compositeOver(backgroundDark),
+      surfaceContainerHighest = primaryDark.copy(alpha = 0.16f).compositeOver(backgroundDark),
     )
   }
 
@@ -459,8 +459,8 @@ enum class AppTheme(
     surfaceContainer = Color(0xFF0A0A0A),
     surfaceContainerLow = Color(0xFF050505),
     surfaceContainerLowest = Color.Black,
-    surfaceContainerHigh = primaryDark.copy(alpha = 0.05f).compositeOver(Color(0xFF151515)),
-    surfaceContainerHighest = primaryDark.copy(alpha = 0.08f).compositeOver(Color(0xFF1F1F1F)),
+    surfaceContainerHigh = primaryDark.copy(alpha = 0.08f).compositeOver(Color(0xFF151515)),
+    surfaceContainerHighest = primaryDark.copy(alpha = 0.13f).compositeOver(Color(0xFF1F1F1F)),
     surfaceDim = Color.Black,
     surfaceBright = primaryDark.copy(alpha = 0.06f).compositeOver(Color(0xFF2A2A2A)),
   )
