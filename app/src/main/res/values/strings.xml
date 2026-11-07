@@ -1649,4 +1649,6 @@
         <item quantity="one">%d selected inside</item>
         <item quantity="other">%d selected inside</item>
     </plurals>
+    <string name="pref_show_hidden_files_title">Show hidden folders and files</string>
+    <string name="pref_show_hidden_files_summary">Include media in folders and files whose names start with a dot. The .nomedia setting applies separately.</string>
 </resources>
