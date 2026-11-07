@@ -17,6 +17,7 @@ import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import xyz.mpv.rex.utils.media.MetadataRetrieval
 import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
+import xyz.mpv.rex.utils.storage.isPathExcluded
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -120,7 +121,7 @@ class FolderListViewModel(
         browserPreferences.includeNoMediaContent.changes(),
       ) { folders, blacklist, showAudio, includeNoMedia ->
         folders.filter { folder -> 
-          folder.path !in blacklist &&
+          !isPathExcluded(folder.path, blacklist) &&
           folder.activeCount(showAudio) > 0 &&
           (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }
@@ -277,7 +278,7 @@ class FolderListViewModel(
         val showAudio = browserPreferences.showAudioFiles.get()
         val includeNoMedia = browserPreferences.includeNoMediaContent.get()
         val filteredFolders = folders.filter { folder -> 
-          folder.path !in blacklist &&
+          !isPathExcluded(folder.path, blacklist) &&
           folder.activeCount(showAudio) > 0 &&
           (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }

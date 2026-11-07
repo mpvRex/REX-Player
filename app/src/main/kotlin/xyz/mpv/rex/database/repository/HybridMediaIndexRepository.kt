@@ -20,6 +20,7 @@ import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.FoldersPreferences
 import xyz.mpv.rex.utils.media.MediaFormatter
+import xyz.mpv.rex.utils.storage.isPathExcluded
 import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.StorageVolumeUtils
@@ -84,11 +85,10 @@ class HybridMediaIndexRepository(
   suspend fun purgeExcludedFolders(excludedPaths: Set<String> = foldersPreferences.blacklistedFolders.get()) = withContext(Dispatchers.IO) {
     if (excludedPaths.isEmpty()) return@withContext
     Log.d(TAG, "Purging excluded folders from Room index: $excludedPaths")
-    excludedPaths.forEach { rawPath ->
-      val normalized = normalizePath(File(rawPath))
-      val escaped = normalized.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-      dao.deleteByPathPrefix(normalized, "$escaped/%")
-    }
+    val locations = dao.getAvailableMedia(includeNoMedia = true)
+      .filter { isPathExcluded(it.location, excludedPaths) || isPathExcluded(it.parentIdentity, excludedPaths) }
+      .map { it.location }
+    locations.chunked(400).forEach { dao.deleteByLocations(it) }
   }
 
   suspend fun removeEntries(paths: List<String>) = withContext(Dispatchers.IO) {
@@ -318,13 +318,20 @@ class HybridMediaIndexRepository(
   }
 
 
+  private suspend fun visibleMedia(includeNoMedia: Boolean): List<HybridMediaEntity> {
+    val blacklist = foldersPreferences.blacklistedFolders.get()
+    return dao.getAvailableMedia(includeNoMedia).filter { item ->
+      !isPathExcluded(item.location, blacklist) && !isPathExcluded(item.parentIdentity, blacklist)
+    }
+  }
+
   suspend fun getFlatFolders(
     playbackStates: List<PlaybackStateEntity>,
     thresholdDays: Int,
     watchedThreshold: Int,
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): List<MediaFolder> = withContext(Dispatchers.IO) {
-    val items = dao.getAvailableMedia(includeNoMedia)
+    val items = visibleMedia(includeNoMedia)
     val stateByIdentity = playbackStates.associateBy { it.mediaTitle }
     val thresholdMillis = thresholdDays * 24L * 60L * 60L * 1000L
     val now = System.currentTimeMillis()
@@ -381,7 +388,7 @@ class HybridMediaIndexRepository(
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): List<MediaFolder> = withContext(Dispatchers.IO) {
     val tree = buildFileTree(
-      dao.getAvailableMedia(includeNoMedia),
+      visibleMedia(includeNoMedia),
       playbackStates,
       thresholdDays,
       watchedThreshold,
@@ -399,7 +406,7 @@ class HybridMediaIndexRepository(
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): MediaFolder? = withContext(Dispatchers.IO) {
     buildFileTree(
-      dao.getAvailableMedia(includeNoMedia),
+      visibleMedia(includeNoMedia),
       playbackStates,
       thresholdDays,
       watchedThreshold,
@@ -410,7 +417,7 @@ class HybridMediaIndexRepository(
     parentIdentity: String,
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): List<Video> = withContext(Dispatchers.IO) {
-    dao.getAvailableMedia(includeNoMedia)
+    visibleMedia(includeNoMedia)
       .asSequence()
       .filter { it.parentIdentity == parentIdentity }
       .map { it.toVideo() }
@@ -435,7 +442,10 @@ class HybridMediaIndexRepository(
       val prefix = "$parentPath/%"
       dao.searchMediaInPath(query, parentPath, prefix, includeNoMedia)
     }
-    entities.map { it.toVideo() }
+    val blacklist = foldersPreferences.blacklistedFolders.get()
+    entities.filter { item ->
+      !isPathExcluded(item.location, blacklist) && !isPathExcluded(item.parentIdentity, blacklist)
+    }.map { it.toVideo() }
   }
 
   suspend fun clear() {
@@ -507,7 +517,7 @@ class HybridMediaIndexRepository(
 
     val includeNoMedia = browserPreferences.includeNoMediaContent.get()
     val blacklist = foldersPreferences.blacklistedFolders.get()
-      .mapTo(mutableSetOf()) { normalizePath(File(it)) }
+      .toSet()
     val batch = mutableListOf<HybridMediaEntity>()
     var count = 0
 
@@ -522,7 +532,7 @@ class HybridMediaIndexRepository(
       currentCoroutineContext().ensureActive()
       if (depth > MAX_DEPTH) return
       val normalizedFolder = normalizePath(folder)
-      if (blacklist.any { normalizedFolder == it || normalizedFolder.startsWith("$it/") }) {
+      if (isPathExcluded(normalizedFolder, blacklist)) {
         Log.d(TAG, "Skipping excluded directory tree: $normalizedFolder")
         return
       }
@@ -602,11 +612,7 @@ class HybridMediaIndexRepository(
       currentCoroutineContext().ensureActive()
       if (depth > MAX_DEPTH) return
       val folderUriStr = folder.uri.toString()
-      if (blacklist.any { excluded ->
-          folderUriStr == excluded || folderUriStr.startsWith("$excluded/") ||
-          (excluded.startsWith("/") && Uri.decode(folderUriStr).contains(excluded))
-        }
-      ) {
+      if (isPathExcluded(folderUriStr, blacklist)) {
         Log.d(TAG, "Skipping excluded SAF directory tree: $folderUriStr")
         return
       }
@@ -669,7 +675,7 @@ class HybridMediaIndexRepository(
     alreadyScanned: Int,
   ): Int {
     val blacklist = foldersPreferences.blacklistedFolders.get()
-      .mapTo(mutableSetOf()) { normalizePath(File(it)) }
+      .toSet()
     val batch = mutableListOf<HybridMediaEntity>()
     var count = 0
 
@@ -716,7 +722,7 @@ class HybridMediaIndexRepository(
           val contentUri = Uri.withAppendedPath(uri, id.toString()).toString()
           val location = file?.let(::normalizePath) ?: contentUri
           val parent = file?.parentFile?.let(::normalizePath) ?: contentUri.substringBeforeLast('/')
-          if (blacklist.any { location == it || location.startsWith("$it/") || parent == it || parent.startsWith("$it/") }) {
+          if (isPathExcluded(location, blacklist) || isPathExcluded(parent, blacklist)) {
             Log.d(TAG, "Skipping excluded MediaStore item: $location")
             continue
           }

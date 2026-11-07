@@ -60,9 +60,9 @@ internal fun folderKey(path: String): String =
  */
 internal fun isPathExcluded(path: String, excludedPaths: Set<String>): Boolean {
     if (excludedPaths.isEmpty()) return false
-    val key = folderKey(path)
+    val key = comparableFolderPath(path)
     return excludedPaths.any { excluded ->
-        val excludedKey = folderKey(excluded)
+        val excludedKey = comparableFolderPath(excluded)
         excludedKey.isNotEmpty() &&
             (key == excludedKey || excludedKey == File.separator || key.startsWith("$excludedKey/"))
     }

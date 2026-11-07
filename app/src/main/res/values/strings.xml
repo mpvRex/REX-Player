@@ -1575,4 +1575,30 @@
     <string name="web_share_step_2">Scan QR code or type URL in any browser</string>
     <string name="web_share_stop_sharing">Stop Sharing</string>
 
+    <string name="pref_folders_browse_system">Browse for folder…</string>
+    <string name="pref_folders_internal_storage">Internal storage</string>
+    <string name="pref_exclusion_screen_title">Excluded folders</string>
+    <string name="pref_exclusion_screen_summary">Folders hidden from your library, along with everything inside them.</string>
+    <string name="pref_exclusion_empty_title">No folders excluded</string>
+    <string name="pref_exclusion_empty_summary">Choose a parent folder to hide it and all its subfolders.</string>
+    <string name="pref_exclusion_choose_folders">Choose folders</string>
+    <string name="pref_exclusion_picker_title">Exclude folders</string>
+    <string name="pref_exclusion_picker_hint">Selecting a folder includes its subfolders.</string>
+    <string name="pref_exclusion_included">Included</string>
+    <string name="pref_exclusion_picker_none_selected">Subfolders are included automatically</string>
+    <string name="pref_exclusion_storage_volume">Storage · %1$s</string>
+    <string name="pref_exclusion_included_by">Included with %1$s</string>
+    <string name="pref_exclusion_choose_subfolder">Choose a folder inside this storage.</string>
+    <plurals name="pref_exclusion_selected_count">
+        <item quantity="one">%d folder selected</item>
+        <item quantity="other">%d folders selected</item>
+    </plurals>
+    <plurals name="pref_exclusion_action_count">
+        <item quantity="one">Exclude %d folder</item>
+        <item quantity="other">Exclude %d folders</item>
+    </plurals>
+    <plurals name="pref_exclusion_selected_inside">
+        <item quantity="one">%d selected inside</item>
+        <item quantity="other">%d selected inside</item>
+    </plurals>
 </resources>

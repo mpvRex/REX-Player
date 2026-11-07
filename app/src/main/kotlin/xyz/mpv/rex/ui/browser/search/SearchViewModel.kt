@@ -36,6 +36,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import xyz.mpv.rex.utils.storage.isPathExcluded
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.map
 import java.io.File
 
 enum class SearchScope {
@@ -97,6 +100,14 @@ class SearchViewModel(
 
   init {
     viewModelScope.launch {
+      merge(
+        MediaLibraryEvents.changes,
+        foldersPreferences.blacklistedFolders.changes().map { Unit },
+      ).debounce(150L).collectLatest {
+        executeSearch(searchQuery.value, searchScope.value)
+      }
+    }
+    viewModelScope.launch {
       searchQuery
         .debounce(150L)
         .collectLatest { query ->
@@ -142,7 +153,7 @@ class SearchViewModel(
         // 1. Query videos from Hybrid DB
         val videos = hybridMediaIndex.searchMedia(query, targetPath, includeNoMedia)
           .filter { isAudioEnabled || !it.isAudio }
-          .filter { it.path !in blacklist && !blacklist.any { b -> it.path.startsWith("$b/") } }
+          .filter { !isPathExcluded(it.path, blacklist) }
 
         // Pre-apply cached metadata to ensure valid durations on frame 1
         val cachedVideos = MetadataRetrieval.applyCachedMetadata(videos, browserPreferences, metadataCache)
@@ -162,7 +173,7 @@ class SearchViewModel(
         if (targetPath == null) {
           val folders = MediaFileRepository.getAllVideoFolders(getApplication())
           folders.filter { it.name.contains(query, ignoreCase = true) || it.path.contains(query, ignoreCase = true) }
-            .filter { it.path !in blacklist && it.activeCount(isAudioEnabled) > 0 }
+            .filter { !isPathExcluded(it.path, blacklist) && it.activeCount(isAudioEnabled) > 0 }
             .forEach { folder ->
               results.add(
                 FileSystemItem.Folder(

@@ -8,6 +8,7 @@ import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.database.repository.HybridMediaIndexRepository
 import xyz.mpv.rex.utils.storage.FileFilterUtils
+import xyz.mpv.rex.utils.storage.isPathExcluded
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -48,7 +49,7 @@ object MediaMetadataOps {
                 folders
                     .filter { folder -> 
                         folder.activeCount(isAudioEnabled) > 0 &&
-                        folder.path !in blacklistedFolders &&
+                        !isPathExcluded(folder.path, blacklistedFolders) &&
                         (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
                     }
                     .map { folder ->
