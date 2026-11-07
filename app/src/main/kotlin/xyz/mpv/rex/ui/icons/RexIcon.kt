@@ -3,21 +3,28 @@ package xyz.mpv.rex.ui.icons
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Build
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
@@ -94,6 +101,7 @@ fun RexIcon(
     )
 }
 
+@OptIn(ExperimentalTextApi::class)
 @Composable
 fun Icon(
     imageVector: MaterialSymbolIcon,
@@ -118,19 +126,64 @@ fun Icon(
         modifier
     }
 
-    Box(
+    // The caller's modifier decides the glyph size (e.g. `Modifier.size(22.dp)`).
+    // Falling back to 24.dp keeps call sites that pass no size unchanged.
+    BoxWithConstraints(
         modifier = Modifier
             .defaultMinSize(minWidth = 24.dp, minHeight = 24.dp)
             .then(semanticsModifier),
         contentAlignment = Alignment.Center
     ) {
+        val density = LocalDensity.current
+        val glyphSize = if (constraints.hasBoundedWidth) {
+            with(density) { constraints.maxWidth.toDp() }
+        } else {
+            24.dp
+        }
+        val iconSizeSp = with(density) { glyphSize.toSp() }
+
+        // Material Symbols draws one em per glyph, but the ink does not sit
+        // centred on the em square: font ascent/descent push it down. Neither
+        // `includeFontPadding = false` nor `LineHeightStyle` trimming moves the
+        // ink, because both only adjust the line box around it.
+        //
+        // Compose does not expose glyph ink bounds, but it does expose the
+        // paragraph height and first baseline. Icon-font glyphs are drawn
+        // centred on the em square, so the em's visual centre sits half a font
+        // size above the baseline. The box centres the *paragraph*; shifting by
+        // the gap between the two centres lands the ink in the middle. Reading
+        // the metrics at layout time keeps this correct for whichever variant of
+        // the font was loaded (including the OEM fallback above).
+        val textStyle = remember(fontFamily, iconSizeSp, tint) {
+            TextStyle(
+                fontFamily = fontFamily,
+                fontSize = iconSizeSp,
+                color = tint,
+                lineHeight = iconSizeSp,
+                lineHeightStyle = LineHeightStyle(
+                    alignment = LineHeightStyle.Alignment.Center,
+                    trim = LineHeightStyle.Trim.Both
+                ),
+                platformStyle = PlatformTextStyle(includeFontPadding = false)
+            )
+        }
+        var inkShiftY by remember(imageVector, textStyle) { mutableStateOf(0f) }
+
         Text(
             text = imageVector.name,
-            style = TextStyle(
-                fontFamily = fontFamily,
-                fontSize = 24.sp,
-                color = tint
-            )
+            style = textStyle,
+            maxLines = 1,
+            softWrap = false,
+            onTextLayout = { result ->
+                if (result.lineCount > 0) {
+                    val fontSizePx = with(density) { iconSizeSp.toPx() }
+                    val emCenter = result.getLineTop(0) + result.getLineBaseline(0) - fontSizePx / 2f
+                    val boxCenter = result.size.height / 2f
+                    val shift = boxCenter - emCenter
+                    if (kotlin.math.abs(shift - inkShiftY) > 0.01f) inkShiftY = shift
+                }
+            },
+            modifier = Modifier.graphicsLayer { translationY = inkShiftY }
         )
     }
 }

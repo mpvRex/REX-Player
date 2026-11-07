@@ -111,7 +111,9 @@ fun RexSettingsRow(
         label = "rex_settings_row_scale"
     )
 
-    val itemPalette = item.palette ?: getIconPalette(item.icon)
+    // Palettes carry light and dark variants; resolve once so the pill follows
+    // the active theme instead of staying on the light pastel in dark mode.
+    val itemPalette = (item.palette ?: getIconPalette(item.icon)).resolved()
     val iconBgColor by animateColorAsState(
         targetValue = if (!item.enabled) MaterialTheme.colorScheme.surfaceContainerHighest else itemPalette.container,
         label = "rex_settings_icon_bg"
