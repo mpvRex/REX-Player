@@ -31,6 +31,7 @@ class CoreMediaScannerTest {
     tempDir = Files.createTempDirectory("core-media-scanner-test").toFile()
     every { browserPreferences.watchedThreshold.get() } returns 95
     every { browserPreferences.includeNoMediaContent.get() } returns false
+    every { browserPreferences.showHiddenFiles.get() } returns false
     every { browserPreferences.flattenFolders.get() } returns true
 
     mockkObject(StorageVolumeUtils)

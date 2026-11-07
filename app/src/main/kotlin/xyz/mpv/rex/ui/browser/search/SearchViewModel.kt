@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.map
 import java.io.File
 
 enum class SearchScope {
@@ -96,6 +98,15 @@ class SearchViewModel(
   private var searchJob: Job? = null
 
   init {
+    viewModelScope.launch {
+      merge(
+        MediaLibraryEvents.changes,
+        browserPreferences.showHiddenFiles.changes().map { Unit },
+        browserPreferences.includeNoMediaContent.changes().map { Unit },
+      ).debounce(150L).collectLatest {
+        executeSearch(searchQuery.value, searchScope.value)
+      }
+    }
     viewModelScope.launch {
       searchQuery
         .debounce(150L)

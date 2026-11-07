@@ -8,5 +8,6 @@ package xyz.mpv.rex.utils.storage
  */
 data class MediaScanPolicy(
   val includeNoMediaContent: Boolean = false,
+  val showHiddenFiles: Boolean = false,
 )
 
