@@ -261,7 +261,7 @@ object RecentlyPlayedScreen : Screen {
           ) {
             FloatingActionButtonMenu(
               modifier = Modifier.padding(
-                bottom = navigationBarHeight + 8.dp
+                bottom = (navigationBarHeight - 4.dp).coerceAtLeast(0.dp)
               ),
               expanded = isFabExpanded.value,
               button = {

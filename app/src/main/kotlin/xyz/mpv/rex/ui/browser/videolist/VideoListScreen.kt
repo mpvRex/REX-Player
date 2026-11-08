@@ -538,7 +538,7 @@ data class VideoListScreen(
             state = rememberTooltipState(),
           ) {
             FloatingActionButtonMenu(
-              modifier = Modifier.padding(bottom = if (miniPlayerState.isPlaybackActive) navigationBarHeight + 8.dp else (navigationBarHeight - 30.dp).coerceAtLeast(0.dp)),
+              modifier = Modifier.padding(bottom = if (miniPlayerState.isPlaybackActive) (navigationBarHeight - 4.dp).coerceAtLeast(0.dp) else (navigationBarHeight - 30.dp).coerceAtLeast(0.dp)),
               expanded = isFabExpanded.value,
               button = {
                 TooltipBox(
