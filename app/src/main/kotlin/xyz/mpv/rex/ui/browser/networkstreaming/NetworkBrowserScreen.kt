@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -155,6 +156,7 @@ data class NetworkBrowserScreen(
         videos = remember { derivedStateOf { filesState.value.filter { !it.isDirectory && FileTypeUtils.isMediaFile(File(it.name)) } } }.value,
         connectionId = connectionId,
         connectionName = connectionName,
+        headerScrollState = topAppBarState,
         isLoading = isLoading && files.isEmpty(),
         uiSettings = uiSettings,
         isRefreshing = isRefreshing,
@@ -204,6 +206,7 @@ private fun NetworkBrowserContent(
   onFolderClick: (NetworkFile) -> Unit,
   onVideoClick: (NetworkFile) -> Unit,
   modifier: Modifier = Modifier,
+  headerScrollState: TopAppBarState? = null,
 ) {
   // Load connection details
   val dao = org.koin.compose.koinInject<NetworkConnectionDao>()
@@ -290,6 +293,7 @@ private fun NetworkBrowserContent(
             isRefreshing = isRefreshing,
             onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize(),
+            headerScrollState = headerScrollState,
           ) {
             Box(modifier = Modifier.fillMaxSize()) {
               LazyColumn(

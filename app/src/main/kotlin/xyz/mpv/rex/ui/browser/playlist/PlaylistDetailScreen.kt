@@ -522,6 +522,7 @@ data class PlaylistDetailScreen(val playlistId: Int) : Screen {
           isRefreshing = isRefreshing,
           enabled = pullToRefreshEnabled,
           modifier = Modifier.fillMaxSize().padding(padding),
+          headerScrollState = topAppBarState,
           onRefresh = {
             val isM3uPlaylist = playlist?.isM3uPlaylist == true
             if (isM3uPlaylist) {

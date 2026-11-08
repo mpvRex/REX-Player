@@ -70,6 +70,7 @@ import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.rememberTooltipState
@@ -873,6 +874,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               recentlyPlayedPaths = recentlyPlayedPaths,
               autoScrollToLastPlayed = autoScrollToLastPlayed,
               navigationBarHeight = navigationBarHeight,
+              headerScrollState = topAppBarState,
               onRefresh = { viewModel.refresh() },
               onFolderClick = { folder ->
                 if (isInSelectionMode) {
@@ -1326,6 +1328,7 @@ private fun FileSystemBrowserContent(
   isInSelectionMode: Boolean = false,
   scrollTriggerKey: Any? = null,
   pinnedPaths: List<String> = emptyList(),
+  headerScrollState: TopAppBarState? = null,
 ) {
   val thumbnailRepository = koinInject<xyz.mpv.rex.domain.thumbnail.ThumbnailRepository>()
   val browserPreferences = koinInject<BrowserPreferences>()
@@ -1413,6 +1416,7 @@ private fun FileSystemBrowserContent(
       emptyMessage = stringResource(R.string.empty_folder_message),
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
+      headerScrollState = headerScrollState,
       isInSelectionMode = isInSelectionMode,
       recentlyPlayedFilePath = recentlyPlayedFilePath,
       recentlyPlayedFilePaths = recentlyPlayedFilePaths,

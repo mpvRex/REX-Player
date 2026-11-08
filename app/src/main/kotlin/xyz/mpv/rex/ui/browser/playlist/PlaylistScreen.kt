@@ -42,6 +42,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.TooltipAnchorPosition
@@ -360,6 +361,7 @@ object PlaylistScreen : Screen {
             gridState = gridState,
             uiSettings = uiSettings,
             isRefreshing = isRefreshing,
+            headerScrollState = topAppBarState,
             onRefresh = { viewModel.refresh() },
             selectionManager = selectionManager,
             onPlaylistClick = { playlistWithCount ->
@@ -485,6 +487,7 @@ object PlaylistScreen : Screen {
     onPlaylistLongClick: (PlaylistWithCount) -> Unit,
     modifier: Modifier = Modifier,
     isInSelectionMode: Boolean = false,
+    headerScrollState: TopAppBarState? = null,
   ) {
     ContentSurfaceContainer(
       navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current,
@@ -502,6 +505,7 @@ object PlaylistScreen : Screen {
         emptyMessage = stringResource(R.string.empty_playlists_desc),
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
+        headerScrollState = headerScrollState,
         isInSelectionMode = isInSelectionMode,
         listState = listState,
         gridState = gridState,

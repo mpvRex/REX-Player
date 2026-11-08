@@ -57,6 +57,7 @@ import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material3.TopAppBarState
 import xyz.mpv.rex.R
 import androidx.compose.foundation.layout.fillMaxHeight
 
@@ -79,6 +80,8 @@ fun <T> UnifiedExplorerContent(
   onThumbClick: ((T) -> Unit)? = null,
   isRefreshing: MutableState<Boolean>? = null,
   onRefresh: (suspend () -> Unit)? = null,
+  /** Collapsing header above this content; a pull refreshes only once it is expanded. */
+  headerScrollState: TopAppBarState? = null,
   isInSelectionMode: Boolean = false,
   recentlyPlayedFilePath: String? = null,
   recentlyPlayedFilePaths: Set<String> = emptySet(),
@@ -957,6 +960,7 @@ fun <T> UnifiedExplorerContent(
           isRefreshing = isRefreshing,
           onRefresh = onRefresh,
           modifier = modifier.fillMaxSize(),
+          headerScrollState = headerScrollState,
           content = contentBlock
         )
       } else {

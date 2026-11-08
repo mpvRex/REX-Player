@@ -304,6 +304,7 @@ object YouScreen : Screen {
             }
           },
           modifier = Modifier.fillMaxSize(),
+          headerScrollState = topAppBarState,
         ) {
           // The sheet paints the card colour; the shelves and the filler sit on
           // top of it, so the empty space under the last shelf still keeps the

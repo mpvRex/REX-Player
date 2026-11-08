@@ -45,6 +45,7 @@ import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.TooltipAnchorPosition
@@ -417,6 +418,7 @@ object RecentlyPlayedScreen : Screen {
             listState = listState,
             gridState = gridState,
             isRefreshing = isRefreshing,
+            headerScrollState = topAppBarState,
             onRefresh = { viewModel.refresh() }
           )
         }
@@ -493,6 +495,7 @@ private fun RecentItemsContent(
   gridState: LazyGridState,
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   onRefresh: suspend () -> Unit,
+  headerScrollState: TopAppBarState? = null,
 ) {
   val coroutineScope = rememberCoroutineScope()
 
@@ -521,6 +524,7 @@ private fun RecentItemsContent(
       emptyMessage = stringResource(R.string.no_recently_played_items_message),
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
+      headerScrollState = headerScrollState,
       isInSelectionMode = isInSelectionMode,
       listState = listState,
       gridState = gridState,

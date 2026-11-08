@@ -59,6 +59,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.SearchBar
@@ -735,6 +736,7 @@ object FolderListScreen : Screen {
               },
               scrollTriggerKey = "${folderSortType.name}:${folderSortOrder.name}",
               pinnedPaths = pinnedPaths,
+              headerScrollState = topAppBarState,
             )
           }
 
@@ -965,6 +967,7 @@ private fun FolderListContent(
   onFolderLongClick: (VideoFolder) -> Unit,
   scrollTriggerKey: Any? = null,
   pinnedPaths: List<String> = emptyList(),
+  headerScrollState: TopAppBarState? = null,
 ) {
   val showLoading = isLoading && !hasCompletedInitialLoad
 
@@ -981,6 +984,7 @@ private fun FolderListContent(
       emptyMessage = stringResource(R.string.no_video_folders_found_desc),
       isRefreshing = isRefreshing,
       onRefresh = onRefresh,
+      headerScrollState = headerScrollState,
       isInSelectionMode = selectionManager.isInSelectionMode,
       recentlyPlayedFilePath = recentlyPlayedFilePath,
       recentlyPlayedFilePaths = recentlyPlayedFilePaths,

@@ -562,6 +562,7 @@ fun MediaLibraryContent() {
         sortOrder = videoSortOrder,
         searchQuery = if (isSearching) searchQuery else null,
         pinnedPaths = mediaPins,
+        headerScrollState = topAppBarState,
       )
 
       AnimatedVisibility(
