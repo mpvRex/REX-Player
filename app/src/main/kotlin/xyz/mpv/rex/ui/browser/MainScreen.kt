@@ -548,7 +548,8 @@ object MainScreen : Screen {
           val totalBottomPadding = navBarHeight + miniPlayerHeight
           
           CompositionLocalProvider(
-            LocalNavigationBarHeight provides totalBottomPadding
+            LocalNavigationBarHeight provides totalBottomPadding,
+            LocalBottomBarPresent provides isNavBarVisible,
           ) {
             if (targetTab in visibleTabs.indices) {
               visibleTabs[targetTab].content()
@@ -574,6 +575,9 @@ object MainScreen : Screen {
 
 // CompositionLocal for navigation bar height
 val LocalNavigationBarHeight = compositionLocalOf { 0.dp }
+
+// CompositionLocal for bottom navigation bar visibility
+val LocalBottomBarPresent = compositionLocalOf { false }
 
 private data class VisibleTab(
   val id: String,

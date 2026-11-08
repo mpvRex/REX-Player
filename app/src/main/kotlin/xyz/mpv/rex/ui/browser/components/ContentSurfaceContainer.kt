@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import xyz.mpv.rex.ui.browser.LocalBottomBarPresent
 
 /**
  * The content surface: the constant rounded sheet that browser screens paint
@@ -22,15 +23,22 @@ import androidx.compose.ui.unit.dp
  * end up with different corner radii and different gaps between the sheet and
  * the screen's sides.
  *
- * @param navigationBarHeight bottom inset of the device; the sheet stops above
- *   the navigation bar with a 14.dp gap.
+ * When the bottom navigation bar is present, the sheet docks flush against the
+ * top edge of the navigation bar with a 0.dp gap so the bar does not appear
+ * oversized. When the bottom navigation bar is not present, a 14.dp gap is
+ * applied above the device's bottom inset.
+ *
+ * @param navigationBarHeight bottom inset of the device.
+ * @param hasBottomBar whether a bottom navigation bar is currently present.
  */
 @Composable
 fun ContentSurfaceContainer(
   navigationBarHeight: Dp,
   modifier: Modifier = Modifier,
+  hasBottomBar: Boolean = LocalBottomBarPresent.current || navigationBarHeight >= 64.dp,
   content: @Composable () -> Unit,
 ) {
+  val bottomGap = if (hasBottomBar) 0.dp else 14.dp
   Box(
     modifier = Modifier
       .fillMaxSize()
@@ -39,7 +47,7 @@ fun ContentSurfaceContainer(
         start = 8.dp,
         end = 8.dp,
         top = 2.dp,
-        bottom = navigationBarHeight + 14.dp,
+        bottom = navigationBarHeight + bottomGap,
       )
       .clip(RoundedCornerShape(24.dp)),
   ) {
@@ -62,8 +70,10 @@ fun ContentSurfaceContainer(
 fun SectionedContentSurfaceContainer(
   navigationBarHeight: Dp,
   modifier: Modifier = Modifier,
+  hasBottomBar: Boolean = LocalBottomBarPresent.current || navigationBarHeight >= 64.dp,
   content: @Composable () -> Unit,
 ) {
+  val bottomGap = if (hasBottomBar) 0.dp else 14.dp
   Box(
     modifier = Modifier
       .fillMaxSize()
@@ -72,7 +82,7 @@ fun SectionedContentSurfaceContainer(
         start = 8.dp,
         end = 8.dp,
         top = 2.dp,
-        bottom = navigationBarHeight + 14.dp,
+        bottom = navigationBarHeight + bottomGap,
       ),
   ) {
     content()

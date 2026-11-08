@@ -54,6 +54,7 @@ import xyz.mpv.rex.utils.permission.PermissionUtils
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
+import xyz.mpv.rex.ui.browser.LocalBottomBarPresent
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.welcome.WelcomeScreen
 import androidx.compose.foundation.layout.Box
@@ -237,7 +238,8 @@ class MainActivity : ComponentActivity() {
     CompositionLocalProvider(
       LocalBackStack provides typedBackstack,
       LocalUpdateViewModel provides updateViewModel,
-      LocalNavigationBarHeight provides totalNavigationBarHeight
+      LocalNavigationBarHeight provides totalNavigationBarHeight,
+      LocalBottomBarPresent provides (isMainScreen && !hideNavigationBar),
     ) {
       Box(modifier = Modifier.fillMaxSize()) {
         NavDisplay(
