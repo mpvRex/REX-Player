@@ -13,12 +13,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideIn
-import androidx.compose.animation.slideOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
@@ -29,15 +23,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import xyz.mpv.rex.ui.motion.LocalContainerTransformRegistry
+import xyz.mpv.rex.ui.motion.LocalWindowHeight
+import xyz.mpv.rex.ui.motion.RexMotion
+import xyz.mpv.rex.ui.motion.rememberContainerTransformRegistry
+import xyz.mpv.rex.ui.motion.rememberWindowHeightPx
 import xyz.mpv.rex.preferences.AppearancePreferences
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.Screen
@@ -73,6 +70,15 @@ import org.koin.android.ext.android.inject
 import androidx.compose.runtime.staticCompositionLocalOf
 
 val LocalUpdateViewModel = staticCompositionLocalOf<UpdateViewModel?> { null }
+
+/**
+ * `contentKey` of the top entry in a `NavDisplay` scene, i.e. the id of the card the user
+ * tapped. Returns null when the entry is not a container-transform source (its contentKey
+ * is the `"root"` placeholder) or when the scene has no entries.
+ */
+private fun sourceIdOf(scene: androidx.navigation3.scene.Scene<*>): String? =
+  (scene.entries.lastOrNull()?.contentKey as? String)?.takeIf { it != "root" }
+
 
 /**
  * Main entry point for the application
@@ -235,51 +241,42 @@ class MainActivity : ComponentActivity() {
     }
 
     // Provide shared states to all screens
+    val containerTransformRegistry = rememberContainerTransformRegistry()
+    val windowHeightPx = rememberWindowHeightPx()
     CompositionLocalProvider(
       LocalBackStack provides typedBackstack,
       LocalUpdateViewModel provides updateViewModel,
       LocalNavigationBarHeight provides totalNavigationBarHeight,
       LocalBottomBarPresent provides (isMainScreen && !hideNavigationBar),
+      LocalContainerTransformRegistry provides containerTransformRegistry,
+      LocalWindowHeight provides windowHeightPx,
     ) {
       Box(modifier = Modifier.fillMaxSize()) {
         NavDisplay(
           backStack = typedBackstack,
           onBack = { typedBackstack.navigateBack() },
-          entryProvider = { route -> NavEntry(route) { route.Content() } },
+          entryProvider = { route ->
+            // contentKey carries the tapped card's id so the transition below can find its
+            // bounds. See docs/ui-design/ANIMATION_STAGES.md.
+            // NavEntry's contentKey is non-null; "root" marks "no transform source".
+            NavEntry(route, contentKey = route.transformSourceId ?: "root") { route.Content() }
+          },
           popTransitionSpec = {
-            (
-              fadeIn(animationSpec = tween(220)) +
-                slideIn(animationSpec = tween(220)) { IntOffset(-it.width / 2, 0) }
-            ) togetherWith (
-                fadeOut(animationSpec = tween(220)) +
-                  slideOut(animationSpec = tween(220)) { IntOffset(it.width / 2, 0) }
-            )
+            val source = containerTransformRegistry.find(sourceIdOf(initialState))
+            RexMotion.navTransition(context, forward = false, source = source)
+              .let { (enter, exit) -> enter togetherWith exit }
           },
           transitionSpec = {
-            (
-              fadeIn(animationSpec = tween(220)) +
-                slideIn(animationSpec = tween(220)) { IntOffset(it.width / 2, 0) }
-            ) togetherWith (
-                fadeOut(animationSpec = tween(220)) +
-                  slideOut(animationSpec = tween(220)) { IntOffset(-it.width / 2, 0) }
-            )
+            val source = containerTransformRegistry.find(sourceIdOf(targetState))
+            RexMotion.navTransition(context, forward = true, source = source)
+              .let { (enter, exit) -> enter togetherWith exit }
           },
-          predictivePopTransitionSpec = {
-            (
-              fadeIn(animationSpec = tween(220)) +
-                scaleIn(
-                  animationSpec = tween(220, delayMillis = 30),
-                  initialScale = .9f,
-                  TransformOrigin(-1f, .5f),
-                )
-            ) togetherWith (
-                fadeOut(animationSpec = tween(220)) +
-                  scaleOut(
-                    animationSpec = tween(220, delayMillis = 30),
-                    targetScale = .9f,
-                    TransformOrigin(-1f, .5f),
-                  )
-            )
+          predictivePopTransitionSpec = { _ ->
+            // Navigation 3 drives the gesture itself; this only decides the shape the departing
+            // screen collapses into. See RexMotion.predictiveBackTransition.
+            val source = containerTransformRegistry.find(sourceIdOf(initialState))
+            RexMotion.predictiveBackTransition(context, source = source)
+              .let { (enter, exit) -> enter togetherWith exit }
           },
         )
 

@@ -177,14 +177,8 @@ private fun VideoSettingsSideSheet(
   ) {
     AnimatedVisibility(
       visible = isVisible,
-      enter = slideInHorizontally(
-        initialOffsetX = { fullWidth -> fullWidth },
-        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
-      ) + fadeIn(animationSpec = tween(durationMillis = 200)),
-      exit = slideOutHorizontally(
-        targetOffsetX = { fullWidth -> fullWidth },
-        animationSpec = tween(durationMillis = 250, easing = FastOutLinearInEasing),
-      ) + fadeOut(animationSpec = tween(durationMillis = 200)),
+      enter = xyz.mpv.rex.ui.motion.RexMotion.panelEnter(fromEnd = true),
+      exit = xyz.mpv.rex.ui.motion.RexMotion.panelExit(fromEnd = true),
     ) {
       Surface(
         modifier = modifier

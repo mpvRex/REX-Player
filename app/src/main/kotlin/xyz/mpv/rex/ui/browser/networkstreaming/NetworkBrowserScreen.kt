@@ -76,6 +76,14 @@ data class NetworkBrowserScreen(
   val connectionName: String,
   val currentPath: String = "/",
 ) : Screen {
+  override val transformSourceId: String
+    get() = "$TRANSFORM_PREFIX:$connectionId:$currentPath"
+
+  companion object {
+    /** Must match the prefix the network browser passes to `UnifiedExplorerContent`. */
+    const val TRANSFORM_PREFIX = "network"
+  }
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
@@ -155,6 +163,7 @@ data class NetworkBrowserScreen(
         folders = remember { derivedStateOf { filesState.value.filter { it.isDirectory } } }.value,
         videos = remember { derivedStateOf { filesState.value.filter { !it.isDirectory && FileTypeUtils.isMediaFile(File(it.name)) } } }.value,
         connectionId = connectionId,
+        currentPath = currentPath,
         connectionName = connectionName,
         headerScrollState = topAppBarState,
         isLoading = isLoading && files.isEmpty(),
@@ -197,6 +206,7 @@ private fun NetworkBrowserContent(
   folders: List<NetworkFile>,
   videos: List<NetworkFile>,
   connectionId: Long,
+  currentPath: String,
   connectionName: String,
   isLoading: Boolean,
   uiSettings: UiSettings,
@@ -323,6 +333,10 @@ private fun NetworkBrowserContent(
                       modifier = Modifier,
                       // Connected-list rows take the sheet's inner radius.
                       shape = RoundedCornerShape(2.dp),
+                      // Must match NetworkBrowserScreen.transformSourceId.
+                      transformSourceId = "${
+                        NetworkBrowserScreen.TRANSFORM_PREFIX
+                      }:$connectionId:$currentPath:${folder.path}",
                     )
                   }
                 }

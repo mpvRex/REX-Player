@@ -66,6 +66,8 @@ import sh.calvin.reorderable.rememberReorderableLazyGridState
 data class ControlLayoutEditorScreen(
   val region: ControlRegion,
 ) : Screen {
+  override val transformSourceId: String
+    get() = "settings:ControlLayoutEditorScreen:${region.name}"
   @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
   @Composable
   override fun Content() {

@@ -44,6 +44,9 @@ import kotlin.math.roundToInt
 
 @Serializable
 object PlayerPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:PlayerPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

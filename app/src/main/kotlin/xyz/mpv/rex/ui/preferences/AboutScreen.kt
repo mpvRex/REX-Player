@@ -82,6 +82,9 @@ import androidx.compose.material3.CircularProgressIndicator
 
 @Serializable
 object AboutScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:AboutScreen"
+
   @Suppress("DEPRECATION")
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
@@ -423,6 +426,9 @@ object AboutScreen : Screen {
 @Suppress("DEPRECATION")
 @Serializable
 object LibrariesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:LibrariesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

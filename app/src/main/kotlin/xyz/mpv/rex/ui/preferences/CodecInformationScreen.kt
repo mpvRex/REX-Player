@@ -156,6 +156,9 @@ enum class CodecFilter {
 
 @Serializable
 object CodecInformationScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:CodecInformationScreen"
+
   @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
   @Composable
   override fun Content() {

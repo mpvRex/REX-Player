@@ -51,6 +51,9 @@ import xyz.mpv.rex.ui.utils.navigateBack
 
 @Serializable
 object PreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:PreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
@@ -128,6 +131,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_appearance_title)) },
                   description = { Text(stringResource(id = R.string.pref_appearance_summary)) },
                   showChevron = true,
+                  transformSourceId = AppearancePreferencesScreen.transformSourceId,
                   onClick = { backstack.add(AppearancePreferencesScreen) }
                 )
               )
@@ -147,6 +151,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_player)) },
                   description = { Text(stringResource(id = R.string.pref_player_summary)) },
                   showChevron = true,
+                  transformSourceId = PlayerPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(PlayerPreferencesScreen) }
                 ),
                 RexSettingsItem(
@@ -155,6 +160,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_layout_title)) },
                   description = { Text(stringResource(id = R.string.pref_layout_summary)) },
                   showChevron = true,
+                  transformSourceId = PlayerControlsPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(PlayerControlsPreferencesScreen) }
                 ),
                 RexSettingsItem(
@@ -163,6 +169,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_gesture)) },
                   description = { Text(stringResource(id = R.string.pref_gesture_summary)) },
                   showChevron = true,
+                  transformSourceId = GesturePreferencesScreen.transformSourceId,
                   onClick = { backstack.add(GesturePreferencesScreen) }
                 )
               )
@@ -182,6 +189,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(R.string.pref_media_library_title)) },
                   description = { Text(stringResource(R.string.pref_media_library_summary)) },
                   showChevron = true,
+                  transformSourceId = MediaLibraryPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(MediaLibraryPreferencesScreen) }
                 )
               )
@@ -201,6 +209,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_decoder)) },
                   description = { Text(stringResource(id = R.string.pref_decoder_summary)) },
                   showChevron = true,
+                  transformSourceId = DecoderPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(DecoderPreferencesScreen) }
                 ),
                 RexSettingsItem(
@@ -209,6 +218,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_subtitles)) },
                   description = { Text(stringResource(id = R.string.pref_subtitles_summary)) },
                   showChevron = true,
+                  transformSourceId = SubtitlesPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(SubtitlesPreferencesScreen) }
                 ),
                 RexSettingsItem(
@@ -217,6 +227,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_audio)) },
                   description = { Text(stringResource(id = R.string.pref_audio_summary)) },
                   showChevron = true,
+                  transformSourceId = AudioPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(AudioPreferencesScreen) }
                 )
               )
@@ -236,6 +247,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(R.string.pref_category_rexshorts_settings)) },
                   description = { Text(stringResource(R.string.pref_category_rexshorts_settings_desc)) },
                   showChevron = true,
+                  transformSourceId = ShortsPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(ShortsPreferencesScreen) }
                 )
               )
@@ -255,6 +267,7 @@ object PreferencesScreen : Screen {
                   title = { Text("Jellyfin") },
                   description = { Text("External player sync") },
                   showChevron = true,
+                  transformSourceId = xyz.mpv.rex.jellyfin.ui.JellyfinSettingsScreen.transformSourceId,
                   onClick = { backstack.add(xyz.mpv.rex.jellyfin.ui.JellyfinSettingsScreen) }
                 ),
                 RexSettingsItem(
@@ -263,6 +276,7 @@ object PreferencesScreen : Screen {
                   title = { Text("yt-dlp") },
                   description = { Text("Manage REX Ytdlp & extractor preferences") },
                   showChevron = true,
+                  transformSourceId = YtdlSettingsScreen.transformSourceId,
                   onClick = { backstack.add(YtdlSettingsScreen) }
                 )
               )
@@ -282,6 +296,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(R.string.pref_advanced)) },
                   description = { Text(stringResource(id = R.string.pref_advanced_summary)) },
                   showChevron = true,
+                  transformSourceId = AdvancedPreferencesScreen.transformSourceId,
                   onClick = { backstack.add(AdvancedPreferencesScreen) }
                 ),
                 RexSettingsItem(
@@ -290,6 +305,7 @@ object PreferencesScreen : Screen {
                   title = { Text(stringResource(id = R.string.pref_about_title)) },
                   description = { Text(stringResource(id = R.string.pref_about_summary)) },
                   showChevron = true,
+                  transformSourceId = AboutScreen.transformSourceId,
                   onClick = { backstack.add(AboutScreen) }
                 )
               )

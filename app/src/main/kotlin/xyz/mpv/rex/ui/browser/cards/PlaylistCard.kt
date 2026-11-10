@@ -67,6 +67,7 @@ fun PlaylistCard(
   thumbnailSize: Dp = 128.dp,
   thumbnailAspectRatio: Float = 16f / 9f,
   shape: Shape? = null,
+  transformSourceId: String? = null,
 ) {
   val maxLines = if (uiSettings.unlimitedNameLines) Int.MAX_VALUE else 2
 
@@ -219,6 +220,7 @@ fun PlaylistCard(
     gridColumns = gridColumns,
     maxTitleLines = maxLines,
     shape = shape,
+    transformSourceId = transformSourceId,
     overlayContent = {
       // Center Playlist Icon over the video thumbnail (exact same size as fallback, no circular shape)
       if (thumbnail != null) {

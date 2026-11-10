@@ -104,6 +104,10 @@ fun <T> UnifiedExplorerContent(
   /** List and section branches keep the scaffold-coloured 3.dp gaps
     *  instead of the white-sheet backplate (media view & tree view opt in). */
   keepListGaps: Boolean = false,
+  /** Prefix for container-transform source ids. Folder cards register as `"$prefix:bucketId"`. */
+  transformSourcePrefix: String? = null,
+  /** Registers playlist rows as container-transform sources under this prefix. */
+  playlistTransformSourcePrefix: String? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val gesturePreferences = koinInject<GesturePreferences>()
@@ -439,6 +443,8 @@ fun <T> UnifiedExplorerContent(
                         }
 
                         ExplorerItemCard(
+                          transformSourcePrefix = transformSourcePrefix,
+                          playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                           item = item,
                           isSelected = isSelected(item),
                           showSubtitleIndicator = showSubtitleIndicator,
@@ -493,6 +499,8 @@ fun <T> UnifiedExplorerContent(
                   } else null
 
                   ExplorerItemCard(
+                    transformSourcePrefix = transformSourcePrefix,
+                    playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                     item = item,
                     isSelected = isSelected(item),
                     showSubtitleIndicator = showSubtitleIndicator,
@@ -558,6 +566,8 @@ fun <T> UnifiedExplorerContent(
                         }
 
                         ExplorerItemCard(
+                          transformSourcePrefix = transformSourcePrefix,
+                          playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                           item = item,
                           isSelected = isSelected(item),
                           showSubtitleIndicator = showSubtitleIndicator,
@@ -612,6 +622,8 @@ fun <T> UnifiedExplorerContent(
                   } else null
 
                   ExplorerItemCard(
+                    transformSourcePrefix = transformSourcePrefix,
+                    playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                     item = item,
                     isSelected = isSelected(item),
                     showSubtitleIndicator = showSubtitleIndicator,
@@ -689,6 +701,8 @@ fun <T> UnifiedExplorerContent(
                 }
 
                 ExplorerItemCard(
+                  transformSourcePrefix = transformSourcePrefix,
+                  playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                   item = item,
                   isSelected = isSelected(item),
                   showSubtitleIndicator = showSubtitleIndicator,
@@ -749,6 +763,8 @@ fun <T> UnifiedExplorerContent(
                           },
                       ) {
                         ExplorerItemCard(
+                          transformSourcePrefix = transformSourcePrefix,
+                          playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                           item = item,
                           isSelected = isSelected(item),
                           showSubtitleIndicator = showSubtitleIndicator,
@@ -857,6 +873,8 @@ fun <T> UnifiedExplorerContent(
                   ) {
                     Box(modifier = Modifier.weight(1f)) {
                       ExplorerItemCard(
+                        transformSourcePrefix = transformSourcePrefix,
+                        playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                         item = item,
                         isSelected = isSelected(item),
                         showSubtitleIndicator = showSubtitleIndicator,
@@ -895,6 +913,8 @@ fun <T> UnifiedExplorerContent(
               } else {
                 Box(modifier = measureCard) {
                   ExplorerItemCard(
+                    transformSourcePrefix = transformSourcePrefix,
+                    playlistTransformSourcePrefix = playlistTransformSourcePrefix,
                     item = item,
                     isSelected = isSelected(item),
                     showSubtitleIndicator = showSubtitleIndicator,
@@ -1016,6 +1036,9 @@ private fun ContentSurfaceFiller(heightPx: Int) {
 @Composable
 private fun <T> ExplorerItemCard(
   item: T,
+  transformSourcePrefix: String? = null,
+  /** Registers playlist rows as container-transform sources under this prefix. */
+  playlistTransformSourcePrefix: String? = null,
   isSelected: Boolean,
   showSubtitleIndicator: Boolean,
   isGridMode: Boolean,
@@ -1069,6 +1092,7 @@ private fun <T> ExplorerItemCard(
         newVideoCount = item.newCount,
         isPinned = isPinned,
         shape = shape,
+        transformSourceId = transformSourcePrefix?.let { p -> "$p:${item.bucketId}" },
       )
     }
     is Video -> {
@@ -1119,6 +1143,7 @@ private fun <T> ExplorerItemCard(
       PlaylistCard(
         playlist = item.playlist,
         itemCount = item.itemCount,
+        transformSourceId = playlistTransformSourcePrefix?.let { p -> "$p:${item.playlist.id}" },
         uiSettings = uiSettings,
         isSelected = isSelected,
         onClick = onClick,
@@ -1153,6 +1178,7 @@ private fun <T> ExplorerItemCard(
       PlaylistCard(
         playlist = item.playlist,
         itemCount = item.videoCount,
+        transformSourceId = playlistTransformSourcePrefix?.let { p -> "$p:${item.playlist.id}" },
         uiSettings = uiSettings,
         isSelected = isSelected,
         onClick = onClick,
@@ -1205,6 +1231,7 @@ private fun <T> ExplorerItemCard(
         newVideoCount = item.newCount,
         isPinned = isPinned,
         shape = shape,
+        transformSourceId = transformSourcePrefix?.let { p -> "$p:${folderModel.bucketId}" },
       )
     }
     is FileSystemItem.VideoFile -> {

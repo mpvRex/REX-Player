@@ -63,6 +63,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 object SettingsSearchScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:SettingsSearchScreen"
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {

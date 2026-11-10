@@ -71,6 +71,9 @@ import org.koin.compose.koinInject
 
 @Serializable
 object LibraryRootsPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:LibraryRootsPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

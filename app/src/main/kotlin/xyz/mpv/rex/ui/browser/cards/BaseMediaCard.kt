@@ -44,6 +44,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.ui.theme.pillShape
+import xyz.mpv.rex.ui.motion.transformSource
 import xyz.mpv.rex.R
 
 /**
@@ -121,6 +122,7 @@ fun BaseMediaCard(
     chipsContent: @Composable (FlowRowScope.() -> Unit)? = null,
     overlayContent: @Composable (BoxScope.() -> Unit)? = null,
     shape: Shape? = null,
+    transformSourceId: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -167,6 +169,9 @@ fun BaseMediaCard(
                 else if (shape != null) Modifier
                 else Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
             )
+            // Registered before the scale/clip layers so the bounds are the card's rest
+            // geometry, not the pressed-down one. See ui/motion/ContainerTransform.kt.
+            .transformSource(transformSourceId)
             .graphicsLayer {
                 scaleX = cardScale
                 scaleY = cardScale

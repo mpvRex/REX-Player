@@ -157,6 +157,7 @@ import kotlinx.serialization.Serializable
 
 import org.koin.compose.koinInject
 import java.io.File
+import xyz.mpv.rex.ui.motion.RexMotion
 
 @Serializable
 object FolderListScreen : Screen {
@@ -772,14 +773,8 @@ object FolderListScreen : Screen {
       Box(modifier = Modifier.fillMaxSize()) {
         AnimatedVisibility(
           visible = selectionManager.isInSelectionMode,
-          enter = slideInVertically(
-            animationSpec = tween(durationMillis = 200),
-            initialOffsetY = { fullHeight -> fullHeight },
-          ),
-          exit = slideOutVertically(
-            animationSpec = tween(durationMillis = 200),
-            targetOffsetY = { fullHeight -> fullHeight },
-          ),
+          enter = RexMotion.dockEnter(),
+          exit = RexMotion.dockExit(),
           modifier = Modifier.align(Alignment.BottomCenter),
         ) {
           BrowserBottomBar(
@@ -997,6 +992,8 @@ private fun FolderListContent(
       gridColumns = folderGridColumns,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
+      // Folder rows expand into VideoListScreen; ids match its transformSourceId.
+      transformSourcePrefix = xyz.mpv.rex.ui.browser.videolist.VideoListScreen.FOLDER_TRANSFORM_PREFIX,
     )
   }
 }

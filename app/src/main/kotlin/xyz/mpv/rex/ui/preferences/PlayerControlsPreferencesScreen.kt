@@ -83,6 +83,9 @@ enum class ControlRegion {
 
 @Serializable
 object PlayerControlsPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:PlayerControlsPreferencesScreen"
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {

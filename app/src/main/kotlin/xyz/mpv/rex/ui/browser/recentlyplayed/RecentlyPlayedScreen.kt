@@ -529,6 +529,8 @@ private fun RecentItemsContent(
       listState = listState,
       gridState = gridState,
       useContentSurface = true,
+      // Playlist rows expand into PlaylistDetailScreen; video rows play in place.
+      playlistTransformSourcePrefix = PlaylistDetailScreen.TRANSFORM_PREFIX,
     )
   }
 }

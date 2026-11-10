@@ -510,6 +510,8 @@ object PlaylistScreen : Screen {
         listState = listState,
         gridState = gridState,
         useContentSurface = true,
+        // Playlist rows expand into PlaylistDetailScreen.
+        playlistTransformSourcePrefix = PlaylistDetailScreen.TRANSFORM_PREFIX,
       )
     }
   }

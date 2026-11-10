@@ -89,6 +89,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
+import xyz.mpv.rex.ui.motion.RexMotion
 
 @Serializable
 object MainScreen : Screen {
@@ -381,14 +382,9 @@ object MainScreen : Screen {
         
         AnimatedVisibility(
             visible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1,
-            enter = slideInVertically(
-              animationSpec = tween(durationMillis = 300),
-              initialOffsetY = { fullHeight -> fullHeight }
-            ),
-            exit = slideOutVertically(
-              animationSpec = tween(durationMillis = 300),
-              targetOffsetY = { fullHeight -> fullHeight }
-            )
+            // Dock expand: the navigation bar grows out of the bottom edge it is anchored to.
+            enter = RexMotion.dockEnter(),
+            exit = RexMotion.dockExit()
           ) {
             val navBarBottomInset = NavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
             NavigationBar(

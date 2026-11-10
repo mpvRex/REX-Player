@@ -91,6 +91,9 @@ import org.koin.compose.koinInject
 
 @Serializable
 object SubtitlesPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:SubtitlesPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

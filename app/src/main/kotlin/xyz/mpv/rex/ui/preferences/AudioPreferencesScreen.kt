@@ -44,6 +44,9 @@ import org.koin.compose.koinInject
 
 @Serializable
 object AudioPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:AudioPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

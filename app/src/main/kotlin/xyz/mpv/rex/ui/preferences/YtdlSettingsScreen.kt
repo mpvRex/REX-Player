@@ -90,6 +90,9 @@ import xyz.mpv.rex.ui.utils.navigateBack
 
 @Serializable
 object YtdlSettingsScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:YtdlSettingsScreen"
+
     private const val ADDON_GITHUB_RELEASES_URL = "https://github.com/mpvRex/REX-Ytdlp/releases"
 
     @OptIn(ExperimentalMaterial3Api::class)

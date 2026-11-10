@@ -114,6 +114,7 @@ import xyz.mpv.rex.utils.media.OpenDocumentTreeContract
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.io.File
+import xyz.mpv.rex.ui.motion.RexMotion
 
 @Serializable
 data class SearchScreen(
@@ -619,20 +620,16 @@ data class SearchScreen(
           videoPlaybackProgress = videoFilesWithPlayback,
           showSections = true,
           useContentSurface = true,
+          // Folder rows expand into FileSystemDirectoryScreen.
+          transformSourcePrefix = FileSystemDirectoryScreen.TRANSFORM_PREFIX,
         )
 
         Box(modifier = Modifier.fillMaxSize()) {
           // Floating Bottom Bar for multi-selection actions
           AnimatedVisibility(
             visible = showFloatingBottomBar,
-            enter = slideInVertically(
-              animationSpec = tween(durationMillis = 200),
-              initialOffsetY = { fullHeight -> fullHeight }
-            ),
-            exit = slideOutVertically(
-              animationSpec = tween(durationMillis = 200),
-              targetOffsetY = { fullHeight -> fullHeight }
-            ),
+            enter = RexMotion.dockEnter(),
+          exit = RexMotion.dockExit(),
             modifier = Modifier.align(Alignment.BottomCenter)
           ) {
             BrowserBottomBar(

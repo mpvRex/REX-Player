@@ -24,6 +24,7 @@ fun NetworkFolderCard(
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
   shape: Shape? = null,
+  transformSourceId: String? = null,
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
@@ -46,5 +47,6 @@ fun NetworkFolderCard(
     isSelected = isSelected,
     maxTitleLines = maxLines,
     shape = shape,
+    transformSourceId = transformSourceId,
   )
 }

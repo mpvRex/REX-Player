@@ -135,6 +135,9 @@ data class CustomButtonSlots(
 
 @Serializable
 object CustomButtonScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:CustomButtonScreen"
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {

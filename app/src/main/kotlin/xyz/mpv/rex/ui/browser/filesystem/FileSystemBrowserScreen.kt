@@ -151,6 +151,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import xyz.mpv.rex.ui.browser.components.FastScrollbar
 import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.AppearancePreferences
+import xyz.mpv.rex.ui.motion.RexMotion
 
 /**
  * Root File System Browser screen - shows storage volumes
@@ -171,6 +172,14 @@ object FileSystemBrowserRootScreen : xyz.mpv.rex.presentation.Screen {
 data class FileSystemDirectoryScreen(
   val path: String,
 ) : xyz.mpv.rex.presentation.Screen {
+  override val transformSourceId: String
+    get() = "$TRANSFORM_PREFIX:$path"
+
+  companion object {
+    /** Must match the prefix the file-system browser passes to `UnifiedExplorerContent`. */
+    const val TRANSFORM_PREFIX = "fs"
+  }
+
   @OptIn(ExperimentalPermissionsApi::class)
   @Composable
   override fun Content() {
@@ -926,14 +935,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
     // Play Store gating is intentionally bypassed here.
     AnimatedVisibility(
       visible = showFloatingBottomBar,
-      enter = slideInVertically(
-        animationSpec = tween(durationMillis = animationDuration),
-        initialOffsetY = { fullHeight -> fullHeight }
-      ),
-      exit = slideOutVertically(
-        animationSpec = tween(durationMillis = animationDuration),
-        targetOffsetY = { fullHeight -> fullHeight }
-      ),
+      enter = RexMotion.dockEnter(),
+          exit = RexMotion.dockExit(),
       modifier = Modifier.align(Alignment.BottomCenter)
     ) {
       BrowserBottomBar(
@@ -1430,6 +1433,8 @@ private fun FileSystemBrowserContent(
       showSections = true,
       pinnedPaths = pinnedPaths,
       useContentSurface = true,
+      // Folder rows expand into FileSystemDirectoryScreen.
+      transformSourcePrefix = FileSystemDirectoryScreen.TRANSFORM_PREFIX,
     )
     }
   }

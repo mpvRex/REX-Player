@@ -60,6 +60,9 @@ import kotlin.math.roundToInt
 
 @Serializable
 object MediaLibraryPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:MediaLibraryPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

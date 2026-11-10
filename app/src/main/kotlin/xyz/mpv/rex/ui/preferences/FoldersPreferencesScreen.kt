@@ -70,6 +70,9 @@ import org.koin.compose.koinInject
 
 @Serializable
 object FoldersPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:FoldersPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

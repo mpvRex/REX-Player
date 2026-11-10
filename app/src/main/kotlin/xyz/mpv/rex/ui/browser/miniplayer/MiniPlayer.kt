@@ -100,6 +100,7 @@ import xyz.mpv.rex.ui.player.RepeatMode
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.utils.media.MediaFormatter
 import kotlin.math.roundToInt
+import xyz.mpv.rex.ui.motion.RexMotion
 
 object MiniPlayerDefaults {
   val CompactHeight = 80.dp
@@ -149,8 +150,10 @@ fun MiniPlayer(
 
   AnimatedVisibility(
     visible = state.isPlaybackActive,
-    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-    exit = slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth }) + fadeOut(),
+    // Docked to the bottom edge: grow and shrink on the same axis so the bar reads as attached
+    // to the dock instead of flying in from below and leaving sideways.
+    enter = RexMotion.dockEnter(dockedToBottom = true),
+    exit = RexMotion.dockExit(dockedToBottom = true),
     modifier = modifier,
   ) {
     val animatedHeight = lerp(MiniPlayerDefaults.CompactHeight, MiniPlayerDefaults.ExpandedHeight, fraction)

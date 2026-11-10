@@ -70,6 +70,9 @@ import androidx.compose.material3.TextButton
 
 @Serializable
 object AppearancePreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:AppearancePreferencesScreen"
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {

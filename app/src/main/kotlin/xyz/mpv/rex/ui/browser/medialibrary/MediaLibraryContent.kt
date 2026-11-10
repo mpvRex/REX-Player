@@ -111,6 +111,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import xyz.mpv.rex.preferences.AppearancePreferences
+import xyz.mpv.rex.ui.motion.RexMotion
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -567,14 +568,8 @@ fun MediaLibraryContent() {
 
       AnimatedVisibility(
         visible = showFloatingBottomBar,
-        enter = slideInVertically(
-          animationSpec = tween(durationMillis = animationDuration),
-          initialOffsetY = { fullHeight -> fullHeight }
-        ),
-        exit = slideOutVertically(
-          animationSpec = tween(durationMillis = animationDuration),
-          targetOffsetY = { fullHeight -> fullHeight }
-        ),
+        enter = RexMotion.dockEnter(),
+          exit = RexMotion.dockExit(),
         modifier = Modifier.align(Alignment.BottomCenter)
       ) {
         BrowserBottomBar(

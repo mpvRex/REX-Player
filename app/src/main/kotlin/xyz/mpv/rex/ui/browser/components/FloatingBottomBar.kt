@@ -48,6 +48,7 @@ import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.theme.pillShape
 import xyz.mpv.rex.ui.utils.LocalBackStack
+import xyz.mpv.rex.ui.motion.RexMotion
 
 /**
  * Material 3 Floating Button Bar for file/folder operations
@@ -92,30 +93,19 @@ fun BrowserBottomBar(
   AnimatedVisibility(
     visible = isSelectionMode,
     modifier = modifier.padding(bottom = animatedBottomPadding),
-    enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
-      slideInVertically(
-        animationSpec = spring(
-          dampingRatio = Spring.DampingRatioMediumBouncy,
-          stiffness = Spring.StiffnessMediumLow
-        ),
-        initialOffsetY = { it / 2 }
-      ) +
-      scaleIn(
-        animationSpec = spring(
-          dampingRatio = Spring.DampingRatioMediumBouncy,
-          stiffness = Spring.StiffnessMediumLow
-        ),
-        initialScale = 0.85f
+    // Dock expand: no vertical travel, the bar grows out of its docked edge. Scale is kept
+    // small so it still reads as a distinct surface appearing.
+    enter = RexMotion.dockEnter() + scaleIn(
+      animationSpec = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMediumLow
       ),
-    exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium)) +
-      slideOutVertically(
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        targetOffsetY = { it / 2 }
-      ) +
-      scaleOut(
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        targetScale = 0.9f
-      ),
+      initialScale = 0.92f
+    ),
+    exit = RexMotion.dockExit() + scaleOut(
+      animationSpec = spring(stiffness = Spring.StiffnessMedium),
+      targetScale = 0.92f
+    ),
   ) {
     Surface(
       modifier = Modifier

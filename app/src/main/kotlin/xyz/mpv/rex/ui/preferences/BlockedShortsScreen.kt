@@ -47,6 +47,9 @@ import java.io.File
 
 @Serializable
 object BlockedShortsScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:BlockedShortsScreen"
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {

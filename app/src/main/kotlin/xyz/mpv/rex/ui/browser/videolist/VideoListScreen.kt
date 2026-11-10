@@ -146,6 +146,7 @@ import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import java.io.File
 import kotlin.math.roundToInt
+import xyz.mpv.rex.ui.motion.RexMotion
 
 
 @Serializable
@@ -153,6 +154,14 @@ data class VideoListScreen(
   private val bucketId: String,
   private val folderName: String,
 ) : Screen {
+  override val transformSourceId: String
+    get() = "$FOLDER_TRANSFORM_PREFIX:$bucketId"
+
+  companion object {
+    /** Must match `UnifiedExplorerContent.transformSourcePrefix` used by the folder list. */
+    const val FOLDER_TRANSFORM_PREFIX = "folder"
+  }
+
   @OptIn(ExperimentalMaterial3ExpressiveApi::class)
   @Composable
   override fun Content() {
@@ -655,14 +664,8 @@ data class VideoListScreen(
         // Play Store gating is intentionally bypassed here.
         AnimatedVisibility(
           visible = showFloatingBottomBar,
-          enter = slideInVertically(
-            animationSpec = tween(durationMillis = animationDuration),
-            initialOffsetY = { fullHeight -> fullHeight }
-          ),
-          exit = slideOutVertically(
-            animationSpec = tween(durationMillis = animationDuration),
-            targetOffsetY = { fullHeight -> fullHeight }
-          ),
+          enter = RexMotion.dockEnter(),
+          exit = RexMotion.dockExit(),
           modifier = Modifier.align(Alignment.BottomCenter)
         ) {
           BrowserBottomBar(

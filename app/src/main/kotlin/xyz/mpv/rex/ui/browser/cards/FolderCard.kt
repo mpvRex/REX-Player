@@ -73,6 +73,7 @@ fun FolderCard(
   thumbnail: ImageBitmap? = null,
   isPinned: Boolean = false,
   shape: Shape? = null,
+  transformSourceId: String? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
@@ -114,6 +115,7 @@ fun FolderCard(
     gridColumns = gridColumns,
     maxTitleLines = maxLines,
     shape = shape,
+    transformSourceId = transformSourceId,
     overlayContent = {
       if (isPinned) {
         PinBadge(modifier = Modifier.align(Alignment.BottomStart).padding(6.dp))

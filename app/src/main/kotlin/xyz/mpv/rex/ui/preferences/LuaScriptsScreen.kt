@@ -59,6 +59,9 @@ import org.koin.compose.koinInject
 
 @Serializable
 object LuaScriptsScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:LuaScriptsScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

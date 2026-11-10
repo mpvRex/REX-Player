@@ -64,6 +64,9 @@ import kotlin.math.roundToInt
 
 @Serializable
 object ShortsPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:ShortsPreferencesScreen"
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {

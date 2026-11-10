@@ -78,6 +78,9 @@ import kotlin.io.path.readLines
 
 @Serializable
 object AdvancedPreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:AdvancedPreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {

@@ -59,6 +59,9 @@ import org.koin.compose.koinInject
 
 @Serializable
 object GesturePreferencesScreen : Screen {
+  override val transformSourceId: String
+    get() = "settings:GesturePreferencesScreen"
+
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
