@@ -81,6 +81,31 @@ android {
       buildConfigField("boolean", "IS_PREVIEW", "true")
     }
 
+    // TEMPORARY (animation work): release-like runtime without the R8 / resource-shrink cost.
+    //
+    // Debug builds are JIT-only and make transitions look worse than they are, which hides
+    // the thing being evaluated. This variant is non-debuggable (so the installer AOT-compiles
+    // it like release) but skips minification and shrinking, so `installPerf` costs about as
+    // much as `installDebug` instead of the full release build.
+    //
+    // Drawback: no debugging, no attach, no Compose inspection. Use it to judge feel only.
+    // Revert this block once the animation work lands.
+    create("perf") {
+      initWith(getByName("release"))
+      signingConfig = signingConfigs.getByName("release")
+      isDebuggable = false
+      isMinifyEnabled = false
+      isShrinkResources = false
+      applicationIdSuffix = ".perf"
+      versionNameSuffix = "-${getCommitCount()}"
+      matchingFallbacks += listOf("release")
+      // AGP attaches `lintVital<Variant>` to every non-debuggable variant on the assumption
+      // it might ship. This one never does, and the analyse task took 28 minutes cold.
+      lint {
+        checkReleaseBuilds = false
+      }
+    }
+
     named("debug") {
       applicationIdSuffix = ".debug"
       versionNameSuffix = "-${getCommitCount()}"
