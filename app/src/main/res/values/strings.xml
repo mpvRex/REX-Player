@@ -137,10 +137,10 @@
 
     <!-- Navigation Motion -->
     <string name="pref_appearance_category_motion">Navigation Motion</string>
-    <string name="pref_appearance_motion_preset_title">Motion Preset</string>
+    <string name="pref_appearance_motion_preset_title">Screen Transition</string>
     <string name="pref_appearance_motion_preset_summary">Choose the transition animation between screens</string>
     <string name="motion_preset_expressive_parallax">Expressive Parallax</string>
-    <string name="motion_preset_shared_z">Shared-Z (Depth Zoom)</string>
+    <string name="motion_preset_shared_z">Depth Zoom</string>
     <string name="motion_preset_classic_slide">Classic Slide</string>
     <string name="motion_preset_default">Default</string>
 
