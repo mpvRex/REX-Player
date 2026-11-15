@@ -270,6 +270,12 @@ data class VideoListScreen(
     // FAB visibility state
     val isFabVisible = remember { mutableStateOf(true) }
     val isFabExpanded = remember { mutableStateOf(false) }
+    val isMiniPlayerActive = xyz.mpv.rex.ui.browser.LocalMiniPlayerActive.current
+    LaunchedEffect(isMiniPlayerActive) {
+      if (isMiniPlayerActive) {
+        isFabExpanded.value = false
+      }
+    }
 
     val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
     val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
@@ -532,16 +538,14 @@ data class VideoListScreen(
       },
       floatingActionButton = {
         val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
-        val miniPlayerStateManager = koinInject<xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager>()
-        val miniPlayerState by miniPlayerStateManager.state.collectAsState()
-        if (!hidePlayFabShowInHeader && sortedVideosWithInfo.isNotEmpty()) {
+        if (!hidePlayFabShowInHeader && sortedVideosWithInfo.isNotEmpty() && !isMiniPlayerActive) {
           TooltipBox(
             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
             tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },
             state = rememberTooltipState(),
           ) {
             FloatingActionButtonMenu(
-              modifier = Modifier.padding(bottom = if (miniPlayerState.isPlaybackActive) (navigationBarHeight - 4.dp).coerceAtLeast(0.dp) else (navigationBarHeight - 30.dp).coerceAtLeast(0.dp)),
+              modifier = Modifier.padding(bottom = (navigationBarHeight - 4.dp).coerceAtLeast(0.dp)),
               expanded = isFabExpanded.value,
               button = {
                 TooltipBox(

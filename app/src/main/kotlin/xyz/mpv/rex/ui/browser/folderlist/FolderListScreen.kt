@@ -120,6 +120,7 @@ import xyz.mpv.rex.repository.MediaFileRepository
 import xyz.mpv.rex.presentation.Screen
 import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
+import xyz.mpv.rex.ui.browser.LocalMiniPlayerActive
 import xyz.mpv.rex.ui.browser.cards.FolderCard
 import xyz.mpv.rex.ui.browser.cards.VideoCard
 import xyz.mpv.rex.ui.browser.components.BrowserTopBar
@@ -345,6 +346,12 @@ object FolderListScreen : Screen {
     // FAB state
     val isFabVisible = remember { mutableStateOf(true) }
     val isFabExpanded = remember { mutableStateOf(false) }
+    val isMiniPlayerActive = LocalMiniPlayerActive.current
+    LaunchedEffect(isMiniPlayerActive) {
+      if (isMiniPlayerActive) {
+        isFabExpanded.value = false
+      }
+    }
 
     // File picker
     val filePicker = rememberLauncherForActivityResult(
@@ -594,7 +601,7 @@ object FolderListScreen : Screen {
           )
         },
       floatingActionButton = {
-        if (!hidePlayFabShowInHeader) {
+        if (!hidePlayFabShowInHeader && !isMiniPlayerActive) {
         FloatingActionButtonMenu(
           modifier = Modifier.padding(bottom = (navigationBarHeight - 4.dp).coerceAtLeast(0.dp)),
           expanded = isFabExpanded.value,

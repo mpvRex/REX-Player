@@ -22,6 +22,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -46,10 +48,13 @@ import xyz.mpv.rex.ui.theme.MpvexTheme
 import xyz.mpv.rex.ui.utils.LocalBackStack
 import xyz.mpv.rex.ui.utils.navigateBack
 import xyz.mpv.rex.utils.permission.PermissionUtils
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayer
-import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.browser.LocalBottomBarPresent
+import xyz.mpv.rex.ui.browser.LocalMiniPlayerActive
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.welcome.WelcomeScreen
 import androidx.compose.foundation.layout.Box
@@ -221,35 +226,42 @@ class MainActivity : ComponentActivity() {
       null
     }
     val updateState by (updateViewModel?.updateState ?: MutableStateFlow(UpdateViewModel.UpdateState.Idle)).collectAsState()
-    val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val motionPreset by appearancePreferences.navigationMotionStyle.collectAsState()
     val hideNavigationBar by MainScreen.shouldHideNavigationBar.collectAsState()
+    val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val currentRoute = typedBackstack.lastOrNull()
     val isMainScreen = currentRoute == MainScreen
     val isWelcomeScreen = currentRoute == WelcomeScreen
-    
-    val targetBottomPadding = if (isMainScreen && !hideNavigationBar) {
-      if (miniPlayerState.isExpanded) 8.dp else 72.dp
-    } else 8.dp
-    val animatedBottomPadding by androidx.compose.animation.core.animateDpAsState(
-      targetValue = targetBottomPadding,
-      animationSpec = tween(220),
-      label = "miniPlayerBottomPadding"
-    )
 
-    val targetMiniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
-    val miniPlayerHeight by androidx.compose.animation.core.animateDpAsState(
-      targetValue = targetMiniPlayerHeight,
-      animationSpec = tween(220),
-      label = "miniPlayerHeight"
-    )
+    // The mini player is hosted here, in the window, so its expanded page can cover pushed
+    // screens too. It is docked on the navigation bar and does its own layout, so nothing in this
+    // file offsets for it any more: `MainScreen` owns the content inset via
+    // `LocalNavigationBarHeight`, and the sheet owns its own geometry.
     val navBarHeight = if (isMainScreen && !hideNavigationBar) 64.dp else 0.dp
-    val totalNavigationBarHeight = navBarHeight + miniPlayerHeight
+    val totalNavigationBarHeight = navBarHeight
+
+    // The floating mini player rests above the bottom chrome: the navigation bar + device inset
+    // when on MainScreen, or the system navigation bar inset when pushed over.
+    val systemBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val publishedChrome by MainScreen.miniPlayerBottomChromeHeight.collectAsState()
+    val miniPlayerBottomChrome = (if (isMainScreen) publishedChrome else null) ?: systemBottomInset
+
+    // True while the mini player's page is the destination. Owned here, not by the sheet, so this
+    // Back handler can be gated on it: `NavDisplay` registers a navigation-event handler that wins
+    // over any legacy `BackHandler` regardless of tree order, so a Back handled *inside* the sheet
+    // would pop the navigation stack instead of collapsing the page.
+    var miniPlayerExpanded by remember { mutableStateOf(false) }
+    val collapseMiniPlayer = remember { mutableStateOf<(() -> Unit)?>(null) }
 
     // System back: pop one entry while a screen is on top of the root, otherwise send the
     // task to the background. Popping the root entry is never allowed, because NavDisplay
-    // throws "backstack cannot be empty".
+    // throws "backstack cannot be empty". While the mini player page is open it owns Back.
     BackHandler(enabled = typedBackstack.size > 1 || isMainScreen || isWelcomeScreen) {
+      val collapse = collapseMiniPlayer.value
+      if (miniPlayerExpanded && collapse != null) {
+        collapse()
+        return@BackHandler
+      }
       if (!typedBackstack.navigateBack()) {
         (context as? Activity)?.moveTaskToBack(true)
       }
@@ -261,6 +273,7 @@ class MainActivity : ComponentActivity() {
       LocalUpdateViewModel provides updateViewModel,
       LocalNavigationBarHeight provides totalNavigationBarHeight,
       LocalBottomBarPresent provides (isMainScreen && !hideNavigationBar),
+      LocalMiniPlayerActive provides miniPlayerState.isPlaybackActive,
     ) {
       Box(modifier = Modifier.fillMaxSize()) {
         NavDisplay(
@@ -296,10 +309,9 @@ class MainActivity : ComponentActivity() {
 
         MiniPlayer(
           stateManager = miniPlayerStateManager,
-          modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .navigationBarsPadding()
-            .padding(bottom = animatedBottomPadding)
+          bottomChromeHeight = miniPlayerBottomChrome,
+          expandedChanged = { miniPlayerExpanded = it },
+          collapseRequest = { req -> collapseMiniPlayer.value = req },
         )
       }
 

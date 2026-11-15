@@ -312,7 +312,8 @@ object PlaylistScreen : Screen {
         },
         floatingActionButton = {
           val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
-          if (!selectionManager.isInSelectionMode && isFabVisible.value) {
+          val isMiniPlayerActive = xyz.mpv.rex.ui.browser.LocalMiniPlayerActive.current
+          if (!selectionManager.isInSelectionMode && isFabVisible.value && !isMiniPlayerActive) {
             ExtendedFloatingActionButton(
               onClick = { showPlaylistActionSheet = true },
               icon = { Icon(Icons.Filled.Add, contentDescription = null) },

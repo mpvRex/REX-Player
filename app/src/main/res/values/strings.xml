@@ -5,6 +5,13 @@
     <string name="generic_reset">Reset</string>
     <string name="generic_share">Share</string>
     <string name="open_with_mini_player">Open with mini player</string>
+    <string name="open_full_player">Open full player</string>
+    <string name="pause">Pause</string>
+    <string name="mini_player_collapse">Back to mini player</string>
+    <string name="mini_player_shuffle">Shuffle</string>
+    <string name="mini_player_previous">Previous track</string>
+    <string name="mini_player_next">Next track</string>
+    <string name="mini_player_repeat">Repeat</string>
     <string name="generic_confirm">Confirm</string>
     <string name="generic_cancel">Cancel</string>
     <string name="generic_ok">OK</string>

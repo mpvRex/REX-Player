@@ -128,6 +128,12 @@ object RecentlyPlayedScreen : Screen {
 
     val isFabVisible = remember { mutableStateOf(true) }
     val isFabExpanded = remember { mutableStateOf(false) }
+    val isMiniPlayerActive = xyz.mpv.rex.ui.browser.LocalMiniPlayerActive.current
+    LaunchedEffect(isMiniPlayerActive) {
+      if (isMiniPlayerActive) {
+        isFabExpanded.value = false
+      }
+    }
     val isRefreshing = remember { mutableStateOf(false) }
     
     val coroutineScope = rememberCoroutineScope()
@@ -166,8 +172,6 @@ object RecentlyPlayedScreen : Screen {
     val browserPreferences = koinInject<BrowserPreferences>()
     val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
     val appearancePreferences = koinInject<xyz.mpv.rex.preferences.AppearancePreferences>()
-    val miniPlayerStateManager = koinInject<xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager>()
-    val miniPlayerState by miniPlayerStateManager.state.collectAsState()
     val hidePlayFabShowInHeader by appearancePreferences.hidePlayFabShowInHeader.collectAsState()
     xyz.mpv.rex.ui.browser.fab.FabScrollHelper.trackScrollForFabVisibility(
       listState = listState,
@@ -250,10 +254,8 @@ object RecentlyPlayedScreen : Screen {
         },
       floatingActionButton = {
         val navigationBarHeight = xyz.mpv.rex.ui.browser.LocalNavigationBarHeight.current
-        val miniPlayerStateManager = koinInject<xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager>()
-        val miniPlayerState by miniPlayerStateManager.state.collectAsState()
 
-        if (!hidePlayFabShowInHeader && recentItems.isNotEmpty()) {
+        if (!hidePlayFabShowInHeader && recentItems.isNotEmpty() && !isMiniPlayerActive) {
           TooltipBox(
             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
             tooltip = { PlainTooltip { Text(stringResource(R.string.play_recently_played_or_first)) } },

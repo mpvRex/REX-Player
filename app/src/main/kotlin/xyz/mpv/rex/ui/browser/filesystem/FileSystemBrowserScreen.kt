@@ -291,6 +291,12 @@ fun FileSystemBrowserScreen(path: String? = null) {
   // FAB visibility for scroll-based hiding
   val isFabVisible = remember { mutableStateOf(true) }
   val isFabExpanded = remember { mutableStateOf(false) }
+  val isMiniPlayerActive = xyz.mpv.rex.ui.browser.LocalMiniPlayerActive.current
+  LaunchedEffect(isMiniPlayerActive) {
+    if (isMiniPlayerActive) {
+      isFabExpanded.value = false
+    }
+  }
   
   // Selection info state
   var mediaInfoUri by remember { mutableStateOf<Uri?>(null) }
@@ -747,7 +753,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
           )
         },
       floatingActionButton = {
-        if (isAtRoot && !hidePlayFabShowInHeader) {
+        if (isAtRoot && !hidePlayFabShowInHeader && !isMiniPlayerActive) {
           FloatingActionButtonMenu(
             modifier = Modifier.padding(bottom = (navigationBarHeight - 4.dp).coerceAtLeast(0.dp)),
             expanded = isFabExpanded.value,

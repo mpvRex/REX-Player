@@ -204,6 +204,12 @@ fun MediaLibraryContent() {
   // FAB visibility state
   val isFabVisible = remember { mutableStateOf(true) }
   val isFabExpanded = remember { mutableStateOf(false) }
+  val isMiniPlayerActive = xyz.mpv.rex.ui.browser.LocalMiniPlayerActive.current
+  LaunchedEffect(isMiniPlayerActive) {
+    if (isMiniPlayerActive) {
+      isFabExpanded.value = false
+    }
+  }
   val showLinkDialog = remember { mutableStateOf(false) }
 
   val filePicker = rememberLauncherForActivityResult(
@@ -400,7 +406,7 @@ fun MediaLibraryContent() {
       }
     },
     floatingActionButton = {
-      if (!hidePlayFabShowInHeader && !selectionManager.isInSelectionMode && isFabVisible.value && sortedVideosWithInfo.isNotEmpty()) {
+      if (!hidePlayFabShowInHeader && !selectionManager.isInSelectionMode && isFabVisible.value && sortedVideosWithInfo.isNotEmpty() && !isMiniPlayerActive) {
         FloatingActionButtonMenu(
           modifier = Modifier.padding(bottom = (navigationBarHeight - 4.dp).coerceAtLeast(0.dp)),
           expanded = isFabExpanded.value,

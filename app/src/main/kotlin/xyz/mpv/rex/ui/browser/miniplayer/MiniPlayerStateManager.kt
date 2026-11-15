@@ -32,7 +32,6 @@ data class MiniPlayerState(
   val prevTitle: String? = null,
   val nextThumbnail: Bitmap? = null,
   val prevThumbnail: Bitmap? = null,
-  val isExpanded: Boolean = false,
   val shuffleEnabled: Boolean = false,
   val repeatMode: RepeatMode = RepeatMode.OFF,
 )
@@ -82,7 +81,6 @@ class MiniPlayerStateManager : KoinComponent {
     prevTitle: String? = _state.value.prevTitle,
     nextThumbnail: Bitmap? = _state.value.nextThumbnail,
     prevThumbnail: Bitmap? = _state.value.prevThumbnail,
-    isExpanded: Boolean = _state.value.isExpanded,
     shuffleEnabled: Boolean = _state.value.shuffleEnabled,
     repeatMode: RepeatMode = _state.value.repeatMode,
   ) {
@@ -102,15 +100,10 @@ class MiniPlayerStateManager : KoinComponent {
         prevTitle = prevTitle,
         nextThumbnail = nextThumbnail,
         prevThumbnail = prevThumbnail,
-        isExpanded = isExpanded,
         shuffleEnabled = shuffleEnabled,
         repeatMode = repeatMode,
       )
     }
-  }
-
-  fun setExpanded(expanded: Boolean) {
-    _state.update { it.copy(isExpanded = expanded) }
   }
 
   fun togglePlayPause() {
@@ -228,7 +221,7 @@ class MiniPlayerStateManager : KoinComponent {
 
   fun clearState() {
     savedPlayerIntent = null
-    _state.update { it.copy(isPlaybackActive = false, isExpanded = false) }
+    _state.update { it.copy(isPlaybackActive = false) }
   }
 
   fun openPlayer(context: Context) {

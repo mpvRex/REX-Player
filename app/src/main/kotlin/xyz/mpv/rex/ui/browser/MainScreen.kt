@@ -36,6 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -50,6 +51,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import xyz.mpv.rex.R
 import xyz.mpv.rex.ui.icons.RexIcon
@@ -106,6 +108,18 @@ object MainScreen : Screen {
   
   private val _shouldHideNavigationBar = MutableStateFlow(false)
   val shouldHideNavigationBar = _shouldHideNavigationBar.asStateFlow()
+
+  /**
+   * Height of the navigation bar + device inset currently painted under the browser, as seen by
+   * anything composed *outside* this screen — in practice the mini player sheet, which lives in the
+   * activity window so its page can cover pushed screens and therefore cannot read this tree's
+   * composition locals.
+   *
+   * `null` means "no answer": this screen has not composed yet, or has been pushed over. The sheet
+   * then docks on the window edge instead of on a bar that may not be painted.
+   */
+  private val _miniPlayerBottomChromeHeight = MutableStateFlow<Dp?>(null)
+  val miniPlayerBottomChromeHeight = _miniPlayerBottomChromeHeight.asStateFlow()
   
   private val _isBrowserBottomBarVisible = MutableStateFlow(false)
   val isBrowserBottomBarVisible = _isBrowserBottomBarVisible.asStateFlow()
@@ -281,11 +295,34 @@ object MainScreen : Screen {
       selectedTab = targetTab
     }
 
+
     // Shared state (across the app) collected reactively via StateFlow
     val isInSelectionMode by _isInSelectionModeShared.collectAsState()
     val hideNavigationBar by _shouldHideNavigationBar.collectAsState()
     val rawSelectionManager by _sharedVideoSelectionManager.collectAsState()
     val videoSelectionManager = rawSelectionManager as? SelectionManager<*, *>
+
+    // Publish the navigation bar's real height to the activity, because the mini player sheet is
+    // composed *beside* this screen (in MainActivity's window, so it can cover pushed screens) and
+    // cannot see this tree's composition locals. This mirrors the `isNavBarVisible` used by the
+    // Scaffold below: no bar on Shorts, in selection mode, or when there is only one tab.
+    //
+    // Zero when there is no bar, so the sheet docks on the window edge rather than leaving a 64 dp
+    // gap above a navigation bar that is not being painted.
+    val navBarVisibleForSheet =
+      !hideNavigationBar && !(isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx) &&
+        visibleTabs.size > 1
+    val navBarInsetForSheet =
+      ShortNavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
+    LaunchedEffect(navBarVisibleForSheet, navBarInsetForSheet) {
+      _miniPlayerBottomChromeHeight.value =
+        if (navBarVisibleForSheet) 64.dp + navBarInsetForSheet else navBarInsetForSheet
+    }
+    // While this screen is pushed over (or not composed), it publishes nothing; the activity then
+    // falls back to treating the bar as absent rather than guessing.
+    DisposableEffect(Unit) {
+      onDispose { _miniPlayerBottomChromeHeight.value = null }
+    }
 
     // Update persistent state whenever tab changes
     LaunchedEffect(selectedTab) {
@@ -480,12 +517,15 @@ object MainScreen : Screen {
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
           val navBarBottomInset = ShortNavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
           val navBarHeight = if (isNavBarVisible) 64.dp + navBarBottomInset else 0.dp
-          val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.CompactHeight else 0.dp
+          // The floating mini player sits above the navigation bar: browser screens reserve
+          // TotalCompactOffset (BarHeight + FloatingBottomMargin) so list items can scroll clear of it.
+          val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
           val totalBottomPadding = navBarHeight + miniPlayerHeight
           
           CompositionLocalProvider(
             LocalNavigationBarHeight provides totalBottomPadding,
             LocalBottomBarPresent provides isNavBarVisible,
+            LocalMiniPlayerActive provides miniPlayerState.isPlaybackActive,
           ) {
             if (targetTab in visibleTabs.indices) {
               visibleTabs[targetTab].content()
@@ -514,6 +554,9 @@ val LocalNavigationBarHeight = compositionLocalOf { 0.dp }
 
 // CompositionLocal for bottom navigation bar visibility
 val LocalBottomBarPresent = compositionLocalOf { false }
+
+// CompositionLocal for whether mini player playback is currently active
+val LocalMiniPlayerActive = compositionLocalOf { false }
 
 private data class VisibleTab(
   val id: String,
