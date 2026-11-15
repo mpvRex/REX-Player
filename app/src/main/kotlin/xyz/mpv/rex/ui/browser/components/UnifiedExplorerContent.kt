@@ -62,6 +62,8 @@ import xyz.mpv.rex.ui.browser.states.EmptyState
 import xyz.mpv.rex.preferences.preference.collectAsState
 import xyz.mpv.rex.presentation.components.pullrefresh.PullRefreshBox
 import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
+import xyz.mpv.rex.ui.browser.LocalMiniPlayerActive
+import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.material.icons.filled.DragHandle
@@ -409,7 +411,9 @@ fun <T> UnifiedExplorerContent(
     // screen: it lets the last card scroll clear of the selection action bar
     // that appears over it. Matches the reserve used by animatedBottomPadding
     // in selection mode (navigationBarHeight + 88.dp vs + 16.dp).
-    val selectionReservePx = with(LocalDensity.current) { (88.dp - 16.dp).roundToPx() }
+    val isMiniPlayerActive = LocalMiniPlayerActive.current
+    val minReserveDp = if (isMiniPlayerActive) MiniPlayerDefaults.TotalCompactOffset + 8.dp else (88.dp - 16.dp)
+    val selectionReservePx = with(LocalDensity.current) { minReserveDp.roundToPx() }
     val fillerHeightPx = maxOf(leftoverPx, selectionReservePx)
 
     // The painted face of the content surface in surface mode: card colour. Gaps
@@ -456,7 +460,11 @@ fun <T> UnifiedExplorerContent(
               start = if (useContentSurface) 0.dp else 8.dp,
               end = if (useContentSurface) 0.dp else 8.dp,
               top = if (useContentSurface) 0.dp else 8.dp,
-              bottom = if (useContentSurface) 0.dp else animatedBottomPadding
+              bottom = if (useContentSurface) {
+                if (isMiniPlayerActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
+              } else {
+                animatedBottomPadding
+              }
             ),
             verticalArrangement = if (useContentSurface) Arrangement.spacedBy(3.dp) else Arrangement.spacedBy(2.dp)
           ) {
@@ -716,7 +724,11 @@ fun <T> UnifiedExplorerContent(
               start = if (useContentSurface) 0.dp else 8.dp,
               end = if (useContentSurface) 0.dp else 8.dp,
               top = if (useContentSurface) 0.dp else 8.dp,
-              bottom = if (useContentSurface) 0.dp else animatedBottomPadding
+              bottom = if (useContentSurface) {
+                if (isMiniPlayerActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
+              } else {
+                animatedBottomPadding
+              }
             ),
             // Surface mode contracts the gaps and lets the tile go full height so
             // the grid sets the row height; the cards then fill it and stay equal.
@@ -877,7 +889,11 @@ fun <T> UnifiedExplorerContent(
               start = if (useContentSurface) 0.dp else 8.dp,
               end = if (useContentSurface) 0.dp else 8.dp,
               top = if (useContentSurface) 0.dp else 8.dp,
-              bottom = if (useContentSurface) 0.dp else animatedBottomPadding
+              bottom = if (useContentSurface) {
+                if (isMiniPlayerActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
+              } else {
+                animatedBottomPadding
+              }
             ),
             verticalArrangement = if (useContentSurface) Arrangement.spacedBy(3.dp) else Arrangement.spacedBy(2.dp)
           ) {
@@ -1000,7 +1016,14 @@ fun <T> UnifiedExplorerContent(
           modifier = Modifier
             .align(Alignment.CenterEnd)
             .fillMaxHeight()
-            .padding(top = 8.dp, bottom = if (useContentSurface) 16.dp else animatedBottomPadding),
+            .padding(
+              top = 8.dp,
+              bottom = if (useContentSurface) {
+                if (isMiniPlayerActive) MiniPlayerDefaults.TotalCompactOffset + 16.dp else 16.dp
+              } else {
+                animatedBottomPadding
+              }
+            ),
           thumbColor = MaterialTheme.colorScheme.primary,
         )
       }

@@ -517,13 +517,9 @@ object MainScreen : Screen {
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
           val navBarBottomInset = ShortNavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
           val navBarHeight = if (isNavBarVisible) 64.dp + navBarBottomInset else 0.dp
-          // The floating mini player sits above the navigation bar: browser screens reserve
-          // TotalCompactOffset (BarHeight + FloatingBottomMargin) so list items can scroll clear of it.
-          val miniPlayerHeight = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
-          val totalBottomPadding = navBarHeight + miniPlayerHeight
           
           CompositionLocalProvider(
-            LocalNavigationBarHeight provides totalBottomPadding,
+            LocalNavigationBarHeight provides navBarHeight,
             LocalBottomBarPresent provides isNavBarVisible,
             LocalMiniPlayerActive provides miniPlayerState.isPlaybackActive,
           ) {
