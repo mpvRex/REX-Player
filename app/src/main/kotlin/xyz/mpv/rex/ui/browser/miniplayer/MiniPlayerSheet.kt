@@ -3,11 +3,10 @@
 package xyz.mpv.rex.ui.browser.miniplayer
 
 import androidx.annotation.VisibleForTesting
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -135,17 +135,36 @@ fun MiniPlayer(
     if (state.isPlaybackActive) morph.resetDocked()
   }
 
-  // Forwarded as a snapshot-backed value: a plain `isExpanded` bool would lag the morph by a frame
-  // for the scrim's click target, but more importantly the Back handler in MainActivity needs the
-  // exact same truth the sheet draws from.
-  LaunchedEffect(morph) {
-    androidx.compose.runtime.snapshotFlow { morph.isExpanded }.collect(expandedChanged)
+  val collapseAction: () -> Unit = { morph.collapse() }
+
+  // Forwarded as an immediate side effect rather than a `snapshotFlow` collector: the collector
+  // needs a frame to start, so there was a window where the page was open and the host still
+  // thought it was not.
+  val expandedBinding = rememberUpdatedState(expandedChanged)
+  DisposableEffect(morph.isExpanded) {
+    expandedBinding.value(morph.isExpanded)
+    onDispose { }
   }
   DisposableEffect(Unit) {
-    onDispose { expandedChanged(false) }
+    onDispose { expandedBinding.value(false) }
   }
 
-  val collapseAction: () -> Unit = { morph.collapse() }
+  // The page owns Back while it is the destination: a single press collapses it and nothing else.
+  //
+  // This handler lives *here*, not in `MainActivity`, because of how Compose dispatches Back.
+  // `NavigationEventProcessor` stores handlers with `ArrayDeque.addFirst` and returns the first one
+  // whose `isBackEnabled()` is true, so the **most recently registered enabled handler wins**.
+  // `NavDisplay` registers its own handler and only composes entry content afterwards
+  // (`NavDisplayKt`: `NavigationBackHandler` at offset 1077, entries at 1138+); `MainActivity`
+  // registers its handler *before* `NavDisplay` (`MainActivity.kt:267` vs `:286`). MainActivity's
+  // handler is therefore last in line and only ever runs if NavDisplay's — and any screen
+  // handler's — declined. Registering the collapse here puts it in front of all of them, for every
+  // destination at once, so no individual screen has to know the mini player exists.
+  val expandedForBack = rememberUpdatedState(morph.isExpanded)
+  val collapseForBack = rememberUpdatedState(collapseAction)
+  BackHandler(enabled = expandedForBack.value) {
+    collapseForBack.value()
+  }
 
   LaunchedEffect(Unit) {
     collapseRequest { collapseAction() }
@@ -227,27 +246,21 @@ fun MiniPlayer(
     val currentElevation = lerp(MiniPlayerDefaults.FloatingElevation, 0.dp, f)
     val cardAlpha = (1f - (morph.extension.value / (barHeightPx * 2f))).coerceIn(0f, 1f)
 
-    // Backdrop scrim active during expand transition and while expanded
+    // Backdrop scrim: purely visual. It is NOT clickable.
+    //
+    // It covers the whole window behind the card, and while the page is open it sits under an edge
+    // back-gesture start zone. A `clickable` here collapsed the page on any press — including the
+    // press that begins a system back gesture — because the back gesture never consumes pointer
+    // events that a Compose node can see. Collapsing the page while the finger is still down, and
+    // then letting go, is exactly "collapsed and stepped back at the same time". Collapsing belongs
+    // to the oneshot buttons inside the page (Collapse, Close) and to Back itself.
     if (f > 0f) {
       Box(
-        modifier = Modifier
-          .fillMaxSize()
-          // The scrim only absorbs (and collapses on) taps once the page is the destination; during
-          // the opening drag the finger that stays down must keep feeding the bar's gesture below.
-          .then(
-            if (morph.isExpanded) {
-              Modifier
-                .graphicsLayer { alpha = f * 0.45f }
-                .background(Color.Black)
-                .clickable(
-                  interactionSource = remember { MutableInteractionSource() },
-                  indication = null,
-                  onClick = collapseAction,
-                )
-            } else {
-              Modifier.graphicsLayer { alpha = f * 0.45f }.background(Color.Black)
-            }
-          )
+        modifier =
+          Modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = f * 0.45f }
+            .background(Color.Black)
       )
     }
 
@@ -280,7 +293,10 @@ fun MiniPlayer(
           state = morph,
           barHeightPx = { barHeightPx },
           travelPx = { travelPx },
-          onTap = { morph.toggle() },
+          // A tap on the open page does nothing. It used to collapse it, which is what made an edge
+          // back-gesture press collapse the page. While docked or mid-morph the card is still an
+          // affordance, so a tap opens the page.
+          onTap = { if (morph.expansion.value <= 0.5f) morph.expand() },
           onDismissRequested = dismiss,
           onEnterDismissZone = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

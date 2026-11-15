@@ -59,6 +59,7 @@ internal fun Modifier.miniPlayerSheetGestures(
       var followed = false
       var consumedByChild = false
       var wasInDismissZone = false
+      var totalY = 0f
 
       while (true) {
         val event = awaitPointerEvent(PointerEventPass.Main)
@@ -71,6 +72,7 @@ internal fun Modifier.miniPlayerSheetGestures(
         val delta = change.positionChange()
         tracker.addPosition(change.uptimeMillis, change.position)
         travel += delta.getDistance()
+        totalY += delta.y
         if (!followed && travel > viewConfiguration.touchSlop) {
           followed = true
           // Only now does this gesture own the surface; a press that became a tap on a button or a
@@ -99,7 +101,13 @@ internal fun Modifier.miniPlayerSheetGestures(
 
       if (!followed) {
         onInteractionEnd()
-        onTap()
+        // A press that moved a little but never passed touch slop is not a tap. Treating it as one
+        // collapsed the page when the finger started an edge back gesture and drifted a few dp
+        // before the system took the pointer away.
+        val isTap =
+          abs(totalY) <= viewConfiguration.touchSlop &&
+            travel <= viewConfiguration.touchSlop
+        if (isTap) onTap()
         return@awaitEachGesture
       }
 

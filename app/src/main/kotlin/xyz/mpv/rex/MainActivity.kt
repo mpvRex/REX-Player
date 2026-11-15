@@ -246,20 +246,23 @@ class MainActivity : ComponentActivity() {
     val publishedChrome by MainScreen.miniPlayerBottomChromeHeight.collectAsState()
     val miniPlayerBottomChrome = (if (isMainScreen) publishedChrome else null) ?: systemBottomInset
 
-    // True while the mini player's page is the destination. Owned here, not by the sheet, so this
-    // Back handler can be gated on it: `NavDisplay` registers a navigation-event handler that wins
-    // over any legacy `BackHandler` regardless of tree order, so a Back handled *inside* the sheet
-    // would pop the navigation stack instead of collapsing the page.
+    // True while the mini player's page is the destination. Tracked here only so the fallback branch
+    // below can double-check; the page itself owns Back (see the comment on the handler).
     var miniPlayerExpanded by remember { mutableStateOf(false) }
     val collapseMiniPlayer = remember { mutableStateOf<(() -> Unit)?>(null) }
 
-    // System back: pop one entry while a screen is on top of the root, otherwise send the
-    // task to the background. Popping the root entry is never allowed, because NavDisplay
-    // throws "backstack cannot be empty". While the mini player page is open it owns Back.
+    // System back: pop one entry, or send the task to the background at the root. Popping the root
+    // entry is never allowed, because NavDisplay throws "backstack cannot be empty".
+    //
+    // The mini player's expanded page is *not* handled here. It registers its own `BackHandler` in
+    // `MiniPlayer`, which composes after `NavDisplay` and therefore sits in front of both NavDisplay's
+    // handler and every screen-level one (registration order decides: `ArrayDeque.addFirst` +
+    // first-enabled-wins). This handler is registered before `NavDisplay`, so it is last in line and
+    // only runs once every other handler has declined.
     BackHandler(enabled = typedBackstack.size > 1 || isMainScreen || isWelcomeScreen) {
-      val collapse = collapseMiniPlayer.value
-      if (miniPlayerExpanded && collapse != null) {
-        collapse()
+      if (miniPlayerExpanded && collapseMiniPlayer.value != null) {
+        // Defensive only: reachable if the sheet's own handler was somehow unregistered mid-press.
+        collapseMiniPlayer.value?.invoke()
         return@BackHandler
       }
       if (!typedBackstack.navigateBack()) {
