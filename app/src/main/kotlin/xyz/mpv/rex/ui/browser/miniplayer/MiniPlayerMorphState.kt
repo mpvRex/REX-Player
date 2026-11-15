@@ -38,6 +38,16 @@ internal object MiniPlayerMorphMath {
   /** Release velocity (fraction/s) past which the direction of the throw, not the position, wins. */
   const val FLING_FRACTION_PER_SECOND = 0.35f
 
+  /**
+   * Expansion a release has to reach to open the page.
+   *
+   * The drag itself is an honest 1:1 over the resting-bar → top-of-screen distance, so a
+   * deliberate pull still has to be a deliberate pull. What used to feel wrong was the *trigger*:
+   * at half way, a small flick that started a little under 0.5 was thrown back to the dock, so a
+   * short, committed drag collapsed again. The release now needs only a third of the travel.
+   */
+  const val OPEN_RELEASE_FRACTION = 0.3f
+
   /** Drag travel allowed past the docked anchor while pulling down, in bar heights. */
   const val PULL_LIMIT_BAR_HEIGHTS = 0.9f
 
@@ -84,6 +94,10 @@ internal object MiniPlayerMorphMath {
    *
    * Once a gesture has pulled the bar, [startedDocked] stays true for the whole gesture, so the
    * pull stays absolute to the finger instead of restarting from zero on every delta.
+   *
+   * 1:1 in both directions, deliberately: the card moves exactly as far as the finger, which is
+   * what keeps the gesture predictable. Effort is tuned at the *release* ([OPEN_RELEASE_FRACTION]),
+   * never by compressing the drag.
    */
   fun dragFrame(
     currentFraction: Float,
@@ -105,18 +119,21 @@ internal object MiniPlayerMorphMath {
   /**
    * Where a release should settle.
    *
-   * A throw faster than [FLING_FRACTION_PER_SECOND] wins outright; otherwise the halfway point
-   * decides, which is what makes a slow, deliberate drag feel like a physical stop.
+   * A throw faster than [FLING_FRACTION_PER_SECOND] wins outright. A throw towards the page wins a
+   * little earlier and from less travel than the plain halfway rule ([OPEN_RELEASE_FRACTION]),
+   * because a short committed drag that ends with the finger still moving up should open, not snap
+   * back. A throw towards the dock keeps the halfway rule, so a barely-started pull still closes.
    */
   fun resolveTarget(
     fraction: Float,
     velocityFractionPerSecond: Float,
-  ): Boolean =
+  ): Boolean {
     if (abs(velocityFractionPerSecond) > FLING_FRACTION_PER_SECOND) {
-      velocityFractionPerSecond > 0f
-    } else {
-      fraction > 0.5f
+      return velocityFractionPerSecond > 0f
     }
+    val opening = fraction > OPEN_RELEASE_FRACTION && velocityFractionPerSecond >= 0f
+    return opening || fraction > 0.5f
+  }
 
   /**
    * Whether releasing a pull from the docked bar closes the player instead of springing back.
@@ -241,9 +258,38 @@ internal class MiniPlayerMorphState(
   }
 
   fun collapse(velocityFractionPerSecond: Float = 0f) {
-    isExpanded = false
+    // The pull belongs to the dismissed-to-dock direction; a collapse from the page must never
+    // inherit a stranded pull, or the bar comes back parked below the dock.
+    isInDismissZone = false
+    gesturePullPx = 0f
     extension.snapToSilently(0f)
     animateTo(0f, MiniPlayerMorphSpecs.close, velocityFractionPerSecond)
+  }
+
+  /**
+   * Writes the expansion without suspending or cancelling the running job.
+   *
+   * Used by the page's scroll connection, which runs on the main thread from a pointer callback and
+   * needs the frame's value applied immediately: a `scope.launch { snapTo() }` is queued, may be
+   * cancelled when the caller leaves composition, and leaves a stale frame behind.
+   */
+  fun snapExpansion(fraction: Float) {
+    if (motionJob?.isActive == true) stop()
+    snapDragValue(expansion, fraction.coerceIn(0f, 1f))
+    isExpanded = fraction > 0.5f
+  }
+
+  /** Settles the expansion from wherever [snapExpansion] left it, using the drag-release rules. */
+  fun animateExpansionTo(
+    target: Float,
+    initialVelocity: Float,
+  ) {
+    extension.snapToSilently(0f)
+    animateTo(
+      target = target,
+      spec = if (target > 0.5f) MiniPlayerMorphSpecs.open else MiniPlayerMorphSpecs.close,
+      initialVelocity = initialVelocity,
+    )
   }
 
   /**
@@ -292,23 +338,17 @@ internal class MiniPlayerMorphState(
       }
     } else if (deltaY > 0f) {
       // Finger moving DOWN (towards collapsed / towards dismiss)
-      if (expansion.value > 0f) {
-        val deltaFraction = -deltaY / range
-        val prevFrac = expansion.value
-        val newFraction = (prevFrac + deltaFraction).coerceAtLeast(0f)
-        snapDragValue(expansion, newFraction)
-        if (newFraction == 0f) {
-          val leftover = deltaY - (prevFrac * range)
-          if (leftover > 0f) {
-            val newExtension = (extension.value + leftover).coerceIn(0f, limit)
-            gesturePullPx = newExtension
-            snapDragValue(extension, newExtension)
-          }
+      val prevFrac = expansion.value
+      val deltaFraction = -deltaY / range
+      val newFraction = (prevFrac + deltaFraction).coerceAtLeast(0f)
+      snapDragValue(expansion, newFraction)
+      if (newFraction == 0f) {
+        val leftover = deltaY - (prevFrac * range)
+        if (leftover > 0f) {
+          val newExtension = (extension.value + leftover).coerceIn(0f, limit)
+          gesturePullPx = newExtension
+          snapDragValue(extension, newExtension)
         }
-      } else {
-        val newExtension = (extension.value + deltaY).coerceIn(0f, limit)
-        gesturePullPx = newExtension
-        snapDragValue(extension, newExtension)
       }
     }
 
@@ -345,6 +385,8 @@ internal class MiniPlayerMorphState(
     gesturePullPx = 0f
     accumulatedDragY = 0f
     initialFractionOnDrag = expansion.value
+    // Docked (or nearly) when the drag starts: a downward flick should close, not re-open.
+    gesturePulls = expansion.value <= 0.02f
     snapDragValue(extension, 0f)
   }
 
@@ -432,11 +474,8 @@ internal class MiniPlayerMorphState(
     isInDismissZone = false
     gesturePullPx = 0f
     isExpanded = false
-    motionJob =
-      scope.launch {
-        extension.snapTo(0f)
-        expansion.snapTo(0f)
-      }
+    snapDragValue(extension, 0f)
+    snapDragValue(expansion, 0f)
   }
 
   private fun animateTo(

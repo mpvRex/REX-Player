@@ -4,13 +4,9 @@ package xyz.mpv.rex.ui.browser.miniplayer
 
 import androidx.annotation.VisibleForTesting
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -26,24 +24,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -54,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** Layout constants used only inside the expanded page. */
@@ -105,12 +97,20 @@ object MiniPlayerDefaults {
 /**
  * The floating mini player: a detached capsule pill floating above the bottom chrome.
  *
+ * **One engine, three doors.** Every transition — the drag, the page's scroll, the collapse button,
+ * a tap on the page, a Back press and a dismiss — goes through the same
+ * [MiniPlayerMorphState.expansion] animatable. The previous version kept an `isExpanded` flag and an
+ * `Animatable` per door, and the doors disagreed: the page-scroll path snapped its value inside a
+ * `scope.launch`, which is cancelled as soon as the page stops being composed, and the collapse
+ * button never cleared the pull distance the scroll handler had stored. Both left the card parked
+ * somewhere between the bar and the page.
+ *
  * **Gesture architecture:**
- * - Tap or swipe up: grows 1:1 with finger towards full screen, expanding into [MiniPlayerPage].
- * - Swipe down: pulls down 1:1 with finger and fades out, releasing past threshold dismisses playback.
+ * - Tap the bar, or drag up: grows 1:1 with the finger towards full screen ([MiniPlayerPage]).
+ * - Drag down from the bar: pulls it towards the close zone; releasing past the threshold closes it.
+ * - Expanded page: swipe down (scroll at the top first) or tap Collapse/the scrim to return to the bar.
  * - At rest: floats detached with rounded corners on all 4 sides and clear space underneath.
- * - In expanded page: tap collapse or swipe down to return to the floating bar, or tap "Open full player"
- *   to launch [xyz.mpv.rex.ui.player.PlayerActivity].
+ * - "Open full player" hands off to [xyz.mpv.rex.ui.player.PlayerActivity].
  */
 @Composable
 fun MiniPlayer(
@@ -128,31 +128,24 @@ fun MiniPlayer(
   val scope = rememberCoroutineScope()
   val context = LocalContext.current
 
-  val pullY = remember { Animatable(0f) }
-  val expand = remember { Animatable(0f) }
-  var isExpanded by remember { mutableStateOf(false) }
+  val morph = remember { MiniPlayerMorphState(scope) }
 
-  // A new session always starts collapsed
+  // A new session always starts docked.
   LaunchedEffect(state.isPlaybackActive) {
-    if (state.isPlaybackActive && !isExpanded) {
-      expand.snapTo(0f)
-      pullY.snapTo(0f)
-    }
+    if (state.isPlaybackActive) morph.resetDocked()
   }
 
-  LaunchedEffect(isExpanded) {
-    expandedChanged(isExpanded)
+  // Forwarded as a snapshot-backed value: a plain `isExpanded` bool would lag the morph by a frame
+  // for the scrim's click target, but more importantly the Back handler in MainActivity needs the
+  // exact same truth the sheet draws from.
+  LaunchedEffect(morph) {
+    androidx.compose.runtime.snapshotFlow { morph.isExpanded }.collect(expandedChanged)
   }
   DisposableEffect(Unit) {
     onDispose { expandedChanged(false) }
   }
 
-  val collapseAction: () -> Unit = {
-    scope.launch {
-      isExpanded = false
-      expand.animateTo(0f, spring(dampingRatio = 0.85f, stiffness = 380f))
-    }
-  }
+  val collapseAction: () -> Unit = { morph.collapse() }
 
   LaunchedEffect(Unit) {
     collapseRequest { collapseAction() }
@@ -163,11 +156,9 @@ fun MiniPlayer(
 
   val dismiss: () -> Unit = {
     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-    isExpanded = false
-    scope.launch {
-      expand.snapTo(0f)
-      pullY.snapTo(0f)
-    }
+    // Closing ends the session, so the surface must be back at the dock *before* the bar
+    // disappears; otherwise the next session would start from wherever the page was left.
+    morph.resetDocked()
     stateManager.closeMiniPlayer(context)
   }
 
@@ -182,99 +173,86 @@ fun MiniPlayer(
     val restingTopPx = (windowHeightPx - bottomChromePx - bottomMarginPx - barHeightPx).coerceAtLeast(0f)
     val travelPx = restingTopPx.coerceAtLeast(1f)
 
-    fun settleExpand(fraction: Float, velocityY: Float) {
-      val expanding = velocityY < -400f || (velocityY <= 400f && fraction > 0.35f)
-      scope.launch {
-        expand.snapTo(fraction)
-        if (expanding) {
-          isExpanded = true
-          expand.animateTo(1f, spring(dampingRatio = 0.85f, stiffness = 380f))
-        } else {
-          isExpanded = false
-          expand.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-        }
-      }
-    }
-
-    fun settlePull(pulled: Float, velocityY: Float) {
-      val dismissing = pulled > barHeightPx * 0.4f || velocityY > 600f
-      scope.launch {
-        if (dismissing) {
-          pullY.animateTo(barHeightPx * 2f, tween(180))
-          dismiss()
-          pullY.snapTo(0f)
-        } else {
-          pullY.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
-        }
-      }
-    }
-
     val pageScrollState = rememberScrollState()
 
-    val nestedScrollConnection = remember(travelPx) {
-      object : NestedScrollConnection {
-        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-          if (available.y > 0 && pageScrollState.value == 0) {
-            val newExpand = (expand.value - available.y / travelPx).coerceIn(0f, 1f)
-            scope.launch { expand.snapTo(newExpand) }
-            return Offset(0f, available.y)
-          } else if (available.y < 0 && expand.value < 1f && expand.value > 0f) {
-            val newExpand = (expand.value - available.y / travelPx).coerceIn(0f, 1f)
-            scope.launch { expand.snapTo(newExpand) }
-            return Offset(0f, available.y)
-          }
-          return Offset.Zero
-        }
-
-        override suspend fun onPreFling(available: Velocity): Velocity {
-          if (expand.value < 1f) {
-            val velocityY = available.y
-            val collapsing = velocityY > 400f || (velocityY >= -400f && expand.value < 0.75f)
-            if (collapsing) {
-              isExpanded = false
-              expand.animateTo(0f, spring(dampingRatio = 0.85f, stiffness = 380f))
-            } else {
-              expand.animateTo(1f, spring(dampingRatio = 0.85f, stiffness = 380f))
-            }
+    /**
+     * The expanded page's scroll container: dragging down while it is already at the top drags the
+     * surface towards the dock, and a downward fling from anywhere in the page settles it back to
+     * the bar (the same rule [MiniPlayerMorphMath.resolveTarget] applies to a finger drag).
+     *
+     * The [MiniPlayerMorphState] is created once per sheet, so this connection is created once too:
+     * it reads the animatable's live value instead of capturing a per-composition fraction.
+     */
+    val nestedScrollConnection =
+      remember(morph, pageScrollState, travelPx) {
+        object : NestedScrollConnection {
+          override fun onPreScroll(available: androidx.compose.ui.geometry.Offset, source: NestedScrollSource): androidx.compose.ui.geometry.Offset {
+            // A downward (positive y) drag belongs to the surface while the page is at its top and
+            // not yet fully docked. An upward drag belongs to the surface only while it is still
+            // on its way down, so the page can start scrolling the moment it is open.
+            val draggingDown = available.y > 0f && pageScrollState.value == 0
+            val draggingUp = available.y < 0f && morph.expansion.value < 1f
+            if (!draggingDown && !draggingUp) return androidx.compose.ui.geometry.Offset.Zero
+            val deltaFraction = -available.y / travelPx
+            val next = (morph.expansion.value + deltaFraction).coerceIn(0f, 1f)
+            morph.snapExpansion(next)
             return available
           }
-          return Velocity.Zero
+
+          override suspend fun onPreFling(available: Velocity): Velocity {
+            val fraction = morph.expansion.value
+            // Fully open: the page owns the fling, it may scroll.
+            if (fraction >= 1f) return Velocity.Zero
+            // Anywhere else the surface is the one being thrown: a flick opens (or closes) it, a
+            // slow release falls back to the release threshold.
+            val open = MiniPlayerMorphMath.resolveTarget(fraction, -available.y / travelPx)
+            // `snapExpansion` above wrote the value through a continuation, so a running animation
+            // still has to be stopped before the settle starts.
+            morph.stop()
+            morph.animateExpansionTo(
+              target = if (open) 1f else 0f,
+              initialVelocity = -available.y / travelPx,
+            )
+            return available
+          }
         }
       }
-    }
 
-    val f = expand.value.coerceIn(0f, 1f)
-    val currentTop = floatingCardTopPx(f, pullY.value, barHeightPx, bottomMarginPx, bottomChromePx, windowHeightPx)
+    val f = morph.expansion.value.coerceIn(0f, 1f)
+    val currentTop = floatingCardTopPx(f, morph.extension.value, barHeightPx, bottomMarginPx, bottomChromePx, windowHeightPx)
     val currentLeft = floatingCardStartPx(f, horizontalMarginPx)
     val currentWidth = floatingCardWidthPx(f, horizontalMarginPx, windowWidthPx)
     val currentHeight = floatingCardHeightPx(f, barHeightPx, windowHeightPx)
     val currentCornerRadius = lerp(MiniPlayerDefaults.CornerRadius, 0.dp, f)
     val currentElevation = lerp(MiniPlayerDefaults.FloatingElevation, 0.dp, f)
-    val cardAlpha = (1f - (pullY.value / (barHeightPx * 2f))).coerceIn(0f, 1f)
+    val cardAlpha = (1f - (morph.extension.value / (barHeightPx * 2f))).coerceIn(0f, 1f)
 
     // Backdrop scrim active during expand transition and while expanded
     if (f > 0f) {
       Box(
         modifier = Modifier
           .fillMaxSize()
-          .graphicsLayer { alpha = f * 0.45f }
-          .background(Color.Black)
+          // The scrim only absorbs (and collapses on) taps once the page is the destination; during
+          // the opening drag the finger that stays down must keep feeding the bar's gesture below.
           .then(
-            if (isExpanded) {
-              Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = collapseAction,
-              )
-            } else {
+            if (morph.isExpanded) {
               Modifier
+                .graphicsLayer { alpha = f * 0.45f }
+                .background(Color.Black)
+                .clickable(
+                  interactionSource = remember { MutableInteractionSource() },
+                  indication = null,
+                  onClick = collapseAction,
+                )
+            } else {
+              Modifier.graphicsLayer { alpha = f * 0.45f }.background(Color.Black)
             }
           )
       )
     }
 
     val shape = RoundedCornerShape(currentCornerRadius)
-    val isMiniActive = f < 0.5f
+    val isBarOnTop = f < 0.5f
 
     Box(
       modifier = Modifier
@@ -287,7 +265,7 @@ fun MiniPlayer(
           alpha = cardAlpha
         }
         .shadow(
-          elevation = if (pullY.value > 0f) 0.dp else currentElevation,
+          elevation = if (morph.extension.value > 0f) 0.dp else currentElevation,
           shape = shape,
           clip = false,
         )
@@ -298,85 +276,49 @@ fun MiniPlayer(
           color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = (1f - f) * 0.25f),
           shape = shape,
         )
-        .then(
-          if (!isExpanded) {
-            Modifier
-              .pointerInput(Unit) {
-                val tracker = VelocityTracker()
-                var pulled = 0f
-                var grown = 0f
-                detectVerticalDragGestures(
-                  onDragStart = {
-                    tracker.resetTracking()
-                    pulled = pullY.value
-                    grown = expand.value
-                  },
-                  onVerticalDrag = { change, amount ->
-                    change.consume()
-                    tracker.addPosition(change.uptimeMillis, change.position)
-                    if (pulled > 0f || (grown == 0f && amount > 0f)) {
-                      pulled = (pulled + amount).coerceAtLeast(0f)
-                      scope.launch { pullY.snapTo(pulled) }
-                    } else {
-                      grown = (grown - amount / travelPx).coerceIn(0f, 1f)
-                      scope.launch { expand.snapTo(grown) }
-                    }
-                  },
-                  onDragEnd = {
-                    val velocityY = tracker.calculateVelocity().y
-                    if (pulled > 0f) {
-                      settlePull(pulled, velocityY)
-                    } else if (grown > 0f) {
-                      settleExpand(grown, velocityY)
-                    }
-                  },
-                  onDragCancel = {
-                    if (pulled > 0f) settlePull(pulled, 0f)
-                    if (grown > 0f) settleExpand(grown, 0f)
-                  }
-                )
-              }
-              .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-              ) {
-                settleExpand(0f, -1000f)
-              }
-          } else {
-            Modifier
-          }
+        .miniPlayerSheetGestures(
+          state = morph,
+          barHeightPx = { barHeightPx },
+          travelPx = { travelPx },
+          onTap = { morph.toggle() },
+          onDismissRequested = dismiss,
+          onEnterDismissZone = {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          },
         )
     ) {
-      // Bar layer: active when collapsed or collapsing
-      if (f < 0.6f) {
-        val barAlpha = (1f - f / 0.35f).coerceIn(0f, 1f)
+      // Bar layer: active when docked or docked + pulled, fading out as the surface opens.
+      if (f < MiniPlayerMorphMath.PAGE_FADE_START + 0.05f) {
+        val barAlpha = MiniPlayerMorphMath.barContentAlpha(f)
         Box(
           modifier = Modifier
             .fillMaxWidth()
             .height(MiniPlayerDefaults.BarHeight)
-            .zIndex(if (isMiniActive) 1f else 0f)
-            .graphicsLayer { alpha = barAlpha }
+            .zIndex(if (isBarOnTop) 1f else 0f)
+            .graphicsLayer { this.alpha = barAlpha }
         ) {
           MiniPlayerBar(
             state = state,
             stateManager = stateManager,
-            pullFraction = { (pullY.value / barHeightPx).coerceIn(0f, 1f) },
+            pullFraction = { (morph.extension.value / barHeightPx).coerceIn(0f, 1f) },
             onClose = dismiss,
             modifier = Modifier.fillMaxSize(),
           )
         }
       }
 
-      // Page layer: active when expanding or expanded
-      if (f > 0.15f) {
-        val pageAlpha = ((f - 0.25f) / 0.75f).coerceIn(0f, 1f)
+      // Page layer: active when expanding or expanded.
+      if (f > 0.1f) {
+        val pageAlpha = MiniPlayerMorphMath.pageContentAlpha(f)
         Box(
           modifier = Modifier
             .fillMaxWidth()
             .height(with(density) { windowHeightPx.toDp() })
-            .zIndex(if (isMiniActive) 0f else 1f)
+            .zIndex(if (isBarOnTop) 0f else 1f)
             .graphicsLayer {
               alpha = pageAlpha
+              // Land the content on the last few dp of travel: the sheet finishes opening, then
+              // the page settles into place.
               translationY = (1f - pageAlpha) * 24.dp.toPx()
             }
         ) {
@@ -386,10 +328,7 @@ fun MiniPlayer(
             onCollapse = collapseAction,
             onOpenFullPlayer = {
               stateManager.openPlayer(context)
-              scope.launch {
-                isExpanded = false
-                expand.snapTo(0f)
-              }
+              morph.resetDocked()
             },
             onClose = dismiss,
             scrollState = pageScrollState,
