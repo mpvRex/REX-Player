@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -465,6 +466,10 @@ object FolderListScreen : Screen {
 
     Scaffold(
       modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+      // The content below reads `LocalNavigationBarHeight`, which already carries the device
+      // navigation bar inset. Leaving Scaffold's default insets on would apply that inset twice
+      // and lift the content sheet off the bottom bar, hiding its rounded bottom corners.
+      contentWindowInsets = WindowInsets(0, 0, 0, 0),
       containerColor = if (MaterialTheme.colorScheme.background == androidx.compose.ui.graphics.Color.Black) {
         androidx.compose.ui.graphics.Color.Black
       } else {

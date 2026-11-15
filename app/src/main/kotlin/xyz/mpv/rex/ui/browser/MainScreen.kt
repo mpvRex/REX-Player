@@ -516,7 +516,10 @@ object MainScreen : Screen {
           val isShortsTabActive = isShortsEnabled && shortsIdx != -1 && selectedTab == shortsIdx
           val isNavBarVisible = !hideNavigationBar && !isShortsTabActive && visibleTabs.size > 1
           val navBarBottomInset = ShortNavigationBarDefaults.windowInsets.asPaddingValues().calculateBottomPadding()
-          val navBarHeight = if (isNavBarVisible) 64.dp + navBarBottomInset else 0.dp
+          // Docks the content sheet flush against the top edge of the navigation bar (64.dp bar
+          // height + device navigation bar inset). If the bottom bar is hidden, the content sheet
+          // still reserves the device inset so its rounded corners clear the 3-button bar.
+          val navBarHeight = if (isNavBarVisible) 64.dp + navBarBottomInset else navBarBottomInset
           
           CompositionLocalProvider(
             LocalNavigationBarHeight provides navBarHeight,

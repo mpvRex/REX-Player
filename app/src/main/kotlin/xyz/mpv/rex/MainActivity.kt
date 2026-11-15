@@ -1,6 +1,7 @@
 package xyz.mpv.rex
 
 import android.app.Activity
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.content.Intent
@@ -132,12 +133,22 @@ class MainActivity : ComponentActivity() {
       val dark by appearancePreferences.darkMode.collectAsState()
       val isSystemInDarkTheme = isSystemInDarkTheme()
       val isDarkMode = dark == DarkMode.Dark || (dark == DarkMode.System && isSystemInDarkTheme)
+      // Keep system bars fully transparent and adaptive: the app draws edge-to-edge behind both
+      // the status bar and the 3-button navigation bar. Setting both statusBarStyle and
+      // navigationBarStyle explicitly with transparent scrims, and disabling contrast enforcement
+      // on API 29+, ensures the system does not overlay a white/grey scrim over the 3-button bar.
+      val barStyle = if (isDarkMode) {
+        SystemBarStyle.dark(Color.Transparent.toArgb())
+      } else {
+        SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb())
+      }
       enableEdgeToEdge(
-        SystemBarStyle.auto(
-          lightScrim = Color.White.toArgb(),
-          darkScrim = Color.Transparent.toArgb(),
-        ) { isDarkMode },
+        statusBarStyle = barStyle,
+        navigationBarStyle = barStyle,
       )
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        window.isNavigationBarContrastEnforced = false
+      }
 
       // Auto-connect to saved network connections
       LaunchedEffect(Unit) {
@@ -235,8 +246,8 @@ class MainActivity : ComponentActivity() {
 
     // The mini player is hosted here, in the window, so its expanded page can cover pushed
     // screens too. It is docked on the navigation bar and does its own layout, so nothing in this
-    // file offsets for it any more: `MainScreen` owns the content inset via
-    // `LocalNavigationBarHeight`, and the sheet owns its own geometry.
+    // file offsets for it any more: `LocalNavigationBarHeight` owns the content inset, and the
+    // sheet owns its own geometry.
     val navBarHeight = if (isMainScreen && !hideNavigationBar) 64.dp else 0.dp
     val totalNavigationBarHeight = navBarHeight
 

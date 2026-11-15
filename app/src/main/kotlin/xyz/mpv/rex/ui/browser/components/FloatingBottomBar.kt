@@ -42,7 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.koin.compose.koinInject
 import xyz.mpv.rex.R
-import xyz.mpv.rex.ui.browser.MainScreen
+import xyz.mpv.rex.ui.browser.LocalNavigationBarHeight
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerDefaults
 import xyz.mpv.rex.ui.browser.miniplayer.MiniPlayerStateManager
 import xyz.mpv.rex.ui.controls.TonalIconTone
@@ -76,10 +76,12 @@ fun BrowserBottomBar(
   val miniPlayerStateManager = koinInject<MiniPlayerStateManager>()
   val miniPlayerState by miniPlayerStateManager.state.collectAsState()
   val backstack = LocalBackStack.current
-  val isMainScreen = backstack.lastOrNull() == MainScreen
   val haptic = LocalHapticFeedback.current
 
-  val navBarHeight = if (isMainScreen) 64.dp else 0.dp
+  // Mirrors `LocalNavigationBarHeight`: on MainScreen it is the app's bottom bar plus the device
+  // navigation bar inset; on pushed screens it is just the device inset (0 in gesture navigation).
+  // With 3-button navigation the pill has to clear the buttons, not hover over them.
+  val navBarHeight = LocalNavigationBarHeight.current
   val miniPlayerOffset = if (miniPlayerState.isPlaybackActive) MiniPlayerDefaults.TotalCompactOffset else 0.dp
   val targetBottomPadding = navBarHeight + miniPlayerOffset + 16.dp
 
