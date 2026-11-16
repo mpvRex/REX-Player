@@ -6,7 +6,6 @@ import androidx.annotation.VisibleForTesting
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +36,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
+import android.content.ContextWrapper
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
@@ -74,7 +76,13 @@ object MiniPlayerDefaults {
   /** Margin between the bottom of the floating bar and the top of the bottom chrome. */
   val FloatingBottomMargin = 16.dp
 
-  /** Shadow elevation under the floating surface. */
+  /**
+   * Shadow elevation under the floating surface.
+   *
+   * The pill is themed by the artwork-derived scheme, so it separates from the background by
+   * color and the shadow stays a soft depth cue, not a hard halo. Drawn with `clip = false`
+   * and zeroed while the surface is animating so the shadow never gets cut at the card edges.
+   */
   val FloatingElevation = 6.dp
 
   /**
@@ -145,6 +153,28 @@ fun MiniPlayer(
     expandedBinding.value(morph.isExpanded)
     onDispose { }
   }
+
+  // The expanded page is always dark, so the status bar icons must be light while it is open,
+  // whatever the app theme says. The previous value is restored when it collapses.
+  val statusBarHost = LocalContext.current
+  DisposableEffect(morph.isExpanded) {
+    var restore: (() -> Unit)? = null
+    if (morph.isExpanded) {
+      var ctx = statusBarHost
+      while (ctx is ContextWrapper) {
+        if (ctx is Activity) break
+        ctx = ctx.baseContext
+      }
+      val window = (ctx as? Activity)?.window
+      if (window != null) {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        val previous = controller.isAppearanceLightStatusBars
+        controller.isAppearanceLightStatusBars = false
+        restore = { controller.isAppearanceLightStatusBars = previous }
+      }
+    }
+    onDispose { restore?.invoke() }
+  }
   DisposableEffect(Unit) {
     onDispose { expandedBinding.value(false) }
   }
@@ -180,6 +210,11 @@ fun MiniPlayer(
     morph.resetDocked()
     stateManager.closeMiniPlayer(context)
   }
+
+  // The mini player surface follows the shared artwork-derived scheme (see
+  // rememberArtworkSurfaceScheme): it separates from the background by color, so the
+  // 6.dp shadow reads as soft depth instead of a hard halo.
+  val surfaceScheme = rememberArtworkSurfaceScheme()
 
   BoxWithConstraints(modifier = modifier.fillMaxSize()) {
     val windowHeightPx = with(density) { maxHeight.toPx() }
@@ -283,12 +318,7 @@ fun MiniPlayer(
           clip = false,
         )
         .clip(shape)
-        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-        .border(
-          width = 1.dp,
-          color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = (1f - f) * 0.25f),
-          shape = shape,
-        )
+        .background(surfaceScheme.surfaceContainerHigh)
         .miniPlayerSheetGestures(
           state = morph,
           barHeightPx = { barHeightPx },
@@ -313,13 +343,15 @@ fun MiniPlayer(
             .zIndex(if (isBarOnTop) 1f else 0f)
             .graphicsLayer { this.alpha = barAlpha }
         ) {
-          MiniPlayerBar(
-            state = state,
-            stateManager = stateManager,
-            pullFraction = { (morph.extension.value / barHeightPx).coerceIn(0f, 1f) },
-            onClose = dismiss,
-            modifier = Modifier.fillMaxSize(),
-          )
+          MaterialTheme(colorScheme = surfaceScheme) {
+            MiniPlayerBar(
+              state = state,
+              stateManager = stateManager,
+              pullFraction = { (morph.extension.value / barHeightPx).coerceIn(0f, 1f) },
+              onClose = dismiss,
+              modifier = Modifier.fillMaxSize(),
+            )
+          }
         }
       }
 
@@ -338,18 +370,20 @@ fun MiniPlayer(
               translationY = (1f - pageAlpha) * 24.dp.toPx()
             }
         ) {
-          MiniPlayerPage(
-            state = state,
-            stateManager = stateManager,
-            onCollapse = collapseAction,
-            onOpenFullPlayer = {
-              stateManager.openPlayer(context)
-              morph.resetDocked()
-            },
-            onClose = dismiss,
-            scrollState = pageScrollState,
-            modifier = Modifier.nestedScroll(nestedScrollConnection),
-          )
+          MaterialTheme(colorScheme = surfaceScheme) {
+            MiniPlayerPage(
+              state = state,
+              stateManager = stateManager,
+              onCollapse = collapseAction,
+              onOpenFullPlayer = {
+                stateManager.openPlayer(context)
+                morph.resetDocked()
+              },
+              onClose = dismiss,
+              scrollState = pageScrollState,
+              modifier = Modifier.nestedScroll(nestedScrollConnection),
+            )
+          }
         }
       }
     }

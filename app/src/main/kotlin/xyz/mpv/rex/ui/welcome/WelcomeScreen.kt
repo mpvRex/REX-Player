@@ -156,8 +156,7 @@ object WelcomeScreen : Screen {
         Surface(
           modifier = Modifier.fillMaxWidth(),
           color = MaterialTheme.colorScheme.surfaceContainer,
-          tonalElevation = 8.dp,
-          shadowElevation = 8.dp,
+          shadowElevation = 6.dp,
         ) {
           Column(
             modifier = Modifier

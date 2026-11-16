@@ -10,7 +10,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -115,15 +114,9 @@ fun BrowserBottomBar(
       modifier = Modifier
         .windowInsetsPadding(WindowInsets.systemBars)
         .padding(horizontal = 20.dp, vertical = 8.dp)
-        .border(
-          width = 1.dp,
-          color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-          shape = pillShape
-        ),
+        .softFloatingShadow(pillShape, MiniPlayerDefaults.FloatingElevation),
       shape = pillShape,
       color = MaterialTheme.colorScheme.surfaceContainerHighest,
-      tonalElevation = 6.dp,
-      shadowElevation = 10.dp
     ) {
       Row(
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),

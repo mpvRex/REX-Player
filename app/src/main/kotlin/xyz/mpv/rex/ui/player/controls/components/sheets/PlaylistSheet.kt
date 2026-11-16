@@ -503,9 +503,6 @@ fun PlaylistTrackListItem(
   accentColor: Color,
   modifier: Modifier = Modifier,
 ) {
-  // Use theme colors dynamically
-  val accentSecondary = MaterialTheme.colorScheme.primaryContainer
-
   // Thumbnail state - uses cache to persist across recompositions
   val videoPath = item.path.ifBlank { item.uri.toString() }
   var thumbnail by remember(videoPath) {
@@ -527,13 +524,13 @@ fun PlaylistTrackListItem(
   val borderModifier = if (isSelected) {
     Modifier.border(
       width = 2.dp,
-      color = Color.Red,
+      color = MaterialTheme.colorScheme.primary,
       shape = RoundedCornerShape(12.dp),
     )
   } else if (item.isPlaying) {
     Modifier.border(
       width = 2.dp,
-      brush = Brush.linearGradient(listOf(accentColor, accentSecondary)),
+      color = accentColor,
       shape = RoundedCornerShape(12.dp),
     )
   } else {
@@ -560,7 +557,7 @@ fun PlaylistTrackListItem(
       .then(borderModifier)
       .then(clickModifier),
     color = if (isSelected) {
-      Color.Red.copy(alpha = 0.2f)
+      MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
     } else if (item.isPlaying) {
       MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
     } else {

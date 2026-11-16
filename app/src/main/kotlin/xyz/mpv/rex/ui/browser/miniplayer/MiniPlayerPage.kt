@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -91,17 +92,60 @@ internal fun MiniPlayerPage(
   val positionText = remember(state.currentPositionMs) { MediaFormatter.formatDuration(state.currentPositionMs) }
   val durationText = remember(state.durationMs) { MediaFormatter.formatDuration(state.durationMs) }
 
-  Column(
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .fillMaxHeight()
-        .statusBarsPadding()
-        .navigationBarsPadding()
-        .verticalScroll(scrollState)
-        .padding(top = 8.dp),
-    horizontalAlignment = Alignment.CenterHorizontally,
-  ) {
+  if (isLandscape) {
+    Row(
+      modifier =
+        modifier
+          .fillMaxSize()
+          .statusBarsPadding()
+          .navigationBarsPadding()
+          .padding(top = 8.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      // Left side: Header and Artwork
+      Column(
+        modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          MiniSheetIconButton(onClick = onCollapse, desc = stringResource(R.string.mini_player_collapse), size = 48.dp, tone = TonalIconTone.Muted) {
+            RexIcon(RexIcons.ExpandMore, modifier = Modifier.size(24.dp))
+          }
+          Text(text = stringResource(R.string.playlist_now_playing), style = MaterialTheme.typography.labelMedium, color = scheme.primary)
+          MiniSheetIconButton(onClick = onClose, desc = stringResource(R.string.close), size = 48.dp, tone = TonalIconTone.Muted) {
+            RexIcon(RexIcons.Close, modifier = Modifier.size(20.dp))
+          }
+        }
+        Spacer(Modifier.height(16.dp))
+        PageArtwork(bitmap = state.thumbnail, isLandscape = isLandscape, screenHeightDp = configuration.screenHeightDp)
+      }
+
+      // Right side: Controls
+      Column(
+        modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(scrollState).padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+      ) {
+        PlayerControlsColumn(state, stateManager, onOpenFullPlayer, openPlayerLabel, positionText, durationText, isLandscape)
+      }
+    }
+  } else {
+    Column(
+      modifier =
+        modifier
+          .fillMaxWidth()
+          .fillMaxHeight()
+          .statusBarsPadding()
+          .navigationBarsPadding()
+          .verticalScroll(scrollState)
+          .padding(top = 8.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
     // ── header ────────────────────────────────────────────────────────────────────────
     Row(
       modifier =
@@ -144,13 +188,35 @@ internal fun MiniPlayerPage(
 
     Spacer(Modifier.height(if (isLandscape) 12.dp else 24.dp))
 
+      PlayerControlsColumn(state, stateManager, onOpenFullPlayer, openPlayerLabel, positionText, durationText, isLandscape)
+    }
+  }
+}
+
+@Composable
+private fun PlayerControlsColumn(
+  state: MiniPlayerState,
+  stateManager: MiniPlayerStateManager,
+  onOpenFullPlayer: () -> Unit,
+  openPlayerLabel: String,
+  positionText: String,
+  durationText: String,
+  isLandscape: Boolean,
+) {
+  val scheme = MaterialTheme.colorScheme
+  Column(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
     // ── title block ───────────────────────────────────────────────────────────────────
     Column(
       modifier =
         Modifier
           .fillMaxWidth()
+          .height(88.dp)
           .padding(horizontal = MiniPlayerPageDefaults.HorizontalGutter),
       horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.Center,
     ) {
       Text(
         text = state.title.ifBlank { stringResource(R.string.playlist_now_playing) },
@@ -214,34 +280,16 @@ internal fun MiniPlayerPage(
 
     TransportRow(state = state, stateManager = stateManager)
 
-    Spacer(Modifier.height(20.dp))
+    Spacer(Modifier.height(24.dp))
 
-    // ── punch-out to the real player ───────────────────────────────────────────────────
-    Surface(
-      onClick = onOpenFullPlayer,
-      shape = pillShape,
-      color = scheme.surfaceContainerHighest,
-      contentColor = scheme.onSurface,
-      modifier =
-        Modifier
-          .padding(bottom = 24.dp)
-          .semantics {
-            contentDescription = openPlayerLabel
-            role = Role.Button
-          },
-    ) {
-      Row(
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        RexIcon(RexIcons.Fullscreen, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(
-          text = openPlayerLabel,
-          style = MaterialTheme.typography.labelLarge,
-        )
-      }
-    }
+    BottomRow(
+      state = state,
+      stateManager = stateManager,
+      onOpenFullPlayer = onOpenFullPlayer,
+      openPlayerLabel = openPlayerLabel,
+    )
+
+    Spacer(Modifier.height(24.dp))
   }
 }
 
@@ -260,22 +308,13 @@ private fun PageArtwork(
   val hasArtwork = safe != null
   val shape = if (hasArtwork) ArtworkCorner else fallbackShape
 
-  // The page must fit the height it is given: the fixed chrome below the artwork is roughly
-  // header (56) + title block (~110) + seek (~80) + transport (72) + punch-out (~84) + spacers.
-  // Compute the artwork from the window height, not from the sheet (which grows during the morph),
-  // so the page layout never changes mid-animation.
-  val fixedChromeDp = 420
-  val available = (screenHeightDp - fixedChromeDp).coerceAtLeast(if (isLandscape) 96 else 160)
-  val cap = if (isLandscape) 200 else MiniPlayerPageDefaults.ArtworkSize.value.toInt()
-  val height: Dp = minOf(available, cap).dp
-
   Box(
     modifier =
       Modifier
         .widthIn(max = 320.dp)
         .fillMaxWidth(if (isLandscape) 0.45f else 0.72f)
-        .height(height)
-        .shadow(elevation = 10.dp, shape = shape)
+        .aspectRatio(1f)
+        .shadow(elevation = 6.dp, shape = shape)
         .clip(shape)
         .background(MaterialTheme.colorScheme.primaryContainer),
     contentAlignment = Alignment.Center,
@@ -307,45 +346,37 @@ private fun TransportRow(
     modifier =
       Modifier
         .fillMaxWidth()
-        .padding(horizontal = 12.dp),
+        .padding(horizontal = 24.dp),
     horizontalArrangement = Arrangement.SpaceEvenly,
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    val shuffleOn = state.shuffleEnabled
-    MiniSheetIconButton(
-      onClick = stateManager::toggleShuffle,
-      desc = stringResource(R.string.mini_player_shuffle),
-      size = 48.dp,
-      tone = if (shuffleOn) TonalIconTone.Active else TonalIconTone.Muted,
-    ) {
-      RexIcon(RexIcons.Shuffle, isFilled = shuffleOn, modifier = Modifier.size(22.dp))
-    }
-
     MiniSheetIconButton(
       onClick = stateManager::playPrevious,
       desc = stringResource(R.string.mini_player_previous),
       size = 56.dp,
+      tone = TonalIconTone.Muted,
     ) {
-      RexIcon(RexIcons.SkipPrevious, isFilled = true, modifier = Modifier.size(28.dp))
+      RexIcon(RexIcons.SkipPrevious, isFilled = true, modifier = Modifier.size(32.dp))
     }
 
-    // The one loud shape on the page: the primary action, in a filled circle.
+    // Large, pill-shaped Play/Pause button
     Surface(
       onClick = stateManager::togglePlayPause,
-      shape = MaterialShapes.Circle.toShape(),
+      shape = MaterialShapes.Pill.toShape(),
       color = MaterialTheme.colorScheme.primary,
       contentColor = MaterialTheme.colorScheme.onPrimary,
-      shadowElevation = 6.dp,
       modifier =
         Modifier
-          .size(72.dp)
+          .weight(1f)
+          .padding(horizontal = 16.dp)
+          .height(64.dp)
           .semantics {
             contentDescription = playPauseLabel
             role = Role.Button
           },
     ) {
       Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        PlayPauseGlyph(paused = state.isPaused, size = 34.dp)
+        PlayPauseGlyph(paused = state.isPaused, size = 36.dp)
       }
     }
 
@@ -353,11 +384,69 @@ private fun TransportRow(
       onClick = stateManager::playNext,
       desc = stringResource(R.string.mini_player_next),
       size = 56.dp,
+      tone = TonalIconTone.Muted,
     ) {
-      RexIcon(RexIcons.SkipNext, isFilled = true, modifier = Modifier.size(28.dp))
+      RexIcon(RexIcons.SkipNext, isFilled = true, modifier = Modifier.size(32.dp))
     }
+  }
+}
 
-    val repeatOn = state.repeatMode != RepeatMode.OFF
+@Composable
+private fun BottomRow(
+  state: MiniPlayerState,
+  stateManager: MiniPlayerStateManager,
+  onOpenFullPlayer: () -> Unit,
+  openPlayerLabel: String,
+) {
+  val shuffleOn = state.shuffleEnabled
+  val repeatOn = state.repeatMode != RepeatMode.OFF
+  
+  Row(
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 24.dp),
+    horizontalArrangement = Arrangement.Center,
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    MiniSheetIconButton(
+      onClick = stateManager::toggleShuffle,
+      desc = stringResource(R.string.mini_player_shuffle),
+      size = 48.dp,
+      tone = if (shuffleOn) TonalIconTone.Active else TonalIconTone.Muted,
+    ) {
+      RexIcon(RexIcons.Shuffle, isFilled = shuffleOn, modifier = Modifier.size(24.dp))
+    }
+    
+    Spacer(Modifier.width(16.dp))
+
+    // ── punch-out to the real player ───────────────────────────────────────────────────
+    Surface(
+      onClick = onOpenFullPlayer,
+      shape = pillShape,
+      color = MaterialTheme.colorScheme.surfaceContainerHighest,
+      contentColor = MaterialTheme.colorScheme.onSurface,
+      modifier =
+        Modifier.semantics {
+          contentDescription = openPlayerLabel
+          role = Role.Button
+        },
+    ) {
+      Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        RexIcon(RexIcons.Fullscreen, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+          text = openPlayerLabel,
+          style = MaterialTheme.typography.labelMedium,
+        )
+      }
+    }
+    
+    Spacer(Modifier.width(16.dp))
+
     MiniSheetIconButton(
       onClick = stateManager::cycleRepeatMode,
       desc = stringResource(R.string.mini_player_repeat),
@@ -367,7 +456,7 @@ private fun TransportRow(
       RexIcon(
         icon = if (state.repeatMode == RepeatMode.ONE) RexIcons.RepeatOne else RexIcons.Repeat,
         isFilled = repeatOn,
-        modifier = Modifier.size(22.dp),
+        modifier = Modifier.size(24.dp),
       )
     }
   }
