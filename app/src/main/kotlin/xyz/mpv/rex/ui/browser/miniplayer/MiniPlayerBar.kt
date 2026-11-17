@@ -16,6 +16,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -112,11 +113,9 @@ internal fun MiniPlayerBar(
           .padding(start = 12.dp, end = 6.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      MiniArtwork(
+      CircularArtworkWithProgress(
         bitmap = state.thumbnail,
-        width = 60.dp,
-        height = 44.dp,
-        corner = 8.dp,
+        progress = progress,
         modifier =
           Modifier.graphicsLayer {
             val s = 1f - pullFraction() * 0.18f
@@ -175,29 +174,88 @@ internal fun MiniPlayerBar(
       }
 
       MiniSheetIconButton(
-        onClick = onClose,
-        desc = stringResource(R.string.close),
+        onClick = stateManager::playNext,
+        desc = stringResource(R.string.mini_player_next),
         size = 40.dp,
         tone = TonalIconTone.Muted,
+        enabled = state.hasNext,
       ) {
-        RexIcon(RexIcons.Close, modifier = Modifier.size(20.dp))
+        RexIcon(RexIcons.SkipNext, isFilled = true, modifier = Modifier.size(22.dp))
       }
     }
+  }
+}
 
-    LinearWavyProgressIndicator(
-      progress = { progress },
+/**
+ * Circular artwork with a ring progress indicator wrapped around it.
+ * Used by the collapsed mini player to match the reference design (progress around
+ * the thumbnail rather than a bottom linear bar).
+ */
+@Composable
+internal fun CircularArtworkWithProgress(
+  bitmap: Bitmap?,
+  progress: Float,
+  modifier: Modifier = Modifier,
+) {
+  val scheme = MaterialTheme.colorScheme
+  val ringSize = 52.dp
+  val stroke = 3.dp
+  val safe = bitmap?.takeUnless { it.isRecycled }
+  Box(modifier = modifier.size(ringSize), contentAlignment = Alignment.Center) {
+    // Track ring
+    Canvas(modifier = Modifier.fillMaxSize()) {
+      val inset = stroke.toPx() / 2f
+      drawCircle(
+        color = scheme.surfaceContainerHighest,
+        radius = size.minDimension / 2f - inset,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke.toPx()),
+      )
+    }
+    // Progress arc
+    if (progress > 0f) {
+      Canvas(modifier = Modifier.fillMaxSize()) {
+        val inset = stroke.toPx() / 2f
+        drawArc(
+          color = scheme.primary,
+          startAngle = -90f,
+          sweepAngle = 360f * progress.coerceIn(0f, 1f),
+          useCenter = false,
+          style = androidx.compose.ui.graphics.drawscope.Stroke(
+            width = stroke.toPx(),
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+          ),
+          topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
+          size = androidx.compose.ui.geometry.Size(
+            size.width - stroke.toPx(),
+            size.height - stroke.toPx(),
+          ),
+        )
+      }
+    }
+    // Circular thumbnail
+    Box(
       modifier =
         Modifier
-          .align(Alignment.BottomCenter)
-          .fillMaxWidth()
-          .height(4.dp)
-          .padding(horizontal = 24.dp),
-      color = scheme.primary,
-      trackColor = androidx.compose.ui.graphics.Color.Transparent,
-      amplitude = { if (state.isPaused) 0f else 1f },
-      wavelength = WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
-      waveSpeed = WavyProgressIndicatorDefaults.LinearDeterminateWavelength / 2f,
-    )
+          .size(ringSize - stroke * 2 - 4.dp)
+          .clip(androidx.compose.foundation.shape.CircleShape)
+          .background(scheme.surfaceContainerHighest),
+      contentAlignment = Alignment.Center,
+    ) {
+      if (safe != null) {
+        Image(
+          bitmap = safe.asImageBitmapCached(),
+          contentDescription = null,
+          contentScale = ContentScale.Crop,
+          modifier = Modifier.fillMaxSize(),
+        )
+      } else {
+        RexIcon(
+          RexIcons.Movie,
+          modifier = Modifier.size(20.dp),
+          tint = scheme.onSurfaceVariant,
+        )
+      }
+    }
   }
 }
 
@@ -303,11 +361,13 @@ internal fun MiniSheetIconButton(
   size: Dp,
   modifier: Modifier = Modifier,
   tone: TonalIconTone = TonalIconTone.Primary,
+  enabled: Boolean = true,
   content: @Composable () -> Unit,
 ) {
   val interactionSource = remember { MutableInteractionSource() }
   FilledTonalIconButton(
     onClick = onClick,
+    enabled = enabled,
     interactionSource = interactionSource,
     colors = tonalIconButtonColors(tone),
     modifier =
