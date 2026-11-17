@@ -102,26 +102,12 @@ internal fun MiniPlayerPage(
           .padding(top = 8.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      // Left side: Header and Artwork
-      Column(
-        modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(scrollState),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+      // Left side: Artwork only. The header row and its collapse/close buttons are
+      // intentionally omitted in landscape so the artwork gets the full column height.
+      Box(
+        modifier = Modifier.weight(1f).fillMaxHeight(),
+        contentAlignment = Alignment.Center,
       ) {
-        Row(
-          modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          MiniSheetIconButton(onClick = onCollapse, desc = stringResource(R.string.mini_player_collapse), size = 48.dp, tone = TonalIconTone.Muted) {
-            RexIcon(RexIcons.ExpandMore, modifier = Modifier.size(24.dp))
-          }
-          Text(text = stringResource(R.string.playlist_now_playing), style = MaterialTheme.typography.labelMedium, color = scheme.primary)
-          MiniSheetIconButton(onClick = onClose, desc = stringResource(R.string.close), size = 48.dp, tone = TonalIconTone.Muted) {
-            RexIcon(RexIcons.Close, modifier = Modifier.size(20.dp))
-          }
-        }
-        Spacer(Modifier.height(16.dp))
         PageArtwork(bitmap = state.thumbnail, isLandscape = isLandscape, screenHeightDp = configuration.screenHeightDp)
       }
 
@@ -312,7 +298,7 @@ private fun PageArtwork(
     modifier =
       Modifier
         .widthIn(max = 320.dp)
-        .fillMaxWidth(if (isLandscape) 0.45f else 0.72f)
+        .fillMaxWidth(if (isLandscape) 0.85f else 0.72f)
         .aspectRatio(1f)
         .shadow(elevation = 6.dp, shape = shape)
         .clip(shape)
