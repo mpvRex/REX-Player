@@ -25,6 +25,7 @@ class HybridMediaIndexRepositoryTest {
   private val metadataCacheRepository = mockk<VideoMetadataCacheRepository>()
   private val browserPreferences = mockk<BrowserPreferences>(relaxed = true) {
     every { showAudioFiles.get() } returns false
+    every { showHiddenFiles.get() } returns false
     every { flattenFolders.get() } returns true
   }
   private val repository = HybridMediaIndexRepository(
@@ -34,6 +35,32 @@ class HybridMediaIndexRepositoryTest {
     foldersPreferences = mockk<FoldersPreferences>(relaxed = true),
     metadataCacheRepository = metadataCacheRepository,
   )
+
+  @Test
+  fun cachedMediaFiltersHiddenAncestorsBeforeRescan() = runTest {
+    val regular = media("file:/storage/primary/Public/clip.mp4", "/storage/primary/Public/clip.mp4", "/storage/primary/Public")
+    val hidden = media("file:/storage/primary/.hidden/Child/clip.mp4", "/storage/primary/.hidden/Child/clip.mp4", "/storage/primary/.hidden/Child")
+    every { browserPreferences.showHiddenFiles.get() } returns false
+    coEvery { dao.getAvailableMedia(true) } returns listOf(regular, hidden)
+
+    assertEquals(listOf(regular.parentIdentity), repository.getFlatFolders(emptyList(), 7, 95, true).map { it.path })
+    val root = repository.getRecursiveFolder("/storage/primary", emptyList(), 7, 95, true)
+    assertEquals(1, root?.videoCount)
+
+    every { browserPreferences.showHiddenFiles.get() } returns true
+    assertEquals(2, repository.getFlatFolders(emptyList(), 7, 95, true).size)
+    assertEquals(2, repository.getRecursiveFolder("/storage/primary", emptyList(), 7, 95, true)?.videoCount)
+  }
+
+  @Test
+  fun cachedSearchHonorsHiddenVisibility() = runTest {
+    val hidden = media("file:/storage/primary/.hidden/Child/clip.mp4", "/storage/primary/.hidden/Child/clip.mp4", "/storage/primary/.hidden/Child")
+    every { browserPreferences.showHiddenFiles.get() } returns false
+    coEvery { dao.searchMedia("clip", true) } returns listOf(hidden)
+    assertEquals(0, repository.searchMedia("clip", includeNoMedia = true).size)
+    every { browserPreferences.showHiddenFiles.get() } returns true
+    assertEquals(1, repository.searchMedia("clip", includeNoMedia = true).size)
+  }
 
   @Test
   fun flatFolders_keepDuplicateNamesSeparateAndMatchPlaybackByLocation() = runTest {

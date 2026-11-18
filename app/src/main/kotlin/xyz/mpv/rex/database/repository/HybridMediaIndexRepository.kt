@@ -20,6 +20,7 @@ import xyz.mpv.rex.domain.media.model.Video
 import xyz.mpv.rex.preferences.BrowserPreferences
 import xyz.mpv.rex.preferences.FoldersPreferences
 import xyz.mpv.rex.utils.media.MediaFormatter
+import xyz.mpv.rex.utils.storage.MediaScanPolicy
 import xyz.mpv.rex.utils.storage.FileFilterUtils
 import xyz.mpv.rex.utils.storage.FileTypeUtils
 import xyz.mpv.rex.utils.storage.StorageVolumeUtils
@@ -38,6 +39,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.collectLatest
+import xyz.mpv.rex.repository.MediaFileRepository
+import xyz.mpv.rex.utils.media.MediaLibraryEvents
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -73,6 +77,21 @@ class HybridMediaIndexRepository(
   val scanState: StateFlow<HybridIndexScanState> = _scanState.asStateFlow()
 
   init {
+    repositoryScope.launch {
+      browserPreferences.showHiddenFiles.changes().drop(1).collectLatest {
+        MediaFileRepository.clearCache()
+        MediaLibraryEvents.notifyChanged()
+        try {
+          ensureFresh(force = true, userInitiated = true)
+        } catch (e: CancellationException) {
+          throw e
+        } catch (e: Exception) {
+          Log.e(TAG, "Could not refresh hidden media", e)
+        } finally {
+          MediaLibraryEvents.notifyChanged()
+        }
+      }
+    }
     repositoryScope.launch {
       foldersPreferences.blacklistedFolders.changes().drop(1).collect { blacklist ->
         purgeExcludedFolders(blacklist)
@@ -318,13 +337,21 @@ class HybridMediaIndexRepository(
   }
 
 
+  private suspend fun visibleMedia(includeNoMedia: Boolean): List<HybridMediaEntity> {
+    val showHidden = browserPreferences.showHiddenFiles.get()
+    return dao.getAvailableMedia(includeNoMedia).filter { item ->
+      showHidden || (!FileFilterUtils.isHiddenPath(item.location) &&
+        !FileFilterUtils.isHiddenPath(item.parentIdentity) && !item.displayName.startsWith("."))
+    }
+  }
+
   suspend fun getFlatFolders(
     playbackStates: List<PlaybackStateEntity>,
     thresholdDays: Int,
     watchedThreshold: Int,
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): List<MediaFolder> = withContext(Dispatchers.IO) {
-    val items = dao.getAvailableMedia(includeNoMedia)
+    val items = visibleMedia(includeNoMedia)
     val stateByIdentity = playbackStates.associateBy { it.mediaTitle }
     val thresholdMillis = thresholdDays * 24L * 60L * 60L * 1000L
     val now = System.currentTimeMillis()
@@ -381,7 +408,7 @@ class HybridMediaIndexRepository(
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): List<MediaFolder> = withContext(Dispatchers.IO) {
     val tree = buildFileTree(
-      dao.getAvailableMedia(includeNoMedia),
+      visibleMedia(includeNoMedia),
       playbackStates,
       thresholdDays,
       watchedThreshold,
@@ -399,7 +426,7 @@ class HybridMediaIndexRepository(
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): MediaFolder? = withContext(Dispatchers.IO) {
     buildFileTree(
-      dao.getAvailableMedia(includeNoMedia),
+      visibleMedia(includeNoMedia),
       playbackStates,
       thresholdDays,
       watchedThreshold,
@@ -410,7 +437,7 @@ class HybridMediaIndexRepository(
     parentIdentity: String,
     includeNoMedia: Boolean = browserPreferences.includeNoMediaContent.get(),
   ): List<Video> = withContext(Dispatchers.IO) {
-    dao.getAvailableMedia(includeNoMedia)
+    visibleMedia(includeNoMedia)
       .asSequence()
       .filter { it.parentIdentity == parentIdentity }
       .map { it.toVideo() }
@@ -435,7 +462,11 @@ class HybridMediaIndexRepository(
       val prefix = "$parentPath/%"
       dao.searchMediaInPath(query, parentPath, prefix, includeNoMedia)
     }
-    entities.map { it.toVideo() }
+    val showHidden = browserPreferences.showHiddenFiles.get()
+    entities.filter { item ->
+      showHidden || (!FileFilterUtils.isHiddenPath(item.location) &&
+        !FileFilterUtils.isHiddenPath(item.parentIdentity) && !item.displayName.startsWith("."))
+    }.map { it.toVideo() }
   }
 
   suspend fun clear() {
@@ -506,6 +537,7 @@ class HybridMediaIndexRepository(
     }
 
     val includeNoMedia = browserPreferences.includeNoMediaContent.get()
+    val policy = MediaScanPolicy(includeNoMedia, browserPreferences.showHiddenFiles.get())
     val blacklist = foldersPreferences.blacklistedFolders.get()
       .mapTo(mutableSetOf()) { normalizePath(File(it)) }
     val batch = mutableListOf<HybridMediaEntity>()
@@ -533,12 +565,12 @@ class HybridMediaIndexRepository(
       for (entry in entries) {
         currentCoroutineContext().ensureActive()
         if (entry.isDirectory) {
-          if (!FileFilterUtils.shouldSkipFolderName(entry.name)) {
+          if (!FileFilterUtils.shouldSkipFolderName(entry.name, policy)) {
             walk(entry, noMedia, depth + 1)
           }
           continue
         }
-        if (!entry.isFile || FileFilterUtils.shouldSkipFile(entry)) continue
+        if (!entry.isFile || FileFilterUtils.shouldSkipFile(entry, policy)) continue
 
         val isVideo = FileTypeUtils.isVideoFile(entry)
         val isAudio = FileTypeUtils.isAudioFile(entry)
@@ -587,6 +619,7 @@ class HybridMediaIndexRepository(
     }
 
     val includeNoMedia = browserPreferences.includeNoMediaContent.get()
+    val policy = MediaScanPolicy(includeNoMedia, browserPreferences.showHiddenFiles.get())
     val blacklist = foldersPreferences.blacklistedFolders.get()
     val batch = mutableListOf<HybridMediaEntity>()
     var count = 0
@@ -620,12 +653,12 @@ class HybridMediaIndexRepository(
         currentCoroutineContext().ensureActive()
         val name = entry.name ?: continue
         if (entry.isDirectory) {
-          if (!FileFilterUtils.shouldSkipFolderName(name)) {
+          if (!FileFilterUtils.shouldSkipFolderName(name, policy)) {
             walk(entry, noMedia, depth + 1)
           }
           continue
         }
-        if (!entry.isFile || name.startsWith(".")) continue
+        if (!entry.isFile || (!policy.showHiddenFiles && name.startsWith("."))) continue
 
         val extension = name.substringAfterLast('.', "").lowercase()
         val mimeType = entry.type ?: FileTypeUtils.getMimeTypeFromExtension(extension)

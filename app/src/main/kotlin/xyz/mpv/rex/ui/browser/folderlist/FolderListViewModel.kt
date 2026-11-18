@@ -117,9 +117,11 @@ class FolderListViewModel(
         foldersPreferences.blacklistedFolders.changes(),
         browserPreferences.showAudioFiles.changes(),
         browserPreferences.includeNoMediaContent.changes(),
-      ) { folders, blacklist, showAudio, includeNoMedia ->
+        browserPreferences.showHiddenFiles.changes(),
+      ) { folders, blacklist, showAudio, includeNoMedia, showHidden ->
         folders.filter { folder -> 
           folder.path !in blacklist &&
+          (showHidden || !FileFilterUtils.isHiddenPath(folder.path)) &&
           folder.activeCount(showAudio) > 0 &&
           (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }
@@ -277,6 +279,7 @@ class FolderListViewModel(
         val includeNoMedia = browserPreferences.includeNoMediaContent.get()
         val filteredFolders = folders.filter { folder -> 
           folder.path !in blacklist &&
+          (browserPreferences.showHiddenFiles.get() || !FileFilterUtils.isHiddenPath(folder.path)) &&
           folder.activeCount(showAudio) > 0 &&
           (includeNoMedia || !FileFilterUtils.isWithinNoMediaBoundary(File(folder.path)))
         }

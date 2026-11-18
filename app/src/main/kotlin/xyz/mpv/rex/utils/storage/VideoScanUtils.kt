@@ -292,7 +292,7 @@ object VideoScanUtils {
 
         // Reconcile with direct filesystem to pick up newly added or unindexed files
         // (e.g. fresh torrent downloads from Flud, browser downloads, or external transfers).
-        val fsSuccess = scanMediaFromFileSystem(folder, videosMap, directChildren, normalizedFolderPath)
+        val fsSuccess = scanMediaFromFileSystem(folder, videosMap, directChildren, normalizedFolderPath, policy)
         if (!fsSuccess && videosMap.isEmpty()) {
             return@withContext FolderScanResult(emptyList(), FolderAccess.INACCESSIBLE)
         }
@@ -340,7 +340,7 @@ object VideoScanUtils {
         }
 
         FolderScanResult(
-            videos = videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) },
+            videos = videosMap.values.filter { policy.showHiddenFiles || !FileFilterUtils.isHiddenPath(it.path) }.sortedBy { it.displayName.lowercase(Locale.getDefault()) },
             access = FolderAccess.READABLE,
         )
     }
@@ -596,6 +596,7 @@ object VideoScanUtils {
         videosMap: MutableMap<String, Video>,
         prelistedFiles: Array<File>? = null,
         normalizedFolderPath: String = normalizePath(folder),
+        policy: MediaScanPolicy = MediaScanPolicy(),
     ): Boolean {
         try {
             val files = prelistedFiles ?: folder.listFiles() ?: return false
@@ -603,7 +604,7 @@ object VideoScanUtils {
             for (file in files) {
                 currentCoroutineContext().ensureActive()
                 try {
-                    if (!file.isFile || FileFilterUtils.shouldSkipFile(file)) continue
+                    if (!file.isFile || FileFilterUtils.shouldSkipFile(file, policy)) continue
 
                     val isVideo = FileTypeUtils.isVideoFile(file)
                     val isAudio = FileTypeUtils.isAudioFile(file)
