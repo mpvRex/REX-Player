@@ -76,7 +76,7 @@ fun PlayerSheet(
   customMaxWidth: Dp? = null,
   customMaxHeight: Dp? = null,
   surfaceColor: Color? = null,
-  content: @Composable () -> Unit,
+  content: @Composable (() -> Unit) -> Unit,
 ) {
   val scope = rememberCoroutineScope()
   val density = LocalDensity.current
@@ -189,7 +189,7 @@ fun PlayerSheet(
                         shape = xyz.mpv.rex.ui.theme.pillShape
                     )
             )
-            content()
+            content(internalOnDismissRequest)
         }
       },
     )

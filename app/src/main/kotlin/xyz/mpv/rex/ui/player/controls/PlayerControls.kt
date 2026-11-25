@@ -290,14 +290,20 @@ fun PlayerControls(
       }
     }
   }
-
+ 
+  var hideControlsAfterSheetDismiss by remember { mutableStateOf(false) }
+  
   val onOpenSheet: (Sheets) -> Unit = {
     viewModel.sheetShown.update { _ -> it }
     if (it == Sheets.None) {
-      viewModel.showControls()
+     if (hideControlsAfterSheetDismiss) {
+            hideControlsAfterSheetDismiss = false
+        } else {
+            viewModel.showControls()
+        }
     } else {
-      viewModel.hideControls()
-      viewModel.panelShown.update { Panels.None }
+        viewModel.hideControls()
+        viewModel.panelShown.update { Panels.None }
     }
   }
 
@@ -2134,6 +2140,7 @@ fun PlayerControls(
       chapters = chapters.toImmutableList(),
       currentChapterIndex = currentChapter ?: 0,
       onSeekToChapter = { chapterIndex ->
+        hideControlsAfterSheetDismiss = true
         viewModel.seekToChapter(chapterIndex)
       },
       activeStop = currentStopLineup.active,
