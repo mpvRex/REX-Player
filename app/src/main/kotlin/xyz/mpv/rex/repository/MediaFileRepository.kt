@@ -53,6 +53,7 @@ object MediaFileRepository {
       val browserPreferences = koin.get<BrowserPreferences>()
       val policy = MediaScanPolicy(
         includeNoMediaContent = browserPreferences.includeNoMediaContent.get(),
+        showHiddenFiles = browserPreferences.showHiddenFiles.get(),
       )
       val direct = runCatching {
         VideoScanUtils.scanFolder(context, bucketId, policy)
@@ -150,6 +151,7 @@ object MediaFileRepository {
         val isAudioEnabled = browserPreferences.showAudioFiles.get()
         val scanPolicy = MediaScanPolicy(
           includeNoMediaContent = browserPreferences.includeNoMediaContent.get(),
+          showHiddenFiles = browserPreferences.showHiddenFiles.get(),
         )
         val playbackStates = playbackStateRepository.getAllPlaybackStates()
         val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
@@ -160,7 +162,7 @@ object MediaFileRepository {
 
         coroutineScope {
           val foldersDeferred = async {
-            val folders = if (scanPolicy.includeNoMediaContent) {
+            val folders = if (scanPolicy.includeNoMediaContent || scanPolicy.showHiddenFiles) {
               val hybridIndex = koin.get<HybridMediaIndexRepository>()
               hybridIndex.ensureFreshIfEmpty()
               hybridIndex.getFoldersInDirectory(

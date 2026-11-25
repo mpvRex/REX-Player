@@ -81,7 +81,7 @@ object CoreMediaScanner {
         val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
         val watchedThreshold = browserPreferences.watchedThreshold.get()
         val showAudioFiles = browserPreferences.showAudioFiles.get()
-        val policy = MediaScanPolicy(includeNoMediaContent = browserPreferences.includeNoMediaContent.get())
+        val policy = MediaScanPolicy(includeNoMediaContent = browserPreferences.includeNoMediaContent.get(), showHiddenFiles = browserPreferences.showHiddenFiles.get())
         val playbackIndex = PlaybackStateIndex.of(playbackStates)
 
         val rows = ArrayList<FolderAggregateEntity>(folders.size * 2)
@@ -89,8 +89,9 @@ object CoreMediaScanner {
         for ((path, folder) in folders) {
             currentCoroutineContext().ensureActive()
             if (isPathExcluded(path, blacklistedFolders)) continue
+            if (!policy.showHiddenFiles && FileFilterUtils.isHiddenPath(path)) continue
             if (!policy.includeNoMediaContent && FileFilterUtils.isWithinNoMediaBoundary(File(path))) continue
-            val stats = folder.items.toDirectStats(
+            val stats = folder.items.filter { policy.showHiddenFiles || !FileFilterUtils.isHiddenPath(it.path) }.toDirectStats(
                 showAudioFiles = showAudioFiles,
                 currentTime = currentTime,
                 thresholdMillis = thresholdMillis,
@@ -514,7 +515,7 @@ object CoreMediaScanner {
         for (child in children) {
             currentCoroutineContext().ensureActive()
             if (!child.isDirectory || isPathExcluded(child.absolutePath, blacklistedFolders)) continue
-            if (FileFilterUtils.shouldSkipFolder(child, MediaScanPolicy(includeNoMediaContent = true))) continue
+            if (FileFilterUtils.shouldSkipFolder(child, policy.copy(includeNoMediaContent = true))) continue
             if (!parentIsNoMedia && !FileFilterUtils.hasNoMediaFile(child)) continue
 
             val entries = child.listFiles() ?: continue
@@ -531,7 +532,7 @@ object CoreMediaScanner {
                     if (!FileFilterUtils.shouldSkipFolder(entry, policy)) hasSubfolders = true
                     continue
                 }
-                if (!entry.isFile || FileFilterUtils.shouldSkipFile(entry)) continue
+                if (!entry.isFile || FileFilterUtils.shouldSkipFile(entry, policy)) continue
 
                 val isVideo = FileTypeUtils.isVideoFile(entry)
                 val isAudio = FileTypeUtils.isAudioFile(entry)

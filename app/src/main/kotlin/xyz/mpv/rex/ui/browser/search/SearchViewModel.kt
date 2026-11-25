@@ -103,6 +103,8 @@ class SearchViewModel(
       merge(
         MediaLibraryEvents.changes,
         foldersPreferences.blacklistedFolders.changes().map { Unit },
+        browserPreferences.showHiddenFiles.changes().map { Unit },
+        browserPreferences.includeNoMediaContent.changes().map { Unit },
       ).debounce(150L).collectLatest {
         executeSearch(searchQuery.value, searchScope.value)
       }
